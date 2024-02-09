@@ -6,3 +6,5 @@
 !src/*/
 !src/*/*
 !pyproject.toml
+!examples/
+!examples/*

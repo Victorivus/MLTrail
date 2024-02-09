@@ -5,18 +5,37 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 class Results:
-    def __init__(self, controlPoints, times, objective=0, offset=0, dayOne='Sa.', dayTwo='Di.'):
+    def __init__(self, controlPoints, times, objective=0, offset=0, cleanDays=False, dayOne='Sa.', dayTwo='Di.'):
         self.controlPoints = controlPoints
         self.objective = objective
         self.offset = offset
         if isinstance(self.offset, str):
             self.offset = self.getSeconds(offset, offset=False)
-        self.times = self.cleanDays(times, dayOne=dayOne, dayTwo=dayTwo)
+        # For races over 24H we have two options in data:
+        # They can have the Day added in front in some language, e.g. Sa. and Di. for Samedi and Dimanche
+        # Or times go back to 00:00:00 with no extra information after 23:59:59
+        if cleanDays:
+            self.times = self.cleanDays(times, dayOne=dayOne, dayTwo=dayTwo)
+        else:
+            self.times = times
+            self.times = self.cleanTimes()
+            self.times = self.times.apply(self._correctTimes24h, axis=1)
+        print(self.times.iloc[336]) 
         self.times = self.cleanTimes()
         self.timeDeltas = self.getTimeDeltas()
         self.distanceDeltas = self.getDistanceDeltas()
-        self.allures = self.getAllures()
-        self.alluresNorm = self.getAlluresNorm()
+        self.paces = self.getPaces()
+        self.pacesNorm = self.getPacesNorm()
+    
+    def _correctTimes24h(self,row):
+        previous_time = row.iloc[0]
+        adjusted_row = [row.iloc[0]]
+        for time in row[1:]:
+            if self.getSeconds(time) < self.getSeconds(previous_time):
+                time = self.getTime(self.getSeconds(time) + 24*60*60)
+            adjusted_row.append(time)
+            previous_time = time
+        return pd.Series(adjusted_row, index=row.index)
     
     def cleanDays(self, times, dayOne='Sa.', dayTwo='Di.'):
         times = times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{dayTwo}' in y else y))\
@@ -141,48 +160,48 @@ class Results:
         self.offset = offset
         return True
     
-    def getAllures(self):
-        temps_allures = self.times[(self.times[self.times.columns]!=':00')].copy()
-        temps_allures = temps_allures[(temps_allures.isna().any(axis=1) == False)]
+    def getPaces(self):
+        times_paces = self.times[(self.times[self.times.columns]!=':00')].copy()
+        times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
 
         prevPoint = ''
         for point in self.controlPoints.keys():
             if prevPoint=='':
-                temps_allures['__all__'+point] = temps_allures[point].map(lambda x: self.getAllure(x,self.controlPoints[point][0]))
+                times_paces['__all__'+point] = times_paces[point].map(lambda x: self.getAllure(x,self.controlPoints[point][0]))
             else:
-                temps_allures['__all__'+point] = temps_allures.apply(lambda x: self.getAllure(self.totalTimeToDelta(x[point],x[prevPoint]),self.controlPoints[point][0]-self.controlPoints[prevPoint][0]),axis=1)
+                times_paces['__all__'+point] = times_paces.apply(lambda x: self.getAllure(self.totalTimeToDelta(x[point],x[prevPoint]),self.controlPoints[point][0]-self.controlPoints[prevPoint][0]),axis=1)
             prevPoint = point
-        allures = temps_allures[[col for col in temps_allures.columns if col.startswith('__all__')]]
-        allures.columns = [col.replace('__all__', '') for col in allures.columns]
-        return allures
+        paces = times_paces[[col for col in times_paces.columns if col.startswith('__all__')]]
+        paces.columns = [col.replace('__all__', '') for col in paces.columns]
+        return paces
 
-    def getAlluresNorm(self):
-        temps_allures = self.times[(self.times[self.times.columns]!=':00')].copy()
-        temps_allures = temps_allures[(temps_allures.isna().any(axis=1) == False)]
+    def getPacesNorm(self):
+        times_paces = self.times[(self.times[self.times.columns]!=':00')].copy()
+        times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
         
         prevPoint = ''
         for point in self.controlPoints.keys():
             if prevPoint=='':
-                temps_allures['__allNorm__'+point] = temps_allures[point].map(lambda x: self.getAllureNorm(x,self.controlPoints[point][0],self.controlPoints[point][1]))
+                times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.getAllureNorm(x,self.controlPoints[point][0],self.controlPoints[point][1]))
             else:
-                temps_allures['__allNorm__'+point] = temps_allures.apply(lambda x: self.getAllureNorm(self.totalTimeToDelta(x[point],x[prevPoint]),
+                times_paces['__allNorm__'+point] = times_paces.apply(lambda x: self.getAllureNorm(self.totalTimeToDelta(x[point],x[prevPoint]),
                                                                                         self.controlPoints[point][0]-self.controlPoints[prevPoint][0],
                                                                                         self.controlPoints[point][1]-self.controlPoints[prevPoint][1]+
                                                                                             self.controlPoints[point][2]-self.controlPoints[prevPoint][2]
                                                                                         ),axis=1)
             prevPoint = point
 
-        allures_norm = temps_allures[[col for col in temps_allures.columns if col.startswith('__allNorm__')]]
-        allures_norm.columns = [col.replace('__allNorm__', '') for col in allures_norm.columns]
-        return allures_norm
+        paces_norm = times_paces[[col for col in times_paces.columns if col.startswith('__allNorm__')]]
+        paces_norm.columns = [col.replace('__allNorm__', '') for col in paces_norm.columns]
+        return paces_norm
 
-    def getStats(self, n1=4, n2=20, allures=None):
-        if not allures:
-            allures = self.allures
-        mean_n1 = pd.DataFrame(self.allures.head(n1).apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
-        mean_n2 = pd.DataFrame(self.allures.head(n2).apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
-        first = pd.DataFrame(self.allures.head(1).apply(lambda x: pd.to_timedelta(x)).min().map(self.tdToString)).T 
-        mins = pd.DataFrame(self.allures.apply(lambda x: pd.to_timedelta(x)).min().map(self.tdToString)).T
+    def getStats(self, n1=4, n2=20, paces=None):
+        if paces is None:
+            paces = self.paces
+        mean_n1 = pd.DataFrame(paces.head(n1).apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
+        mean_n2 = pd.DataFrame(paces.head(n2).apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
+        first = pd.DataFrame(paces.head(1).apply(lambda x: pd.to_timedelta(x)).min().map(self.tdToString)).T 
+        mins = pd.DataFrame(paces.apply(lambda x: pd.to_timedelta(x)).min().map(self.tdToString)).T
 
         index = ['mins', 'first', f'mean_{n1}', f'mean_{n2}']
 
@@ -192,16 +211,16 @@ class Results:
         return means
     
     def getStatsNorm(self, n1=4, n2=20):
-        means = self.getStats(n1=n1, n2=n2, allures=self.alluresNorm)
+        means = self.getStats(n1=n1, n2=n2, paces=self.pacesNorm)
         return means
 
-    def setobjective(self, obj=0):
+    def setObjective(self, obj=0):
         self.objective = obj
         return
 
     def getObjectiveTimes(self):
-        return pd.DataFrame(self.allures.loc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(rs.tdToString)).T 
+        return pd.DataFrame(self.paces.loc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(rs.tdToString)).T 
 
     def getObjectiveMeanTimes(self, n=4):
         # note: if n is impair, n-n/2 before objective and n/2 after it
-        return pd.DataFrame(self.allures.loc[self.objective-(n-n//2):self.objective+n//2].apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
+        return pd.DataFrame(self.paces.loc[self.objective-(n-n//2):self.objective+n//2].apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
