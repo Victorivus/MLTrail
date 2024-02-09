@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "ML Trail"
+version = "0.1.0"
+description = ""
+authors = ["Victor Nacher"]
+readme = "README.md"
+packages = [{include = "src/results"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+matplotlib = "^3.8.2"
+numpy = "^1.26.4"
+pandas = "^2.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
