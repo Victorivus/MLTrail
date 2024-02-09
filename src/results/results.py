@@ -20,7 +20,6 @@ class Results:
             self.times = times
             self.times = self.cleanTimes()
             self.times = self.times.apply(self._correctTimes24h, axis=1)
-        print(self.times.iloc[336]) 
         self.times = self.cleanTimes()
         self.timeDeltas = self.getTimeDeltas()
         self.distanceDeltas = self.getDistanceDeltas()
@@ -107,7 +106,7 @@ class Results:
             labelFormat = '%M:%S'
             
         #plt.figure(figsize=(8, 6), dpi=80)
-        fig, ax1 = plt.subplots(figsize=(12, 10), dpi=80)
+        fig, ax1 = plt.subplots(figsize=(12, 10), dpi=150)
         for i in df.reset_index()['index']:
             y = mdates.datestr2num(df.loc[i])
             ax1.plot(df.columns, y, marker='o', label=i)
@@ -124,6 +123,7 @@ class Results:
             ax1.invert_yaxis()
         if xrotate:
             plt.xticks(rotation=45)
+        plt.ylabel("pace (min/km)")
         plt.legend(loc="best")
         plt.show()
         
@@ -219,8 +219,23 @@ class Results:
         return
 
     def getObjectiveTimes(self):
-        return pd.DataFrame(self.paces.loc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(rs.tdToString)).T 
+        return pd.DataFrame(self.times.loc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.tdToString)).T 
 
-    def getObjectiveMeanTimes(self, n=4):
+    def getObjectivePaces(self):
+        return pd.DataFrame(self.paces.loc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.tdToString)).T 
+
+    def getObjectivePacesNorm(self):
+        return pd.DataFrame(self.pacesNorm.loc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.tdToString)).T 
+
+    def getObjectiveMeanPaces(self, n=5, paces=None):
+        n = n-1 # objective is already one of the n to compute mean on
+        if paces is None:
+            paces = self.paces
         # note: if n is impair, n-n/2 before objective and n/2 after it
-        return pd.DataFrame(self.paces.loc[self.objective-(n-n//2):self.objective+n//2].apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
+        return pd.DataFrame(paces.loc[self.objective-(n-n//2):self.objective+n//2].apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
+
+    def getObjectiveMeanTimes(self, n=5):
+        return self.getObjectiveMeanPaces(n=n, paces=self.times)
+    
+    def getObjectiveMeanPacesNorm(self, n=5):
+        return self.getObjectiveMeanPaces(n=n, paces=self.pacesNorm)
