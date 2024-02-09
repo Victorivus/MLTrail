@@ -11,6 +11,9 @@ python = "^3.10"
 matplotlib = "^3.8.2"
 numpy = "^1.26.4"
 pandas = "^2.2.0"
+lxml = "^5.1.0"
+html5lib = "^1.1"
+beautifulsoup4 = "^4.12.3"
 
 
 [build-system]
