@@ -1,16 +1,22 @@
 import os
 import requests
+import json
 import pandas as pd
 from bs4 import BeautifulSoup
 import pandas as pd
 
 
 class Scraper:
-    def __init__(self, events: list[str], years: list[str], race: str = 'all') -> None:
+    def __init__(self, events: list[str] = [], years: list[str] = [], race: str = 'all') -> None:
+        self.allEvents = self.getEvents()
+        self.eventsYears = self.getEventsYears()
         self.events = events
         self.years = years
         self.race = race
-        print()
+        
+    def _checkEventYear(self, e: str, y: str) -> None:
+        if e not in list(self.allEvents.keys()) or y not in self.eventsYears[e]:
+            raise ValueError(f"{e} is not a valid Live Trail race id for year {y}.")
 
     def setEvent(self, events: list[str]) -> None:
         self.event = events
@@ -73,37 +79,91 @@ class Scraper:
         count = 0
         for event in self.events:
             for year in self.years:
-                # URL of the website
-                url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
-                # Sending GET request to parse races' names
-                response = requests.get(url)
-                # Check if request was successful
-                if response.status_code == 200:
-                    races = self.getRaces(response.text)
-                    # 'race' is an id and 'name' a more human-readble version
-                    for  race, name in races.items():
-                        # Data for the POST request
-                        data = {
-                            'course': race,
-                            'cat': 'scratch',
-                            'from': '1',
-                            'to': '1000000' # To get all results
-                        }
-                        # Sending POST request
-                        results_response = requests.post(url, data=data)
-                        # Check if request was successful
-                        if results_response.status_code == 200:
-                            df = self.parseTable(results_response.text)
-                            folder_path = f'../../data/{event}'
-                            if not os.path.exists(folder_path):
-                                os.makedirs(folder_path)
-                            df.to_csv(os.path.join(folder_path,f'{event}_{race}_{year}.csv'), index=False)
-                        else:
-                            print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                                response.status_code)
-                            count += 1
-                else:
-                    print("Failed to retrieve races' names. Status code:", response.status_code)
+                try:
+                    self._checkEventYear(event, year)
+                    # URL of the website
+                    url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
+                    # Sending GET request to parse races' names
+                    response = requests.get(url)
+                    # Check if request was successful
+                    if response.status_code == 200:
+                        races = self.getRaces(response.text)
+                        # 'race' is an id and 'name' a more human-readble version
+                        for  race, name in races.items():
+                            # Data for the POST request
+                            data = {
+                                'course': race,
+                                'cat': 'scratch',
+                                'from': '1',
+                                'to': '1000000' # To get all results
+                            }
+                            # Sending POST request
+                            results_response = requests.post(url, data=data)
+                            # Check if request was successful
+                            if results_response.status_code == 200:
+                                df = self.parseTable(results_response.text)
+                                folder_path = f'../../data/{event}'
+                                if not os.path.exists(folder_path):
+                                    os.makedirs(folder_path)
+                                df.to_csv(os.path.join(folder_path,f'{event}_{race}_{year}.csv'), index=False)
+                            else:
+                                print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
+                                    results_response.status_code)
+                                count += 1
+                    else:
+                        print("Failed to retrieve races' names. Status code:", response.status_code)
+                        count += 1
+                except ValueError as e:
+                    print(e)
                     count += 1
+                    pass
         # return number of errors
         return count
+    
+    def _parseEventList(self, data)-> dict:
+        data = json.loads(data)
+        events_dict = {}
+        for i in data['infoCourse']['cal'].items():
+            events_dict[i[0]] = i[1]['nom']
+        return events_dict
+        
+    def _parsePastEventList(self, data) -> dict:
+        data = json.loads(data)
+        events_dict = {}
+        for i in data['calPass'].items():
+            events_dict[i[0]] = list(i[1]['res'].keys())
+        return events_dict
+    
+    def getEvents(self) -> dict:
+        url = "https://livetrail.net/phpFonctions/homeFunctions.php"
+        # Data for the POST request
+        data = {
+            'mode': 'dispAllEvents',
+            'type': 'livetrail.net'
+        }
+        # Sending POST request
+        response = requests.post(url, data=data)
+        # Check if request was successful
+        if response.status_code == 200:
+            events_dict = self._parseEventList(response.text)
+        else:
+            print("Failed to retrieve Live Trail's event list. Status code:",
+                response.status_code)
+        return events_dict
+    
+    def getEventsYears(self) -> dict:
+        url = "https://livetrail.net/phpFonctions/eventFunctions.php"
+        # Data for the POST request
+        data = {
+            'mode': 'dispEventPass',
+            'type': 'livetrail.net'
+        }
+        # Sending POST request
+        response = requests.post(url, data=data)
+        # Check if request was successful
+        if response.status_code == 200:
+            events_dict = self._parsePastEventList(response.text)
+        else:
+            print("Failed to retrieve Live Trail's event list. Status code:",
+                response.status_code)
+        return events_dict
