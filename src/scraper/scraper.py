@@ -135,15 +135,18 @@ class Scraper:
         return events_dict
 
     def _parseControlPoints(self, data):
-        soup = BeautifulSoup(data, 'html')
+        soup = BeautifulSoup(data, 'lxml')
         p_tags = soup.find_all('points')
         controlPoints = {}
         for p_tag in p_tags:
             pt_tags = p_tag.find_all('pt')
             cps = {}
             for pt_tag in pt_tags:
+                # Calculate the altitude difference between the current point and the first point
+                # of the route and substract this quantity from cummulated elevaation gain.
+                elev_loss = int(pt_tag['d']) - (int(pt_tag['a']) - int(pt_tags[0]['d']))
                 # {'cp_name' : (acc_dist, acc_elev+, -acc_elev-)}
-                cps[pt_tag['n']] = (pt_tag['km'], pt_tag['d'], "nan") #not implemented yet
+                cps[pt_tag['n']] = (float(pt_tag['km']), int(pt_tag['d']), -elev_loss)
             controlPoints[p_tag['course']] = cps
         return controlPoints
 
@@ -181,7 +184,7 @@ class Scraper:
                 response.status_code)
         return events_dict
     
-    def getControPoints(self) -> dict:
+    def getControlPoints(self) -> dict:
         count = 0
         for event in self.events:
             for year in self.years:
@@ -195,7 +198,7 @@ class Scraper:
                     if response.status_code == 200:
                         controlPoints = self._parseControlPoints(response.text)
                     else:
-                        print("Failed to retrieve races' control points for {e} {race} {year}. Status code:", response.status_code)
+                        print(f"Failed to retrieve races' control points for {e} {year}. Status code:", response.status_code)
                         count += 1
                 except ValueError as e:
                     print(e)
