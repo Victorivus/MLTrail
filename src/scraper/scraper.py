@@ -17,13 +17,23 @@ class Scraper:
     def _checkEventYear(self, e: str, y: str) -> None:
         if e not in list(self.allEvents.keys()) or y not in self.eventsYears[e]:
             raise ValueError(f"{e} is not a valid Live Trail race id for year {y}.")
-
+    
+    def _isValidYear(self, y):
+        try:
+            year = int(y)
+            return len(y) == 4 and 1900 <= year <= 9999
+        except ValueError:
+            return False
+    
     def setEvent(self, events: list[str]) -> None:
         self.event = events
         
-    def setYear(self, years: list[str]) -> None:
-        self.year = years
-    
+    def setYears(self, years: list[str]) -> None:
+        if all([self._isValidYear(y) for y in years]):
+            self.years = years
+        else:
+            raise ValueError(f"Years contains a non valid number.")
+
     def setRace(self, race: str) -> None:
         self.race = race
 

@@ -8,3 +8,5 @@
 !pyproject.toml
 !examples/
 !examples/*
+!tests/
+!tests/*
