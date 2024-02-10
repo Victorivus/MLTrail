@@ -144,7 +144,7 @@ class Scraper:
             for pt_tag in pt_tags:
                 # Calculate the altitude difference between the current point and the first point
                 # of the route and substract this quantity from cummulated elevaation gain.
-                elev_loss = int(pt_tag['d']) - (int(pt_tag['a']) - int(pt_tags[0]['d']))
+                elev_loss = int(pt_tag['d']) - (int(pt_tag['a']) - int(pt_tags[0]['a']))
                 # {'cp_name' : (acc_dist, acc_elev+, -acc_elev-)}
                 cps[pt_tag['n']] = (float(pt_tag['km']), int(pt_tag['d']), -elev_loss)
             controlPoints[p_tag['course']] = cps
