@@ -239,3 +239,28 @@ class Results:
     
     def getObjectiveMeanPacesNorm(self, n=5):
         return self.getObjectiveMeanPaces(n=n, paces=self.pacesNorm)
+
+    def getClosestTimeToObjective(self, time):
+        # Compute absolute difference between each element in the DataFrame and X
+        #diff = (self.getSeconds() - self.getSeconds(time)).abs()
+        time = self.getSeconds(time)
+        closest_index = None
+        min_diff = float('inf')  # Initialize with infinity
+        
+        # Iterate over each row in the DataFrame
+        for index, row in self.times.iterrows():
+            # Compute absolute difference between each element in the row and X
+            diff = abs(self.getSeconds(row.iloc[-1]) - time)
+            
+            # Check if this row has the minimum difference seen so far
+            if diff < min_diff:
+                min_diff = diff
+                closest_index = index
+        
+        return closest_index
+        
+        
+        # Find the index of the row with the minimum absolute difference
+        closest_index = diff.sum(axis=1).idxmin()
+        
+        return closest_index
