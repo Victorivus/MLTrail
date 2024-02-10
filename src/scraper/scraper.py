@@ -54,7 +54,7 @@ class Scraper:
         df = pd.DataFrame(data)
         return df
 
-    def getRaces(self, xml_content: str) -> dict:
+    def _parseRaces(self, xml_content: str) -> dict:
         # Parse the XML content
         soup = BeautifulSoup(xml_content, 'xml')
 
@@ -87,7 +87,7 @@ class Scraper:
                     response = requests.get(url)
                     # Check if request was successful
                     if response.status_code == 200:
-                        races = self.getRaces(response.text)
+                        races = self._parseRaces(response.text)
                         # 'race' is an id and 'name' a more human-readble version
                         for  race, name in races.items():
                             # Data for the POST request
@@ -133,7 +133,23 @@ class Scraper:
         for i in data['calPass'].items():
             events_dict[i[0]] = list(i[1]['res'].keys())
         return events_dict
-    
+
+    def _parseControlPoints(self, data):
+        soup = BeautifulSoup(data, 'lxml')
+        p_tags = soup.find_all('points')
+        controlPoints = {}
+        for p_tag in p_tags:
+            pt_tags = p_tag.find_all('pt')
+            cps = {}
+            for pt_tag in pt_tags:
+                # Calculate the altitude difference between the current point and the first point
+                # of the route and substract this quantity from cummulated elevaation gain.
+                elev_loss = int(pt_tag['d']) - (int(pt_tag['a']) - int(pt_tags[0]['d']))
+                # {'cp_name' : (acc_dist, acc_elev+, -acc_elev-)}
+                cps[pt_tag['n']] = (float(pt_tag['km']), int(pt_tag['d']), -elev_loss)
+            controlPoints[p_tag['course']] = cps
+        return controlPoints
+
     def getEvents(self) -> dict:
         url = "https://livetrail.net/phpFonctions/homeFunctions.php"
         # Data for the POST request
@@ -167,3 +183,27 @@ class Scraper:
             print("Failed to retrieve Live Trail's event list. Status code:",
                 response.status_code)
         return events_dict
+    
+    def getControlPoints(self) -> dict:
+        count = 0
+        for event in self.events:
+            for year in self.years:
+                try:
+                    self._checkEventYear(event, year)
+                    # URL of the website
+                    url = f"https://livetrail.net/histo/{event}_{year}/parcours.php"
+                    # Sending GET request to parse races' names
+                    response = requests.get(url)
+                    # Check if request was successful
+                    if response.status_code == 200:
+                        controlPoints = self._parseControlPoints(response.text)
+                    else:
+                        print(f"Failed to retrieve races' control points for {e} {year}. Status code:", response.status_code)
+                        count += 1
+                except ValueError as e:
+                    print(e)
+                    count += 1
+                    pass
+        # return number of errors
+        return controlPoints
+
