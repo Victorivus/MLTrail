@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import datetime as dt
@@ -99,7 +100,7 @@ class Results:
     def fixFormat(self, df):
         return df.apply(lambda x: str(x)+':00')
 
-    def plotControlPoints(self, df, showHours=False, xrotate=False, inverty=False):#,labels=True):
+    def plotControlPoints(self, df, showHours=False, xrotate=False, inverty=False, savePath=None):#,labels=True):
         if showHours:
             labelFormat = '%H:%M:%S'
         else:
@@ -125,7 +126,10 @@ class Results:
             plt.xticks(rotation=45)
         plt.ylabel("pace (min/km)")
         plt.legend(loc="best")
-        plt.show()
+        if savePath is not None:
+            plt.savefig(savePath)
+        else:
+            plt.show()
         
     def getTimeDeltas(self):
         timeDeltas = self.times.copy()
