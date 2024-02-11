@@ -6,7 +6,9 @@ Lib to process results, make analysis of Trail running races and eventually buil
 
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
-- [ ] Add tests.
+- [X] Add tests.
+- [ ] Start a simple Front-End
+- [ ] Add templates for results and control points
 
 ### Scraping
 - [X] Scraped timestamps are different (there is no day added and it gets back to 00:00:00 after 24h in race)
@@ -14,3 +16,4 @@ Lib to process results, make analysis of Trail running races and eventually buil
 - [X] Get the name of the checkpoints from the website.
 - [X] Set objective directly by time and not by position.
 - [X] Get a list of available races in LiveTrail.
+- [ ] Rename to LiveTrail Scraper (others may come)
