@@ -107,19 +107,24 @@ class Scraper:
                                 'from': '1',
                                 'to': '1000000' # To get all results
                             }
-                            # Sending POST request
-                            results_response = requests.post(url, data=data)
-                            # Check if request was successful
-                            if results_response.status_code == 200:
-                                df = self.parseTable(results_response.text)
-                                folder_path = f'../../data/{event}'
-                                if not os.path.exists(folder_path):
-                                    os.makedirs(folder_path)
-                                df.to_csv(os.path.join(folder_path,f'{event}_{race}_{year}.csv'), index=False)
+                            # Check if data already available or redownload:
+                            folder_path = f'../../data/{event}'
+                            if not os.path.exists(folder_path):
+                                os.makedirs(folder_path)
+                            file_path = os.path.join(folder_path,f'{event}_{race}_{year}.csv')
+                            if os.path.exists(file_path):
+                                pass
                             else:
-                                print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                                    results_response.status_code)
-                                count += 1
+                                # Sending POST request
+                                results_response = requests.post(url, data=data)
+                                # Check if request was successful
+                                if results_response.status_code == 200:
+                                    df = self.parseTable(results_response.text)
+                                    df.to_csv(os.path.join(folder_path,f'{event}_{race}_{year}.csv'), index=False)
+                                else:
+                                    print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
+                                        results_response.status_code)
+                                    count += 1
                     else:
                         print("Failed to retrieve races' names. Status code:", response.status_code)
                         count += 1
@@ -127,6 +132,7 @@ class Scraper:
                     print(e)
                     count += 1
                     pass
+        # df.to_json('file.json', orient='split')
         # return number of errors
         return count
     
