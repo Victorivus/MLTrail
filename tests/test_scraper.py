@@ -68,10 +68,10 @@ def test_get_control_points():
     cp = scraper.getControlPoints()['78km']
     assert cp == control_points
 
-# Test case for getData method
-def test_get_data():
+# Test case for downloadData method
+def test_download_data():
     scraper = Scraper(events=["transgrancanaria"], years=["2023"])
-    scraper.getData()
+    scraper.downloadData()
     results_raw = pd.read_csv('../data/transgrancanaria/transgrancanaria_classic_2023.csv', sep=',')
     data = {
         'n': 4,
@@ -106,3 +106,47 @@ def test_get_events_years():
     evs = Scraper().getEventsYears()
     # On 10/02/2024 there are 3034 of tuples event,year
     assert sum([len(e) for e in evs]) > 3033
+    
+
+# Test case for getRaces method
+def test_get_races():
+    data = {'transgrancanaria':
+        {'2023':
+            {'classic': 'Classic 128 KM',
+             'advance': 'Advanced 84 KM',
+             'maraton': 'Maraton 45 KM',
+             'starter': 'Starter 24 KM',
+             'promo': 'Promo',
+             'youth': 'Youth',
+             'family': 'Family'
+             }
+        }
+    }
+    races = Scraper(events=["transgrancanaria"], years=["2023"]).getRaces()
+    assert data == races    
+
+# Test case for getData method
+def test_get_data():
+    data = {
+        'n': 4,
+        'doss': 18,
+        'nom': 'BUTACI',
+        'prenom': 'Raul',
+        'cat': 'MA30H',
+        '00': '00:00:13',
+        '21': '00:49:34',
+        '23': '01:33:48',
+        '25': '02:49:13',
+        '27': '04:10:40',
+        '29': '05:19:47',
+        '31': '06:58:30',
+        '33': '08:27:01',
+        '35': '09:51:18',
+        '41': '10:16:20',
+        '43': '11:35:38',
+        '45': '12:54:03',
+        '110': '14:15:53'
+    }
+    
+    scr =  Scraper(events=["transgrancanaria"], years=["2023"])
+    assert pd.Series(data, name='3').equals(scr.getData('classic').iloc[3])

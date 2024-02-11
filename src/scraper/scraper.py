@@ -25,8 +25,8 @@ class Scraper:
         except ValueError:
             return False
     
-    def setEvent(self, events: list[str]) -> None:
-        self.event = events
+    def setEvents(self, events: list[str]) -> None:
+        self.events = events
         
     def setYears(self, years: list[str]) -> None:
         if all([self._isValidYear(y) for y in years]):
@@ -84,8 +84,32 @@ class Scraper:
             result_dict[c_id] = c_n
 
         return result_dict
-    
-    def getData(self) -> int:
+
+    def getRaces(self):
+        fullRaces = {}
+        for event in self.events:
+            for year in self.years:
+                try:
+                    self._checkEventYear(event, year)
+                    # URL of the website
+                    url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
+                    # Sending GET request to parse races' names
+                    response = requests.get(url)
+                    # Check if request was successful
+                    if response.status_code == 200:
+                        # 'race' is an id and 'name' a more human-readble version
+                        races = self._parseRaces(response.text)
+                        fullRaces[event] = {year: races}
+                    else:
+                        print("Failed to retrieve races' names. Status code:", response.status_code)
+                        count += 1
+                except ValueError as e:
+                    print(e)
+                    count += 1
+        return fullRaces            
+
+        
+    def downloadData(self) -> int:
         count = 0
         for event in self.events:
             for year in self.years:
@@ -132,9 +156,45 @@ class Scraper:
                     print(e)
                     count += 1
                     pass
-        # df.to_json('file.json', orient='split')
         # return number of errors
         return count
+    
+    def getData(self, race) -> pd.DataFrame:
+        try:
+            if len(self.events) > 1 or len(self.years) > 1:
+                raise ValueError("This method is only available if there is only one event and year in Scraper.events ant Scraper.year")
+            event = self.events[0]
+            year = self.years[0]
+
+            self._checkEventYear(event, year)
+            # 'race' is an id and 'name' a more human-readble version
+            # Data for the POST request
+            data = {
+                'course': race,
+                'cat': 'scratch',
+                'from': '1',
+                'to': '1000000' # To get all results
+            }
+            # Check if data already available or redownload:
+            folder_path = f'../../data/{event}'
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            file_path = os.path.join(folder_path,f'{event}_{race}_{year}.csv')
+            if os.path.exists(file_path):
+                df = pd.read_csv(file_path, sep=',')
+            else:
+                # Sending POST request
+                url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
+                results_response = requests.post(url, data=data)
+                # Check if request was successful
+                if results_response.status_code == 200:
+                    df = self.parseTable(results_response.text)
+                else:
+                    print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
+                        results_response.status_code)
+            return df
+        except ValueError as e:
+            print(e)
     
     def _parseEventList(self, data)-> dict:
         data = json.loads(data)
@@ -202,6 +262,7 @@ class Scraper:
     
     def getControlPoints(self) -> dict:
         count = 0
+        controlPoints = {}
         for event in self.events:
             for year in self.years:
                 try:
