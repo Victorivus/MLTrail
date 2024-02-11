@@ -10,3 +10,7 @@
 !examples/*
 !tests/
 !tests/*
+!front/
+!front/*
+!front/templates/
+!front/templates/[a,i]*
