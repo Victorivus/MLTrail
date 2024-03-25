@@ -3,8 +3,6 @@ import sys
 import re
 import random
 import string
-import json
-import requests
 from datetime import timedelta
 import pandas as pd
 from flask import Flask, render_template, jsonify, request, send_file, session
@@ -152,10 +150,10 @@ def getRS(event, year, race):
     
     # Let's get the Control Points information
     control_points = scraper.getControlPoints()[race]
+    control_points.pop(next(iter(control_points))) # Remove 1st CP (starting line)
 
     raw_results.columns = list(raw_results.columns[:5]) + [k for k in control_points.keys()]
     
-    control_points.pop(next(iter(control_points))) # Remove 1st CP (starting line)
     times = raw_results[control_points.keys()]
     rs = Results(controlPoints=control_points, times=times, offset=0, cleanDays=False)
 
