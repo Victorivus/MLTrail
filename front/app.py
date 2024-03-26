@@ -162,7 +162,7 @@ def getRS(event, year, race):
     raw_results.columns = list(raw_results.columns[:5]) + [k for k in control_points.keys()]
     
     times = raw_results[control_points.keys()]
-    rs = Results(controlPoints=control_points, times=times, offset=race_info['hd'], cleanDays=False)
+    rs = Results(controlPoints=control_points, times=times, offset=race_info['hd'], cleanDays=False, startDay=int(race_info['jd']))
 
     return raw_results, control_points, rs, race_info
 

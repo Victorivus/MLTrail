@@ -7,37 +7,17 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 class Results:
-    def __init__(self, controlPoints, times, objective=0, offset=0, cleanDays=False, days=['Sa.', 'Di.'], dayOne='Sa.', dayTwo='Di.'):
+    def __init__(self, controlPoints, times, objective=0, offset=0, cleanDays=False, startDay=7):
         self.controlPoints = controlPoints
         self.objective = objective
         self.times = times
-        if isinstance(cleanDays, str) and cleanDays=='Auto':
-            days = []
-            pattern = r'^[a-zA-Z]+\. '
-            if isinstance(times.iloc[0, 0], str) and re.match(pattern, times.iloc[0, 0]):
-                for index, row in times.iterrows():
-                    for cell in row:
-                        if isinstance(cell, str):
-                            days.extend(re.findall(pattern, cell))
-                if len(days)==3:
-                    dayOne=days[0][:-1] # exclude trailing space
-                    dayTwo=days[1][:-1]
-                    dayThree=days[2][:-1]
-                else:
-                    dayOne=days[0][:-1]
-                    dayTwo=days[1][:-1]
-                    dayThree='****'
-                self.times = self.cleanDays(times, dayOne=dayOne, dayTwo=dayTwo, dayThree=dayThree)
-                #self.times = self.times.apply(self._correctTimes24h, axis=1)
-        elif isinstance(cleanDays, bool) and cleanDays:
-            self.times = self.cleanDays(times, dayOne=dayOne, dayTwo=dayTwo, dayThree=dayThree)
-            #self.times = self.times.apply(self._correctTimes24h, axis=1)
-        #else:
-            #self.times = self.cleanTimes()
+        if (isinstance(cleanDays, str) and cleanDays=='Auto') or (isinstance(cleanDays, bool) and cleanDays):
+            days = ['Lu.', 'Ma.', 'Me.', 'Je.', 'Ve.', 'Sa.', 'Di.'] # Weekdays abreviations in French
+            days = [days[(startDay - 1 + j) % len(days)] for j in range(len(days))]
+            self.times = self.cleanDays(times, days)
         self.times = self.cleanTimes()
-        self.offset = offset
-        if isinstance(self.offset, str) and self.offset=='Auto':
-            self.offset = self.getSeconds(self.times.iloc[0, 0], offset=False)
+        if isinstance(self.offset, int):
+            self.offset = offset
         elif isinstance(self.offset, str):
             self.offset = self.getSeconds(offset, offset=False)
         self.times = self.times.apply(self._correctTimes24h, axis=1)
@@ -56,12 +36,14 @@ class Results:
             previous_time = time
         return pd.Series(adjusted_row, index=row.index)
     
-    def cleanDays(self, times, dayOne='Ve.', dayTwo='Sa.', dayThree='Di.'):
-        times = times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{dayTwo}' in y else y))\
-                                                .apply(lambda x: x.map(lambda y: y[4:9] if f'\n{dayOne}' in y else y))\
-                                                .apply(lambda x: x.map(lambda y: np.NaN if y=='.' or '.\n.' in y else y.replace(f'{dayOne} ','')+':00'))\
-                                                .apply(lambda x: x.map(lambda y: self.getTime(self.getSeconds(y.replace(f'{dayTwo} ',''), offset=False, debug=True)+24*3600) if str(y).startswith(f'{dayTwo}') else y))\
-                                                .apply(lambda x: x.map(lambda y: self.getTime(self.getSeconds(y.replace(f'{dayThree} ',''), offset=False, debug=True)+48*3600) if str(y).startswith(f'{dayThree}') else y))
+    def cleanDays(self, times, days):
+        # Not tested
+        for i, day in enumerate(days):
+            if (i+1)==1:
+                times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{day}' in y else y))\
+                     .apply(lambda x: x.map(lambda y: np.NaN if y=='.' or '.\n.' in y else y.replace(f'{day} ','')+':00'))
+            else:
+                times.apply(lambda x: x.map(lambda y: self.getTime(self.getSeconds(y.replace(f'{day} ',''), offset=False, debug=True)+i*24*3600) if str(y).startswith(f'{day}') else y))       
         return times
 
     def cleanTimes(self, interpolate='previous'):
