@@ -78,9 +78,9 @@ def generate_analysis():
     file_path = os.path.join(folder_path,f'{event}_{race}_{year}.png')
     rs.plotControlPoints(rs.getStats(),xrotate=True,inverty=True, savePath=file_path)
 
-
+    #TODO: Add button to toggle view between hours and time (apply or not rs.formatTimeOver24h)
     data = {
-        'times': rs.times,
+        'times': rs.times.applymap(rs.formatTimeOver24h),
         'paces': rs.paces,
         'plot_image_tag': f'<img src="/plot/{event}_{race}_{year}.png" alt="Matplotlib Plot">',
         'event' : event,
@@ -160,7 +160,7 @@ def getRS(event, year, race):
     control_points.pop(next(iter(control_points))) # Remove 1st CP (starting line)
 
     raw_results.columns = list(raw_results.columns[:5]) + [k for k in control_points.keys()]
-    
+    raw_results = raw_results.sort_values(by=raw_results.columns[-1])
     times = raw_results[control_points.keys()]
     rs = Results(controlPoints=control_points, times=times, offset=race_info['hd'], cleanDays=False, startDay=int(race_info['jd']))
 

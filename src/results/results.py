@@ -264,3 +264,9 @@ class Results:
                 closest_index = index
         self.objective = int(closest_index)
         return closest_index
+    # Function to format timedelta to string in hours instead of default 1 day, ...
+    def formatTimeOver24h(self, td):
+        total_seconds = self.getSeconds(td, offset=False)
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
