@@ -13,6 +13,7 @@ class Scraper:
         self.events = events
         self.years = years
         self.race = race
+        #self.date, self.startingTime, self.day = self.getRaceInfo()
         
     def _checkEventYear(self, e: str, y: str) -> None:
         if e not in list(self.allEvents.keys()) or y not in self.eventsYears[e]:
@@ -36,6 +37,51 @@ class Scraper:
 
     def setRace(self, race: str) -> None:
         self.race = race
+    
+    def getRaceInfo(self) -> dict:
+        race_info = {}
+        for event in self.events:
+            for year in self.years:
+                try:
+                    self._checkEventYear(event, year)
+                    # URL of the website
+                    # Possible BUG: if bib number 1 does not exist (rare)
+                    # BUG: We need to ensure bib belongs to race, only one race at a time
+                    url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech=1"
+                    # Sending GET request to parse races' names
+                    response = requests.get(url)
+                    # Check if request was successful
+                    if response.status_code == 200:
+                        # 'race' is an id and 'name' a more human-readble version
+                        race_info = self._parseRaceInfo(response.text)
+                    else:
+                        race_info = {}
+                        print("Failed to retrieve race info. Status code:", response.status_code)
+                except ValueError as e:
+                    print(e)
+        return race_info
+
+    def _parseRaceInfo(self, xml_content: str) -> dict:
+        # Parse the XML content
+        soup = BeautifulSoup(xml_content, 'xml')
+
+        # Find the <pass> tag
+        pass_tag = soup.find('pass')#'select', id='chxCourse')
+
+        # Find all <e> tags within the <pass> tag
+        e_tags = pass_tag.find_all('e')
+
+        # Create a dictionary to store id and n attributes
+        race_info = {}
+
+        # Extract id and n attributes from each <c> tag
+        for e_tag in e_tags:
+            if e_tag['idpt']=='0':
+                race_info['date'] = e_tag['date'] # date of departure
+                race_info['tz'] = e_tag['tz'] # timezone of date
+                race_info['hd'] = e_tag['hd'] # departure time
+                race_info['jd'] = e_tag['jd'] # departure day of the week (1 Monday...7 Sunday)
+                return race_info
 
     def parseTable(self, xml_content: str) -> pd.DataFrame:
         # Parse the XML content

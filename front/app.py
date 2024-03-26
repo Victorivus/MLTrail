@@ -148,9 +148,12 @@ def getRS(event, year, race):
     
     scraper.setEvents([event])
     scraper.setYears([year])
+    scraper.setRace(race)
     
     # Let's get the raw data about the race
     raw_results = scraper.getData(race)
+    race_info = scraper.getRaceInfo()
+    print(f'R.I: {race_info}')
     
     # Let's get the Control Points information
     control_points = scraper.getControlPoints()[race]
@@ -159,7 +162,7 @@ def getRS(event, year, race):
     raw_results.columns = list(raw_results.columns[:5]) + [k for k in control_points.keys()]
     
     times = raw_results[control_points.keys()]
-    rs = Results(controlPoints=control_points, times=times, offset=0, cleanDays=False)
+    rs = Results(controlPoints=control_points, times=times, offset=race_info['hd'], cleanDays=False)
 
     return raw_results, control_points, rs
 
