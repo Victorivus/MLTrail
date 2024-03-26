@@ -14,3 +14,5 @@
 !front/*
 !front/templates/
 !front/templates/[a,i]*
+front/.env
+
