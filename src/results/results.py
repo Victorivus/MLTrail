@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 import numpy as np
 import datetime as dt
@@ -6,22 +7,20 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 class Results:
-    def __init__(self, controlPoints, times, objective=0, offset=0, cleanDays=False, dayOne='Sa.', dayTwo='Di.'):
+    def __init__(self, controlPoints, times, objective=0, offset=0, cleanDays=False, startDay=7):
         self.controlPoints = controlPoints
         self.objective = objective
-        self.offset = offset
-        if isinstance(self.offset, str):
-            self.offset = self.getSeconds(offset, offset=False)
-        # For races over 24H we have two options in data:
-        # They can have the Day added in front in some language, e.g. Sa. and Di. for Samedi and Dimanche
-        # Or times go back to 00:00:00 with no extra information after 23:59:59
-        if cleanDays:
-            self.times = self.cleanDays(times, dayOne=dayOne, dayTwo=dayTwo)
-        else:
-            self.times = times
-            self.times = self.cleanTimes()
-            self.times = self.times.apply(self._correctTimes24h, axis=1)
+        self.times = times
+        if (isinstance(cleanDays, str) and cleanDays=='Auto') or (isinstance(cleanDays, bool) and cleanDays):
+            days = ['Lu.', 'Ma.', 'Me.', 'Je.', 'Ve.', 'Sa.', 'Di.'] # Weekdays abreviations in French
+            days = [days[(startDay - 1 + j) % len(days)] for j in range(len(days))]
+            self.times = self.cleanDays(times, days)
         self.times = self.cleanTimes()
+        if isinstance(offset, int):
+            self.offset = offset
+        elif isinstance(offset, str):
+            self.offset = self.getSeconds(offset, offset=False)
+        self.times = self.times.apply(self._correctTimes24h, axis=1)
         self.timeDeltas = self.getTimeDeltas()
         self.distanceDeltas = self.getDistanceDeltas()
         self.paces = self.getPaces()
@@ -37,15 +36,19 @@ class Results:
             previous_time = time
         return pd.Series(adjusted_row, index=row.index)
     
-    def cleanDays(self, times, dayOne='Sa.', dayTwo='Di.'):
-        times = times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{dayTwo}' in y else y))\
-                                                .apply(lambda x: x.map(lambda y: y[4:9] if f'\n{dayOne}' in y else y))\
-                                                .apply(lambda x: x.map(lambda y: np.NaN if y=='.' or '.\n.' in y else y.replace(f'{dayOne} ','')+':00'))\
-                                                .apply(lambda x: x.map(lambda y: self.getTime(self.getSeconds(y.replace(f'{dayTwo} ',''), offset=False)+24*3600) if str(y).startswith(f'{dayTwo}') else y))
+    def cleanDays(self, times, days):
+        # Not tested
+        for i, day in enumerate(days):
+            if (i+1)==1:
+                times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{day}' in y else y))\
+                     .apply(lambda x: x.map(lambda y: np.NaN if y=='.' or '.\n.' in y else y.replace(f'{day} ','')+':00'))
+            else:
+                times.apply(lambda x: x.map(lambda y: self.getTime(self.getSeconds(y.replace(f'{day} ',''), offset=False, debug=True)+i*24*3600) if str(y).startswith(f'{day}') else y))       
         return times
 
     def cleanTimes(self, interpolate='previous'):
         # Filter out DNFs (last column is NaN)
+        self.times = self.times.replace('', pd.NA) # Some races instead of NaN, place an empty string
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
 
         if interpolate == 'previous':
@@ -61,8 +64,6 @@ class Results:
             self.times = (df_ffilled + df_bfilled) / 2
             self.times = self.times.applymap(self.getTime)
             #raise NotImplementedError("This feature is not implemented yet.")
-        # print(times[(times.isna().any(axis=1) == True)])
-        # print(times.count())
         return self.times
     
     def getSeconds(self, time, offset=True):
@@ -83,7 +84,7 @@ class Results:
         return str(dt.timedelta(seconds=(seconds))).split('.')[0]
 
     def getAllure(self, seconds, distance):
-        return self.getTime(self.getSeconds(seconds) / distance)
+        return self.getTime(self.getSeconds(seconds, offset=False) / distance)
 
     def getAllureNorm(self, seconds, distance, D):
         return self.getAllure(seconds, distance + D/100)
@@ -165,7 +166,8 @@ class Results:
         return True
     
     def getPaces(self):
-        times_paces = self.times[(self.times[self.times.columns]!=':00')].copy()
+        #times_paces = self.times[(self.times[self.times.columns]!=':00')].copy()
+        times_paces = self.times.copy()
         times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
 
         prevPoint = ''

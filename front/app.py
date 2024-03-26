@@ -70,7 +70,7 @@ def generate_analysis():
         year = request.form.get("year")
         race = request.form.get("race")
 
-    raw_results, control_points, rs = getRS(event, year, race)
+    raw_results, control_points, rs, race_info = getRS(event, year, race)
 
     folder_path = f'../data/plots/{event}'
     if not os.path.exists(folder_path):
@@ -92,6 +92,7 @@ def generate_analysis():
     session['event'] = event
     session['year'] = year
     session['race'] = race
+    session['race_info'] = race_info
     
     return render_template('analysis_template.html', data=data)
 
@@ -123,7 +124,7 @@ def objective_form():
     year = session['year']
     race = session['race']
     
-    raw_results, control_points, rs = getRS(event, year, race)
+    _, _, rs, _ = getRS(event, year, race)
 
     objective_time = request.form['objective']
     objective_position = rs.getClosestTimeToObjective(objective_time)
@@ -148,9 +149,11 @@ def getRS(event, year, race):
     
     scraper.setEvents([event])
     scraper.setYears([year])
+    scraper.setRace(race)
     
     # Let's get the raw data about the race
     raw_results = scraper.getData(race)
+    race_info = scraper.getRaceInfo(bibN=raw_results.iloc[0]['doss'])
     
     # Let's get the Control Points information
     control_points = scraper.getControlPoints()[race]
@@ -159,9 +162,9 @@ def getRS(event, year, race):
     raw_results.columns = list(raw_results.columns[:5]) + [k for k in control_points.keys()]
     
     times = raw_results[control_points.keys()]
-    rs = Results(controlPoints=control_points, times=times, offset=0, cleanDays=False)
+    rs = Results(controlPoints=control_points, times=times, offset=race_info['hd'], cleanDays=False, startDay=int(race_info['jd']))
 
-    return raw_results, control_points, rs
+    return raw_results, control_points, rs, race_info
 
 if __name__ == '__main__':
     # Run the Flask app
