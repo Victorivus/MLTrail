@@ -9,10 +9,14 @@ from flask import Flask, render_template, jsonify, request, send_file, session
 sys.path.append('../src/')
 from results.results import Results
 from scraper.scraper import Scraper
+from dotenv import load_dotenv
+
+# Load variables from .env file
+load_dotenv()
 
 # Create the Flask app
 app = Flask(__name__)
-app.secret_key = 'fBl18V8Vs9QXdM9tnE9TD7vLTHgAw41A2XejMeQzxf3PEhNQJIskkpcok11c2D2qUpMdRRCu1RwachHh8Qymudp8W4BCbYq78p0fO9hChxw2gGONUMG1P6vHnqhRt7Eyvmgm3pGiW4oGjP6HbOMRBCVqxKKRbaE8tnRZNr1kzexcakvuGfJYuv7IHhIG91HphReqieHkJsMbp9gMRlLAbaKnU4pA1dnfglhGDOq3aCfBbk8N9FRK5lDVpSjdaDIm'
+app.secret_key = os.environ.get('APP_SECRET')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Example: Session expires after 7 days
 
 # Initialize a Scraper instance
