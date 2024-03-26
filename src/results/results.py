@@ -65,9 +65,9 @@ class Results:
         return times
 
     def cleanTimes(self, interpolate='previous'):
-        self.times = self.times.replace('', pd.NA)
+        # Filter out DNFs (last column is NaN)
+        self.times = self.times.replace('', pd.NA) # Some races instead of NaN, place an empty string
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
-        #self.times = self.times[(self.times.iloc[:, -1] != '')] # Some races instead of NaN, place an empty string
 
         if interpolate == 'previous':
             self.times = self.times.ffill()  
