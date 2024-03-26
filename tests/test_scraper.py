@@ -150,3 +150,11 @@ def test_get_data():
     
     scr =  Scraper(events=["transgrancanaria"], years=["2023"])
     assert pd.Series(data, name='3').equals(scr.getData('classic').iloc[3])
+
+# Test case for getRaceInfo method
+def test_get_race_info():
+    race_info = {'date': '2024-02-24', 'tz': '0', 'hd': '00:00:03', 'jd': '6'}
+    scr =  Scraper(events=["transgrancanaria"], years=["2024"])
+    sorted_dict1 = sorted(race_info.items())
+    sorted_dict2 = sorted(scr.getRaceInfo(bibN=20).items())
+    assert sorted_dict1 == sorted_dict2, "Race info method Failed"

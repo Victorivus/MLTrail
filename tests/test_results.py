@@ -50,7 +50,8 @@ def sample_results():
     results_raw.index = ['1', '2', '3', '500']
     control_points.pop(next(iter(control_points))) # Remove 1st CP (starting line)
     times = results_raw[control_points.keys()]
-    return Results(control_points, times, offset=0, cleanDays=False)
+    race_info = {'date': '2024-02-24', 'tz': '0', 'hd': '00:00:03', 'jd': '6'}
+    return Results(control_points, times, offset=race_info['hd'], cleanDays=False, startDay=race_info['jd'])
 
 
 # Test case for getData method

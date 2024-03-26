@@ -16,9 +16,9 @@ class Results:
             days = [days[(startDay - 1 + j) % len(days)] for j in range(len(days))]
             self.times = self.cleanDays(times, days)
         self.times = self.cleanTimes()
-        if isinstance(self.offset, int):
+        if isinstance(offset, int):
             self.offset = offset
-        elif isinstance(self.offset, str):
+        elif isinstance(offset, str):
             self.offset = self.getSeconds(offset, offset=False)
         self.times = self.times.apply(self._correctTimes24h, axis=1)
         self.timeDeltas = self.getTimeDeltas()
