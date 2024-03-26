@@ -8,7 +8,6 @@ import matplotlib.dates as mdates
 
 class Results:
     def __init__(self, controlPoints, times, objective=0, offset=0, cleanDays=False, days=['Sa.', 'Di.'], dayOne='Sa.', dayTwo='Di.'):
-        # TODO : how to infer/scrape offset ?
         self.controlPoints = controlPoints
         self.objective = objective
         self.times = times

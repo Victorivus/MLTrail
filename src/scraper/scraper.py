@@ -38,16 +38,14 @@ class Scraper:
     def setRace(self, race: str) -> None:
         self.race = race
     
-    def getRaceInfo(self) -> dict:
+    def getRaceInfo(self, bibN=1) -> dict:
         race_info = {}
         for event in self.events:
             for year in self.years:
                 try:
                     self._checkEventYear(event, year)
                     # URL of the website
-                    # Possible BUG: if bib number 1 does not exist (rare)
-                    # BUG: We need to ensure bib belongs to race, only one race at a time
-                    url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech=1"
+                    url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech={bibN}"
                     # Sending GET request to parse races' names
                     response = requests.get(url)
                     # Check if request was successful
