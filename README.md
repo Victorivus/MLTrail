@@ -56,11 +56,7 @@ streamlit run front/app.py
 - [ ] Add printing version of times
 - [ ] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
-- [ ] Fix imports
-- [ ] KNOWN BUGS / CORNER CASES TO CHECK:
-        - [X] UTMB gives **KeyError: 'benchmarkutmb'** (year = st.selectbox('Select Year:', years[event]))
-        - [ ] Some races (e.g. PENYAGOLOSA TRAILS 2023 CSP) do not order df properly (eg 358, 359, 360, 0, 1, 2...) so the graph shown is not correct. Correct graph computation to fix this errors and/or understand why this ordering occurs.
-
+- [X] Fix imports
 
 ### CI/CD
 - [ ] Create a CI/CD Pipeline
