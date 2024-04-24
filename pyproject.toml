@@ -4,7 +4,10 @@ version = "0.1.0"
 description = ""
 authors = ["Victor Nacher"]
 readme = "README.md"
-packages = [{include = "src/results"}]
+packages = [
+    {include = "results", from="src"},
+    {include = "scraper", from="src"}
+    ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -16,6 +19,7 @@ html5lib = "^1.1"
 beautifulsoup4 = "^4.12.3"
 pytest = "^8.0.0"
 python-dotenv = "^1.0.1"
+streamlit = "^1.33.0"
 
 
 [build-system]

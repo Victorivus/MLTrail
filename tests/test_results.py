@@ -1,6 +1,4 @@
 import pytest
-import sys
-sys.path.append('../src/')
 from results.results import Results
 import pandas as pd
 import numpy as np

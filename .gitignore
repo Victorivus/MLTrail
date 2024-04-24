@@ -1,6 +1,9 @@
 *
 #################
 !.gitignore
+!.github/
+!.github/workflows/
+!.github/workflows/*
 !README.md
 !src/
 !src/*/
