@@ -71,7 +71,7 @@ def test_get_control_points():
 def test_download_data():
     scraper = Scraper(events=["transgrancanaria"], years=["2023"])
     scraper.downloadData()
-    results_raw = pd.read_csv('../data/transgrancanaria/transgrancanaria_classic_2023.csv', sep=',')
+    results_raw = pd.read_csv('data/transgrancanaria/transgrancanaria_classic_2023.csv', sep=',')
     data = {
         'n': 4,
         'doss': 18,
