@@ -64,90 +64,97 @@ def main():
     event = st.selectbox('Select Event:', list(events.values()))
     event = next(key for key, value in events.items() if value == event)  # get key from value
     if event not in years:
-        year = st.write(f'No data available for {events[event]}. Please select another event.')
+        st.write(f'No data available for {events[event]}. Please select another event.')
     else:
         year = st.selectbox('Select Year:', years[event])
         # Get the races for the selected event and year
         scraper.setEvents([event])
         scraper.setYears([year])
-        races = scraper.getRaces()[event][year]
+        print(event, year)
+        races = scraper.getRaces()
+        if not event in races:
+            st.write(f'No data available for {events[event]} {year}. Please select another event.')
+        elif not year in races[event]:
+            st.write(f'No data available for {events[event]} {year}. Please select another event or year.')
+        else:
+            races = races[event][year]
 
-        race = st.selectbox('Select Race:', list(races.values()))
-        race = next(key for key, value in races.items() if value == race)  # get key from value
+            race = st.selectbox('Select Race:', list(races.values()))
+            race = next(key for key, value in races.items() if value == race)  # get key from value
 
-        # Retrieve or initialize session-like data
-        session_data = get_session_data()
+            # Retrieve or initialize session-like data
+            session_data = get_session_data()
 
-        session_data['event'] = event
-        session_data['year'] = year
-        session_data['race'] = race
+            session_data['event'] = event
+            session_data['year'] = year
+            session_data['race'] = race
 
-        st.title('Race Analysis')
+            st.title('Race Analysis')
 
-        # Display analysis results
-        if st.button('Generate Analysis'):
-            folder_path = f'../data/plots/{event}'
-            if not os.path.exists(folder_path):
-                os.makedirs(folder_path)
-            file_path = os.path.join(folder_path, f'{event}_{race}_{year}.png')
-            raw_results, control_points, rs, race_info = getRS(event, year, race)
-            rs.plotControlPoints(rs.getStats(), xrotate=True, inverty=True, savePath=file_path)
-            data = {
-                'times': rs.times.map(rs.formatTimeOver24h),
-                'paces': rs.paces,
-                # 'plot_image_tag': file_path,
-                'event': event,
-                'year': year,
-                'race': race
-            }
-            session_data['race_info'] = race_info
-            # Display data
-            # TODO: Add button to toggle view between hours and time (apply or not rs.formatTimeOver24h)
-            st.write(f"Departure time: {race_info['hd']}")
-            st.write('Times:')
-            st.write(data['times'])
-
-            st.write('Paces:')
-            st.write(data['paces'])
-
-            st.image(file_path)
-            
-        input_time = st.text_input('Enter Objective Time (HH:MM:SS):')
-                    
-        if st.button('Set Objective'):
-            folder_path = f'../data/plots/{event}'
-            if not os.path.exists(folder_path):
-                os.makedirs(folder_path)
-            try:
-                event = session_data['event']
-                year = session_data['year']
-                race = session_data['race']
-                
+            # Display analysis results
+            if st.button('Generate Analysis'):
+                folder_path = f'../data/plots/{event}'
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+                file_path = os.path.join(folder_path, f'{event}_{race}_{year}.png')
                 raw_results, control_points, rs, race_info = getRS(event, year, race)
-                objective_position = rs.getClosestTimeToObjective(input_time)
+                rs.plotControlPoints(rs.getStats(), xrotate=True, inverty=True, savePath=file_path)
+                data = {
+                    'times': rs.times.map(rs.formatTimeOver24h),
+                    'paces': rs.paces,
+                    # 'plot_image_tag': file_path,
+                    'event': event,
+                    'year': year,
+                    'race': race
+                }
+                session_data['race_info'] = race_info
+                # Display data
+                # TODO: Add button to toggle view between hours and time (apply or not rs.formatTimeOver24h)
+                st.write(f"Departure time: {race_info['hd']}")
+                st.write('Times:')
+                st.write(data['times'])
 
-                rs.setObjective(objective_position)
-                obj = rs.getObjectivePaces()
+                st.write('Paces:')
+                st.write(data['paces'])
 
-                mean_obj = rs.getObjectiveMeanPaces()
-                mean_obj_times = rs.getObjectiveMeanTimes()
+                st.image(file_path)
+                
+            input_time = st.text_input('Enter Objective Time (HH:MM:SS):')
+                        
+            if st.button('Set Objective'):
+                folder_path = f'../data/plots/{event}'
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+                try:
+                    event = session_data['event']
+                    year = session_data['year']
+                    race = session_data['race']
+                    
+                    raw_results, control_points, rs, race_info = getRS(event, year, race)
+                    objective_position = rs.getClosestTimeToObjective(input_time)
 
-                st.write('Total cumulative time per checkpoint:')
-                st.write(mean_obj_times)
+                    rs.setObjective(objective_position)
+                    obj = rs.getObjectivePaces()
 
-                index = ['objective', 'mean(obj)']
-                paces = pd.concat([obj, mean_obj], ignore_index=True)
-                paces['index'] = index
-                paces.set_index('index', inplace=True)
+                    mean_obj = rs.getObjectiveMeanPaces()
+                    mean_obj_times = rs.getObjectiveMeanTimes()
 
-                obj_file_path = os.path.join(folder_path, f'objective_{event}_{race}_{year}.png')
-                rs.plotControlPoints(paces, xrotate=True, inverty=True, savePath=obj_file_path)
+                    st.write('Total cumulative time per checkpoint:')
+                    st.write(mean_obj_times)
 
-                st.image(obj_file_path)
+                    index = ['objective', 'mean(obj)']
+                    paces = pd.concat([obj, mean_obj], ignore_index=True)
+                    paces['index'] = index
+                    paces.set_index('index', inplace=True)
 
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-                st.error(traceback.format_exc())
+                    obj_file_path = os.path.join(folder_path, f'objective_{event}_{race}_{year}.png')
+                    rs.plotControlPoints(paces, xrotate=True, inverty=True, savePath=obj_file_path)
+
+                    st.image(obj_file_path)
+
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
+                    st.error(traceback.format_exc())
 
 
 if __name__ == '__main__':
