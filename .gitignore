@@ -17,5 +17,6 @@
 !front/*
 !front/templates/
 !front/templates/[a,i]*
-front/.env
-
+!data/
+!data/transgrancanaria/
+!data/transgrancanaria/transgrancanaria_classic_2023.csv
