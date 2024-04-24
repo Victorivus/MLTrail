@@ -146,10 +146,8 @@ class Scraper:
                         fullRaces[event] = {year: races}
                     else:
                         print("Failed to retrieve races' names. Status code:", response.status_code)
-                        count += 1
                 except ValueError as e:
                     print(e)
-                    count += 1
         return fullRaces            
 
         
