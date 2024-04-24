@@ -5,10 +5,8 @@ import traceback
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.scraper.scraper import Scraper
-from src.results.results import Results
+from scraper.scraper import Scraper
+from results.results import Results
 
 # Load variables from .env file
 load_dotenv()

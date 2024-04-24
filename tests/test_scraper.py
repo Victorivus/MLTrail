@@ -1,6 +1,4 @@
 import pytest
-import sys
-sys.path.append('../src/')
 from scraper.scraper import Scraper
 import pandas as pd
 
