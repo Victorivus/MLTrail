@@ -18,14 +18,22 @@ Lib to process results, make analysis of Trail running races and eventually buil
 - [X] Get the name of the checkpoints from the website.
 - [X] Set objective directly by time and not by position.
 - [X] Get a list of available races in LiveTrail.
-- [ ] Rename to LiveTrail Scraper (others may come)
+- [ ] Rename Scraper to LiveTrail Scraper (others may come later)
 
 ### ML/AI
 - [ ] Add inference points from models
 - [ ] Add modelling capabilities from own data, start simple (ensemble methods)
 
 ### FrontEnd
+- [ ] Add a switch button to tables between cumulative race time and time of the day(s)
+- [ ] Add normalized pace plot and add a switch button between it and regular pace one.
 - [ ] Integrate printing version of times
+- [ ] Show race profile from distance, D+ and D- data? Maybe too aproximative and need real gps data
+- [ ] Objective graph is only paces, show times / normalised pace?
 
-### FrontEnd
+
+### BackEnd
 - [ ] Add printing version of times
+- [ ] Create a DB to scrape and store all results and information
+- [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
+
