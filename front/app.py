@@ -111,10 +111,10 @@ def main():
                 # TODO: Add button to toggle view between hours and time (apply or not rs.formatTimeOver24h)
                 st.write(f"Departure time: {race_info['hd']}")
                 st.write('Times:')
-                st.write(data['times'])
+                st.write(data['times'].sort_index())
 
                 st.write('Paces:')
-                st.write(data['paces'])
+                st.write(data['paces'].sort_index())
 
                 st.image(file_path)
                 
