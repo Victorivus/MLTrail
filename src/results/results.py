@@ -26,7 +26,7 @@ class Results:
         self.distanceDeltas = self.getDistanceDeltas()
         self.paces = self.getPaces()
         self.pacesNorm = self.getPacesNorm()
-    
+
     def _correctTimes24h(self, row):
         previous_time = row.iloc[0]
         adjusted_row = [row.iloc[0]]
@@ -68,8 +68,6 @@ class Results:
         return self.times
 
     def getSeconds(self, time, offset=True):
-        # if np.isnan(time):
-        #    time = '0:00:00'
         d = 0  # days
         if 'day' in time:
             days, time = time.split(", ")
@@ -102,24 +100,16 @@ class Results:
     def fixFormat(self, df):
         return df.apply(lambda x: str(x)+':00')
 
-    def plotControlPoints(self, df, showHours=False, xrotate=False, inverty=False, savePath=None):  # ,labels=True):
+    def plotControlPoints(self, df, showHours=False, xrotate=False, inverty=False, savePath=None):
         if showHours:
             labelFormat = '%H:%M:%S'
         else:
             labelFormat = '%M:%S'
 
-        # plt.figure(figsize=(8, 6), dpi=80)
         fig, ax1 = plt.subplots(figsize=(12, 10), dpi=150)
         for i in df.reset_index()['index']:
             y = mdates.datestr2num(df.loc[i])
             ax1.plot(df.columns, y, marker='o', label=i)
-            # for j in df.columns:
-            #    ax1.annotate(y, (j, y[j]))
-            #    ax1.annotate(y[j], xy=(3, 1),  xycoords='data',
-            #       xytext=(0.8, 0.95), textcoords='axes fraction',
-            #         arrowprops=dict(facecolor='black', shrink=0.05),
-            #        horizontalalignment='right', verticalalignment='top',
-            #         )
 
         ax1.yaxis.set_major_formatter(mdates.DateFormatter(labelFormat))
         if inverty:
@@ -138,7 +128,6 @@ class Results:
         prevPoint = ''
         for point in self.controlPoints.keys():
             if prevPoint == '':
-                # timeDeltas[point] = display(self.times[point].map(lambda x: self.getAllure(x, self.controlPoints[point][0]))
                 timeDeltas[point] = self.times.apply(lambda x: self.totalTimeToDelta(x[point], self.getTime(self.offset)), axis=1)
             else:
                 timeDeltas[point] = self.times.apply(lambda x: self.totalTimeToDelta(x[point], x[prevPoint]), axis=1)
@@ -150,7 +139,6 @@ class Results:
         prevPoint = ''
         for point in self.controlPoints.keys():
             if prevPoint == '':
-                # timeDeltas[point] = display(self.times[point].map(lambda x: self.getAllure(x, self.controlPoints[point][0]))
                 distanceDeltas[point] = (self.controlPoints[point][0],
                                          self.controlPoints[point][1],
                                          self.controlPoints[point][2])
@@ -167,7 +155,6 @@ class Results:
         return True
     
     def getPaces(self):
-        # times_paces = self.times[(self.times[self.times.columns]!=':00')].copy()
         times_paces = self.times.copy()
         times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
 
@@ -250,7 +237,6 @@ class Results:
 
     def getClosestTimeToObjective(self, time):
         # Compute absolute difference between each element in the DataFrame and X
-        # diff = (self.getSeconds() - self.getSeconds(time)).abs()
         time = self.getSeconds(time, offset=False)
         closest_index = None
         min_diff = float('inf')  # Initialize with infinity
@@ -258,7 +244,6 @@ class Results:
         for index, row in self.times.iterrows():
             # Compute absolute difference between each element in the row and X
             diff = abs(self.getSeconds(row.iloc[-1]) - time)
-
             # Check if this row has the minimum difference seen so far
             if diff < min_diff:
                 min_diff = diff

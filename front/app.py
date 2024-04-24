@@ -81,11 +81,6 @@ def main():
     session_data['event'] = event
     session_data['year'] = year
     session_data['race'] = race
-    # session_data['race_info'] = race_info
-
-    # # Display session-like data
-    # st.write('Session Data:')
-    # st.write(session_data)
 
     st.title('Race Analysis')
 
@@ -105,6 +100,7 @@ def main():
             'year': year,
             'race': race
         }
+        session_data['race_info'] = race_info
         # Display data
         # TODO: Add button to toggle view between hours and time (apply or not rs.formatTimeOver24h)
         st.write(f"Departure time: {race_info['hd']}")
@@ -122,12 +118,11 @@ def main():
         folder_path = f'../data/plots/{event}'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        st.write(input_time)
         try:
             event = session_data['event']
             year = session_data['year']
             race = session_data['race']
-            st.write(event, year, race)
+            
             raw_results, control_points, rs, race_info = getRS(event, year, race)
             objective_position = rs.getClosestTimeToObjective(input_time)
 
@@ -137,7 +132,7 @@ def main():
             mean_obj = rs.getObjectiveMeanPaces()
             mean_obj_times = rs.getObjectiveMeanTimes()
 
-            st.write('Times:')
+            st.write('Total cumulative time per checkpoint:')
             st.write(mean_obj_times)
 
             index = ['objective', 'mean(obj)']
