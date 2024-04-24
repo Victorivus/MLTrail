@@ -35,4 +35,5 @@ Lib to process results, make analysis of Trail running races and eventually buil
 ### BackEnd
 - [ ] Add printing version of times
 - [ ] Create a DB to scrape and store all results and information
+- [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 
