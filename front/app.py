@@ -1,5 +1,7 @@
+'''
+Test module for the Results class
+'''
 import os
-import sys
 import re
 import traceback
 import pandas as pd
@@ -71,9 +73,9 @@ def main():
         scraper.setEvents([event])
         scraper.setYears([year])
         races = scraper.getRaces()
-        if not event in races:
+        if event not in races:
             st.write(f'No data available for {events[event]} {year}. Please select another event.')
-        elif not year in races[event]:
+        elif year not in races[event]:
             st.write(f'No data available for {events[event]} {year}. Please select another event or year.')
         else:
             races = races[event][year]
@@ -117,9 +119,9 @@ def main():
                 st.write(data['paces'].sort_index())
 
                 st.image(file_path)
-                
+
             input_time = st.text_input('Enter Objective Time (HH:MM:SS):')
-                        
+
             if st.button('Set Objective'):
                 folder_path = f'../data/plots/{event}'
                 if not os.path.exists(folder_path):
@@ -128,7 +130,7 @@ def main():
                     event = session_data['event']
                     year = session_data['year']
                     race = session_data['race']
-                    
+
                     raw_results, control_points, rs, race_info = getRS(event, year, race)
                     objective_position = rs.getClosestTimeToObjective(input_time)
 

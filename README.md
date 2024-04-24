@@ -28,6 +28,7 @@ streamlit run front/app.py
 - [ ] Add templates for manual (csv, json) results and control points
 - [ ] Improve Front-End
 - [ ] Integrate ML/AI predictors
+- [ ] Change camelCase style to snake_case style naming
 
 
 ### Scraping

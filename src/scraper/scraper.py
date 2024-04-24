@@ -1,9 +1,8 @@
 import os
-import requests
 import json
+import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-import pandas as pd
 
 
 class Scraper:
@@ -13,31 +12,31 @@ class Scraper:
         self.events = events
         self.years = years
         self.race = race
-        #self.date, self.startingTime, self.day = self.getRaceInfo()
-        
+        # self.date, self.startingTime, self.day = self.getRaceInfo()
+
     def _checkEventYear(self, e: str, y: str) -> None:
         if e not in list(self.allEvents.keys()) or y not in self.eventsYears[e]:
             raise ValueError(f"{e} is not a valid Live Trail race id for year {y}.")
-    
+
     def _isValidYear(self, y):
         try:
             year = int(y)
             return len(y) == 4 and 1900 <= year <= 9999
         except ValueError:
             return False
-    
+
     def setEvents(self, events: list[str]) -> None:
         self.events = events
-        
+
     def setYears(self, years: list[str]) -> None:
         if all([self._isValidYear(y) for y in years]):
             self.years = years
         else:
-            raise ValueError(f"Years contains a non valid number.")
+            raise ValueError("Years contains a non valid number.")
 
     def setRace(self, race: str) -> None:
         self.race = race
-    
+
     def getRaceInfo(self, bibN=1) -> dict:
         race_info = {}
         for event in self.events:
@@ -64,7 +63,7 @@ class Scraper:
         soup = BeautifulSoup(xml_content, 'xml')
 
         # Find the <pass> tag
-        pass_tag = soup.find('pass')#'select', id='chxCourse')
+        pass_tag = soup.find('pass')  # 'select', id='chxCourse')
 
         # Find all <e> tags within the <pass> tag
         e_tags = pass_tag.find_all('e')
@@ -74,11 +73,11 @@ class Scraper:
 
         # Extract id and n attributes from each <c> tag
         for e_tag in e_tags:
-            if e_tag['idpt']=='0':
-                race_info['date'] = e_tag['date'] # date of departure
-                race_info['tz'] = e_tag['tz'] # timezone of date
-                race_info['hd'] = e_tag['hd'] # departure time
-                race_info['jd'] = e_tag['jd'] # departure day of the week (1 Monday...7 Sunday)
+            if e_tag['idpt'] == '0':
+                race_info['date'] = e_tag['date']  # date of departure
+                race_info['tz'] = e_tag['tz']  # timezone of date
+                race_info['hd'] = e_tag['hd']  # departure time
+                race_info['jd'] = e_tag['jd']  # departure day of the week (1 Monday...7 Sunday)
                 return race_info
 
     def parseTable(self, xml_content: str) -> pd.DataFrame:
@@ -113,7 +112,7 @@ class Scraper:
         soup = BeautifulSoup(xml_content, 'xml')
 
         # Find the <courses> tag
-        courses_tag = soup.find('courses')#'select', id='chxCourse')
+        courses_tag = soup.find('courses')  # 'select', id='chxCourse')
 
         # Find all <c> tags within the <courses> tag
         c_tags = courses_tag.find_all('c')
@@ -150,7 +149,6 @@ class Scraper:
                     print(e)
         return fullRaces            
 
-        
     def downloadData(self) -> int:
         count = 0
         for event in self.events:
@@ -165,19 +163,19 @@ class Scraper:
                     if response.status_code == 200:
                         races = self._parseRaces(response.text)
                         # 'race' is an id and 'name' a more human-readble version
-                        for  race, name in races.items():
+                        for race, name in races.items():
                             # Data for the POST request
                             data = {
                                 'course': race,
                                 'cat': 'scratch',
                                 'from': '1',
-                                'to': '1000000' # To get all results
+                                'to': '1000000'  # To get all results
                             }
                             # Check if data already available or redownload:
                             folder_path = f'../../data/{event}'
                             if not os.path.exists(folder_path):
                                 os.makedirs(folder_path)
-                            file_path = os.path.join(folder_path,f'{event}_{race}_{year}.csv')
+                            file_path = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
                             if os.path.exists(file_path):
                                 pass
                             else:
@@ -186,10 +184,10 @@ class Scraper:
                                 # Check if request was successful
                                 if results_response.status_code == 200:
                                     df = self.parseTable(results_response.text)
-                                    df.to_csv(os.path.join(folder_path,f'{event}_{race}_{year}.csv'), index=False)
+                                    df.to_csv(os.path.join(folder_path, f'{event}_{race}_{year}.csv'), index=False)
                                 else:
-                                    print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                                        results_response.status_code)
+                                    print(f"Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
+                                          results_response.status_code)
                                     count += 1
                     else:
                         print("Failed to retrieve races' names. Status code:", response.status_code)
@@ -215,13 +213,13 @@ class Scraper:
                 'course': race,
                 'cat': 'scratch',
                 'from': '1',
-                'to': '1000000' # To get all results
+                'to': '1000000'  # To get all results
             }
             # Check if data already available or redownload:
             folder_path = f'../../data/{event}'
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
-            file_path = os.path.join(folder_path,f'{event}_{race}_{year}.csv')
+            file_path = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
             if os.path.exists(file_path):
                 df = pd.read_csv(file_path, sep=',')
             else:
@@ -233,12 +231,12 @@ class Scraper:
                     df = self.parseTable(results_response.text)
                 else:
                     print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                        results_response.status_code)
+                          results_response.status_code)
             return df
         except ValueError as e:
             print(e)
     
-    def _parseEventList(self, data)-> dict:
+    def _parseEventList(self, data) -> dict:
         data = json.loads(data)
         events_dict = {}
         for i in data['infoCourse']['cal'].items():
@@ -282,7 +280,7 @@ class Scraper:
             events_dict = self._parseEventList(response.text)
         else:
             print("Failed to retrieve Live Trail's event list. Status code:",
-                response.status_code)
+                  response.status_code)
         return events_dict
     
     def getEventsYears(self) -> dict:
@@ -299,7 +297,7 @@ class Scraper:
             events_dict = self._parsePastEventList(response.text)
         else:
             print("Failed to retrieve Live Trail's event list. Status code:",
-                response.status_code)
+                  response.status_code)
         return events_dict
     
     def getControlPoints(self) -> dict:
@@ -317,7 +315,7 @@ class Scraper:
                     if response.status_code == 200:
                         controlPoints = self._parseControlPoints(response.text)
                     else:
-                        print(f"Failed to retrieve races' control points for {e} {year}. Status code:", response.status_code)
+                        print(f"Failed to retrieve races' control points for {event} {year}. Status code:", response.status_code)
                         count += 1
                 except ValueError as e:
                     print(e)

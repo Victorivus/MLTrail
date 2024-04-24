@@ -1,3 +1,6 @@
+'''
+Test module for the Scraper class
+'''
 import pytest
 from scraper.scraper import Scraper
 import pandas as pd
