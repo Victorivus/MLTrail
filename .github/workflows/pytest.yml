@@ -2,6 +2,7 @@ name: Pytest
 
 on:
   pull_request:
+    types: [ edited ]
     branches:
       - main
 
