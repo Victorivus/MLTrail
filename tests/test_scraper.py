@@ -4,12 +4,13 @@ sys.path.append('../src/')
 from scraper.scraper import Scraper
 import pandas as pd
 
+
 # Test case for _checkEventYear method
 def test_check_event_valid():
     scraper = Scraper()
     with pytest.raises(ValueError):
         scraper._checkEventYear("invalid_event", "2022")
-        
+
 
 # Test case for _checkEventYear method
 def test_check_event_year_valid():
@@ -53,7 +54,7 @@ def test_get_control_points():
     scraper = Scraper(events=["transgrancanaria"], years=["2023"])
     cp = scraper.getControlPoints()['classic']
     assert cp == control_points
-    
+
     # Sainté-Lyon 2021 data
     control_points = {  
                         'Saint Etienne': (0.0, 0, 0),
@@ -148,13 +149,17 @@ def test_get_data():
         '110': '14:15:53'
     }
     
-    scr =  Scraper(events=["transgrancanaria"], years=["2023"])
+    scr = Scraper(events=["transgrancanaria"], years=["2023"])
     assert pd.Series(data, name='3').equals(scr.getData('classic').iloc[3])
 
 # Test case for getRaceInfo method
 def test_get_race_info():
     race_info = {'date': '2024-02-24', 'tz': '0', 'hd': '00:00:03', 'jd': '6'}
-    scr =  Scraper(events=["transgrancanaria"], years=["2024"])
+    # We pop 'tz' since it returns actual timezone, not event's so it changes over time and may fail
+    race_info.pop('tz')
+    scr = Scraper(events=["transgrancanaria"], years=["2024"])
+    scr_race_info = scr.getRaceInfo(bibN=20)
+    scr_race_info.pop('tz')
     sorted_dict1 = sorted(race_info.items())
-    sorted_dict2 = sorted(scr.getRaceInfo(bibN=20).items())
+    sorted_dict2 = sorted(scr_race_info.items())
     assert sorted_dict1 == sorted_dict2, "Race info method Failed"
