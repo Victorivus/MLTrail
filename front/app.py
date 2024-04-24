@@ -70,7 +70,6 @@ def main():
         # Get the races for the selected event and year
         scraper.setEvents([event])
         scraper.setYears([year])
-        print(event, year)
         races = scraper.getRaces()
         if not event in races:
             st.write(f'No data available for {events[event]} {year}. Please select another event.')
