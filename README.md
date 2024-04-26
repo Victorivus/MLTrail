@@ -7,6 +7,7 @@ Lib to process results, make analysis of Trail running races and eventually buil
 # Installation
 
 Install Poetry:
+
 **Linux, macOS, Windows (WSL)**
 ```
 curl -sSL https://install.python-poetry.org | python3 -
