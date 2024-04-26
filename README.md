@@ -6,6 +6,19 @@ Lib to process results, make analysis of Trail running races and eventually buil
 
 # Installation
 
+Install Poetry:
+**Linux, macOS, Windows (WSL)**
+```
+curl -sSL https://install.python-poetry.org | python3 -
+```
+**Windows (Powershell)**
+```
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+```
+> If you have installed Python through the Microsoft Store, replace py with python in the command above.
+
+(More details, methods or problem solving on [Poetry Installation Page](https://python-poetry.org/docs/#installation).)
+
 Execute the following command:
 
 ```
@@ -28,7 +41,7 @@ streamlit run front/app.py
 - [ ] Add templates for manual (csv, json) results and control points
 - [ ] Improve Front-End
 - [ ] Integrate ML/AI predictors
-- [ ] Change camelCase style to snake_case style naming
+- [ ] Change camelCase style to snake_case style naming
 
 
 ### Scraping
@@ -56,10 +69,10 @@ streamlit run front/app.py
 ### BackEnd
 - [ ] Add printing version of times
 - [ ] Create a DB to scrape and store all results and information
-- [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
+- [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 - [X] Fix imports
 
 ### CI/CD
 - [ ] Create a CI/CD Pipeline
 - [ ] Contenarize
-- [ ] Add installation procedure
+- [X] Add installation procedure
