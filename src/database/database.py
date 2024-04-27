@@ -1,5 +1,4 @@
 import sqlite3
-from sqlite3 import Connection
 from typing import Union
 from database.create_db import Database
 
@@ -183,12 +182,6 @@ class Race:
             ''', (self._race_id, self._event_id, self._race_name, self._distance, self._elevation_pos,
                   self._elevation_neg, self._departure_datetime, self._results_filepath))
             conn.commit()
-            cursor.execute('SELECT * FROM races')    # Fetch and process the results
-            rows = cursor.fetchall()
-            for row in rows:
-                # Process each row as needed
-                print('row:', row)
-        print(self)
         conn.close()
 
     @staticmethod
@@ -230,8 +223,6 @@ class Race:
 
 
 class Results:
-    _db_path: str = Database().path
-
     def __init__(self, race_id: int = None, event_id: int = None, position: int = None,
                  cat_position: int = None, full_cat_position: int = None, bib: int = None,
                  surname: str = None, name: str = None, sex_category: str = None,
@@ -322,7 +313,7 @@ class Results:
         return self._time
 
     def save_to_database(self) -> None:
-        conn = sqlite3.connect(self._db_path)
+        conn = sqlite3.connect(self._db.path)
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO results (race_id, event_id, position, cat_position, full_cat_position, bib, surname, name, sex_category, full_category, time)
@@ -332,33 +323,36 @@ class Results:
         conn.close()
 
     def count_bib(self) -> int:
-        conn = sqlite3.connect(self._db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT COUNT(bib) FROM results WHERE event_id = ? AND race_id = ? AND bib IS NOT NULL AND bib != ''
-        ''', (self._event_id, self._race_id))
-        count = cursor.fetchone()[0]
+        conn = sqlite3.connect(self._db.path)
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT COUNT(bib) FROM results WHERE event_id = ? AND race_id = ? AND bib IS NOT NULL AND bib != ''
+            ''', (self._event_id, self._race_id))
+            count = cursor.fetchone()[0]
         conn.close()
         return count
 
     def count_category(self, category='Female') -> int:
-        conn = sqlite3.connect(self._db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-                       SELECT COUNT(*) FROM results WHERE event_id = ? AND race_id = ? AND
-                        sex_category = ? AND full_category IS NOT NULL AND full_category != ''
-                       ''', (self._event_id, self._race_id, category))
-        count = cursor.fetchone()[0]
+        conn = sqlite3.connect(self._db.path)
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                        SELECT COUNT(*) FROM results WHERE event_id = ? AND race_id = ? AND
+                            sex_category = ? AND full_category IS NOT NULL AND full_category != ''
+                        ''', (self._event_id, self._race_id, category))
+            count = cursor.fetchone()[0]
         conn.close()
         return count
 
-    def count_time(self, db_path: str = 'events.db') -> int:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT COUNT(time) FROM results WHERE event_id = ? AND race_id = ? AND time IS NOT NULL AND time != ''
-        ''', (self._event_id, self._race_id))
-        count = cursor.fetchone()[0]
+    def count_time(self) -> int:
+        conn = sqlite3.connect(self._db.path)
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT COUNT(time) FROM results WHERE event_id = ? AND race_id = ? AND time IS NOT NULL AND time != ''
+            ''', (self._event_id, self._race_id))
+            count = cursor.fetchone()[0]
         conn.close()
         return count
 
@@ -375,7 +369,6 @@ class Results:
                 FROM results WHERE race_id = ? AND event_id = ?
             ''', (race_id, event_id,))
             row = cursor.fetchone()
-            conn.close()
         if row:
             results = Results(
                 race_id=race_id,

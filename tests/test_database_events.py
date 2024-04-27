@@ -1,7 +1,7 @@
 import os
 import unittest
 import sqlite3
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from database.create_db import Database
 from database.database import Event
 
