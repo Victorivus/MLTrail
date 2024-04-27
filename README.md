@@ -38,6 +38,7 @@ streamlit run front/app.py
 ## Actual branch TO-DO list
 - [ ] *Tablelize* countries, categories.
 - [ ] Add tests.
+- [ ] Add logic to control creation of objects (manage nullable or not fields)
 
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.

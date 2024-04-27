@@ -3,7 +3,7 @@ import unittest
 import sqlite3
 from unittest.mock import patch, Mock
 from database.create_db import Database
-from database.database import Event, Race, Results
+from database.database import Event
 
 # We use results from previous tests for the following ones,
 # i.e. when inserting events in the DB and then modifying them 

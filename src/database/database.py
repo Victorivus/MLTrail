@@ -177,12 +177,18 @@ class Race:
         with conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO races (event_id, race_name, distance, elevation_pos,
+                INSERT INTO races (race_id, event_id, race_name, distance, elevation_pos,
                                     elevation_neg, departure_datetime, results_filepath)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (self._event_id, self._race_name, self._distance, self._elevation_pos,
-                self._elevation_neg, self._departure_datetime, self._results_filepath))
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (self._race_id, self._event_id, self._race_name, self._distance, self._elevation_pos,
+                  self._elevation_neg, self._departure_datetime, self._results_filepath))
             conn.commit()
+            cursor.execute('SELECT * FROM races')    # Fetch and process the results
+            rows = cursor.fetchall()
+            for row in rows:
+                # Process each row as needed
+                print('row:', row)
+        print(self)
         conn.close()
 
     @staticmethod
