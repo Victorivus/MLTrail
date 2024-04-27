@@ -54,3 +54,9 @@ jobs:
       - name: Run tests
         run: |
           poetry run pytest tests/
+      #----------------------------------------------
+      #              remove temp test db
+      #----------------------------------------------
+      - name: Remove test.db
+        run: |
+          rm test.db

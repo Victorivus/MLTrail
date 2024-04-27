@@ -35,6 +35,10 @@ streamlit run front/app.py
 
 # Collaborating
 
+## Actual branch TO-DO list
+- [ ] *Tablelize* countries, categories.
+- [ ] Add tests.
+
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
 - [X] Add tests.
