@@ -24,6 +24,11 @@ class TestEvent(unittest.TestCase):
         event.set_event_name("Test Event")
         self.assertEqual(event.get_event_name(), "Test Event")
 
+    def test_get_event_code(self):
+        event = Event(db=self.db)
+        event.set_event_code("testev")
+        self.assertEqual(event.get_event_code(), "testev")
+
     def test_get_date(self):
         event = Event(db=self.db)
         event.set_date("2024-01-01")
@@ -36,6 +41,7 @@ class TestEvent(unittest.TestCase):
 
     def test_records_a_save_to_database_insert(self):
         event = Event(db=self.db)
+        event.set_event_code("testev")
         event.set_event_name("Test Event")
         event.set_date("2024-01-01")
         event.set_country("USA")
@@ -47,12 +53,14 @@ class TestEvent(unittest.TestCase):
             row = cursor.fetchone()
         conn.close()
         self.assertIsNotNone(row)
-        self.assertEqual(row[1], "Test Event")
-        self.assertEqual(row[2], "2024-01-01")
-        self.assertEqual(row[3], "USA")
+        self.assertEqual(row[1], "testev")
+        self.assertEqual(row[2], "Test Event")
+        self.assertEqual(row[3], "2024-01-01")
+        self.assertEqual(row[4], "USA")
 
     def test_records_b_get_event_id_from_database(self):
-        event = Event(event_name="Test Event bis",
+        event = Event(event_code="testev",
+                      event_name="Test Event bis",
                       date="2024-01-01",
                       country="FRA",
                       db=self.db)
@@ -65,7 +73,8 @@ class TestEvent(unittest.TestCase):
         self.assertEqual(event.get_event_id_from_database(), row[0])
 
     def test_records_c_save_to_database_update(self):
-        event = Event(event_name="Test Event",
+        event = Event(event_code="testev",
+                      event_name="Test Event",
                       date="2024-01-01",
                       country="USA",
                       db=self.db)
@@ -79,14 +88,15 @@ class TestEvent(unittest.TestCase):
             row = cursor.fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(row[0], event_id)
-        self.assertEqual(row[3], "UK")
+        self.assertEqual(row[4], "UK")
 
     @patch('sqlite3.connect')
     def test_load_from_database(self, mock_connect):
         mock_cursor = mock_connect.return_value.cursor.return_value
-        mock_cursor.fetchone.return_value = ("Test Event", "2024-01-01", "USA")
+        mock_cursor.fetchone.return_value = ("testev", "Test Event", "2024-01-01", "USA")
         event = Event.load_from_database(1, db=self.db)
         self.assertIsNotNone(event)
+        self.assertEqual(event.get_event_code(), "testev")
         self.assertEqual(event.get_event_name(), "Test Event")
         self.assertEqual(event.get_date(), "2024-01-01")
         self.assertEqual(event.get_country(), "USA")

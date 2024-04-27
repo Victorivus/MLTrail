@@ -30,6 +30,7 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS events (
                 event_id INTEGER PRIMARY KEY,
+                event_code TEXT,
                 event_name TEXT,
                 date TEXT,
                 country TEXT
