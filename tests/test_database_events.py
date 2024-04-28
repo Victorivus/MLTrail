@@ -29,10 +29,10 @@ class TestEvent(unittest.TestCase):
         event.set_event_code("testev")
         self.assertEqual(event.get_event_code(), "testev")
 
-    def test_get_date(self):
+    def test_get_year(self):
         event = Event(db=self.db)
-        event.set_date("2024-01-01")
-        self.assertEqual(event.get_date(), "2024-01-01")
+        event.set_year("2024-01-01")
+        self.assertEqual(event.get_year(), "2024-01-01")
 
     def test_get_country(self):
         event = Event(db=self.db)
@@ -43,13 +43,13 @@ class TestEvent(unittest.TestCase):
         event = Event(db=self.db)
         event.set_event_code("testev")
         event.set_event_name("Test Event")
-        event.set_date("2024-01-01")
+        event.set_year("2024-01-01")
         event.set_country("USA")
         event.save_to_database()
         conn = sqlite3.connect(self.db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM events WHERE event_name = "Test Event" AND date = "2024-01-01" AND country = "USA"')
+            cursor.execute('SELECT * FROM events WHERE event_name = "Test Event" AND year = "2024-01-01" AND country = "USA"')
             row = cursor.fetchone()
         conn.close()
         self.assertIsNotNone(row)
@@ -61,7 +61,7 @@ class TestEvent(unittest.TestCase):
     def test_records_b_get_event_id_from_database(self):
         event = Event(event_code="testev",
                       event_name="Test Event bis",
-                      date="2024-01-01",
+                      year="2024-01-01",
                       country="FRA",
                       db=self.db)
         event.save_to_database()
@@ -75,7 +75,7 @@ class TestEvent(unittest.TestCase):
     def test_records_c_save_to_database_update(self):
         event = Event(event_code="testev",
                       event_name="Test Event",
-                      date="2024-01-01",
+                      year="2024-01-01",
                       country="USA",
                       db=self.db)
         event_id = event.get_event_id()
@@ -98,7 +98,7 @@ class TestEvent(unittest.TestCase):
         self.assertIsNotNone(event)
         self.assertEqual(event.get_event_code(), "testev")
         self.assertEqual(event.get_event_name(), "Test Event")
-        self.assertEqual(event.get_date(), "2024-01-01")
+        self.assertEqual(event.get_year(), "2024-01-01")
         self.assertEqual(event.get_country(), "USA")
 
 

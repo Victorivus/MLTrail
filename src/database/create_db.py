@@ -32,7 +32,7 @@ class Database:
                 event_id INTEGER PRIMARY KEY,
                 event_code TEXT,
                 event_name TEXT,
-                date TEXT,
+                year TEXT,
                 country TEXT
             )
         ''')

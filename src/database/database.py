@@ -4,7 +4,7 @@ from database.create_db import Database
 
 
 class Event:
-    def __init__(self, event_name: str = None, event_code: str = None, date: str = None,
+    def __init__(self, event_name: str = None, event_code: str = None, year: str = None,
                  country: str = None, db: Database = None) -> None:
         if db is not None:
             self._db: Database = db
@@ -12,12 +12,12 @@ class Event:
             self._db: Database = Database().create_database()
         self._event_code: str = event_code
         self._event_name: str = event_name
-        self._date: str = date
+        self._year: str = year
         self._country: str = country
         self._event_id: int = self.get_event_id_from_database()
 
     def __str__(self):
-        return f"Event ID: {self._event_id}, Code: {self._event_code}, Name: {self._event_name}, Date: {self._date}, Country: {self._country}"
+        return f"Event ID: {self._event_id}, Code: {self._event_code}, Name: {self._event_name}, Year: {self._year}, Country: {self._country}"
 
     def _set_event_id(self, event_id) -> None:
         self._event_id = event_id
@@ -37,11 +37,11 @@ class Event:
     def get_event_code(self) -> str:
         return self._event_code
 
-    def set_date(self, date) -> None:
-        self._date = date
+    def set_year(self, year) -> None:
+        self._year = year
 
-    def get_date(self) -> str:
-        return self._date
+    def get_year(self) -> str:
+        return self._year
 
     def set_country(self, country) -> None:
         self._country = country
@@ -56,20 +56,20 @@ class Event:
             if self._event_id is None:
                 self._set_event_id(self.get_event_id_from_database())
                 if self._event_id is None:
-                    cursor.execute('INSERT INTO events (event_code, event_name, date, country) VALUES (?, ?, ?, ?)',
-                                   (self._event_code, self._event_name, self._date, self._country))
+                    cursor.execute('INSERT INTO events (event_code, event_name, year, country) VALUES (?, ?, ?, ?)',
+                                   (self._event_code, self._event_name, self._year, self._country))
                 else:
                     cursor.execute('''
                         UPDATE events
-                        SET event_code = ?,  event_name = ?, date = ?, country = ?
+                        SET event_code = ?,  event_name = ?, year = ?, country = ?
                         WHERE event_id = ?
-                    ''', (self._event_code, self._event_name, self._date, self._country, self._event_id))
+                    ''', (self._event_code, self._event_name, self._year, self._country, self._event_id))
             else:
                 cursor.execute('''
                     UPDATE events
-                        SET event_code = ?,  event_name = ?, date = ?, country = ?
+                        SET event_code = ?,  event_name = ?, year = ?, country = ?
                         WHERE event_id = ?
-                    ''', (self._event_code, self._event_name, self._date, self._country, self._event_id))
+                    ''', (self._event_code, self._event_name, self._year, self._country, self._event_id))
             conn.commit()
         conn.close()
         # Update event_id after setting it in db
@@ -79,8 +79,8 @@ class Event:
         conn = sqlite3.connect(self._db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT event_id FROM events WHERE event_code = ? AND  event_name = ? AND date = ? AND country = ?',
-                        (self._event_code, self._event_name, self._date, self._country,))
+            cursor.execute('SELECT event_id FROM events WHERE event_code = ? AND  event_name = ? AND year = ? AND country = ?',
+                        (self._event_code, self._event_name, self._year, self._country,))
             row = cursor.fetchone()
         conn.close()
         if row:
@@ -94,7 +94,7 @@ class Event:
         else:
             conn = sqlite3.connect(db.path)
         cursor = conn.cursor()
-        cursor.execute('SELECT event_code, event_name, date, country FROM events WHERE event_id = ?',
+        cursor.execute('SELECT event_code, event_name, year, country FROM events WHERE event_id = ?',
                        (event_id,))
         row = cursor.fetchone()
         conn.close()
@@ -103,9 +103,24 @@ class Event:
             event._set_event_id(event_id)
             event.set_event_code(row[0])
             event.set_event_name(row[1])
-            event.set_date(row[2])
+            event.set_year(row[2])
             event.set_country(row[3])
             return event
+        return None
+
+    @staticmethod
+    def get_id_from_code_year(event_code, year, db: Database = None) -> Union[int, None]:
+        if db is None:
+            conn = sqlite3.connect(Database().path)
+        else:
+            conn = sqlite3.connect(db.path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT event_id FROM events WHERE event_code = ? AND year = ?',
+                       (event_code, year))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return row[0]
         return None
 
 
