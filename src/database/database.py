@@ -51,6 +51,11 @@ class Event:
 
     def save_to_database(self) -> None:
         conn = sqlite3.connect(self._db.path)
+        query = '''
+                        UPDATE events
+                        SET event_code = ?,  event_name = ?, year = ?, country = ?
+                        WHERE event_id = ?
+                    '''
         with conn:
             cursor = conn.cursor()
             if self._event_id is None:
@@ -59,17 +64,11 @@ class Event:
                     cursor.execute('INSERT INTO events (event_code, event_name, year, country) VALUES (?, ?, ?, ?)',
                                    (self._event_code, self._event_name, self._year, self._country))
                 else:
-                    cursor.execute('''
-                        UPDATE events
-                        SET event_code = ?,  event_name = ?, year = ?, country = ?
-                        WHERE event_id = ?
-                    ''', (self._event_code, self._event_name, self._year, self._country, self._event_id))
+                    cursor.execute(query, (self._event_code, self._event_name, self._year,
+                                           self._country, self._event_id))
             else:
-                cursor.execute('''
-                    UPDATE events
-                        SET event_code = ?,  event_name = ?, year = ?, country = ?
-                        WHERE event_id = ?
-                    ''', (self._event_code, self._event_name, self._year, self._country, self._event_id))
+                cursor.execute(query, (self._event_code, self._event_name, self._year,
+                                       self._country, self._event_id))
             conn.commit()
         conn.close()
         # Update event_id after setting it in db
@@ -195,15 +194,28 @@ class Race:
         return self._results_filepath
 
     def save_to_database(self) -> None:
-        conn = sqlite3.connect(self._db.path)
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute('''
+        if self.get_race_event_id_from_database(self._event_id,
+                                                self._race_name,
+                                                self._db) is not None:
+            query = '''
+                UPDATE races SET race_id = ?, event_id = ?, race_name =?,
+                                 distance = ?, elevation_pos = ?,
+                                 elevation_neg =?, departure_datetime =?,
+                                 results_filepath = ?)
+            '''
+        else:
+            query = '''
                 INSERT INTO races (race_id, event_id, race_name, distance, elevation_pos,
                                     elevation_neg, departure_datetime, results_filepath)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (self._race_id, self._event_id, self._race_name, self._distance, self._elevation_pos,
-                  self._elevation_neg, self._departure_datetime, self._results_filepath))
+            '''
+        conn = sqlite3.connect(self._db.path)
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (self._race_id, self._event_id, self._race_name,
+                                   self._distance, self._elevation_pos,
+                                   self._elevation_neg, self._departure_datetime,
+                                   self._results_filepath))
             conn.commit()
         conn.close()
 

@@ -37,8 +37,13 @@ streamlit run front/app.py
 
 ## Actual branch TO-DO list
 - [ ] *Tablelize* countries, categories.
-- [ ] Add tests.
+- [X] Add tests.
 - [ ] Add logic to control creation of objects (manage nullable or not fields)
+- [ ] Add Events getid to tests
+- [ ] Add update race case into tests
+- [X] Add Events to db
+- [X] Add Races to DB
+- [ ] Add results download + load to DB
 
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
