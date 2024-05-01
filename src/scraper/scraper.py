@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 
 
 class Scraper:
+    base_url: str = "https://livetrail.net/histo/{event}_{year}"
+    base_url2: str = "https://livetrail.net/histo/{event}{year}"
+
     def __init__(self, events: list[str] = [], years: list[str] = [], race: str = 'all') -> None:
         self.allEvents = self.getEvents()
         self.eventsYears = self.getEventsYears()
@@ -42,21 +45,39 @@ class Scraper:
         for event in self.events:
             for year in self.years:
                 try:
-                    self._checkEventYear(event, year)
-                    # URL of the website
-                    url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech={bibN}"
-                    # Sending GET request to parse races' names
-                    response = requests.get(url)
-                    # Check if request was successful
-                    if response.status_code == 200:
-                        # 'race' is an id and 'name' a more human-readble version
-                        race_info = self._parseRaceInfo(response.text)
-                    else:
-                        race_info = {}
-                        print("Failed to retrieve race info. Status code:", response.status_code)
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+f"/coureur.php?rech={bibN}"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+f"/coureur.php?rech={bibN}"
+                    for url in [url1, url2]:
+                        self._checkEventYear(event, year)
+                        # URL of the website
+                        # url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech={bibN}"
+                        # Sending GET request to parse races' names
+                        response = requests.get(url, timeout=20)
+                        # Check if request was successful
+                        if response.status_code == 200:
+                            # 'race' is an id and 'name' a more human-readble version
+                            race_info = self._parseRaceInfo(response.text)
+                            # if url1 fails, some old pages url is like in 2
+                            break
+                        else:
+                            race_info = {}
+                            print("Failed to retrieve race info. Status code:", response.status_code)
                 except ValueError as e:
                     print(e)
         return race_info
+
+    def getRacesPhysicalDetails(self) -> dict:
+        races_data = {}
+        cp = self.getControlPoints()
+        for race in cp.keys():
+            race_data = {}
+            race_data_tuple = cp[race].popitem()[1]
+            race_data['distance'] = race_data_tuple[0]
+            race_data['elevation_pos'] = race_data_tuple[1]
+            race_data['elevation_neg'] = race_data_tuple[2]
+            races_data[race] = race_data
+
+        return races_data
 
     def _parseRaceInfo(self, xml_content: str) -> dict:
         # Parse the XML content
@@ -74,10 +95,10 @@ class Scraper:
         # Extract id and n attributes from each <c> tag
         for e_tag in e_tags:
             if e_tag['idpt'] == '0':
-                race_info['date'] = e_tag['date']  # date of departure
-                race_info['tz'] = e_tag['tz']  # timezone of date
-                race_info['hd'] = e_tag['hd']  # departure time
-                race_info['jd'] = e_tag['jd']  # departure day of the week (1 Monday...7 Sunday)
+                race_info['date'] = e_tag['date'] if 'date' in e_tag else None # date of departure
+                race_info['tz'] = e_tag['tz'] if 'date' in e_tag else None  # timezone of date
+                race_info['hd'] = e_tag['hd'] if 'date' in e_tag else None  # departure time
+                race_info['jd'] = e_tag['jd'] if 'date' in e_tag else None  # departure day of the week (1 Monday...7 Sunday)
                 return race_info
 
     def parseTable(self, xml_content: str) -> pd.DataFrame:
@@ -128,77 +149,104 @@ class Scraper:
 
         return result_dict
 
-    def getRaces(self):
+    def getRandomRunnerBib(self):
+        if len(self.events) > 1 or len(self.years) > 1:
+            raise ValueError("This method is only available if there is only one event and year in Scraper.events ant Scraper.year")
+        rr = {}
+        races = self.getRaces()
+        for event in self.events:
+            for year in self.years:
+                if year in races[event]:
+                    rr[year] = {}
+                    for race in races[event][year]:
+                        df = self.getData(race)
+                        if df is not None:
+                            rr[year][race] = df.sort_index().iloc[0]['doss'] if not df.empty else None
+                        else:
+                            rr[year][race] = None
+        return rr
+
+    def getRaces(self) -> dict:
         fullRaces = {}
         for event in self.events:
             for year in self.years:
                 try:
-                    self._checkEventYear(event, year)
-                    # URL of the website
-                    url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
-                    # Sending GET request to parse races' names
-                    response = requests.get(url)
-                    # Check if request was successful
-                    if response.status_code == 200:
-                        # 'race' is an id and 'name' a more human-readble version
-                        races = self._parseRaces(response.text)
-                        fullRaces[event] = {year: races}
-                    else:
-                        print("Failed to retrieve races' names. Status code:", response.status_code)
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+f"/passages.php"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+f"/passages.php"
+                    for url in [url1, url2]:
+                        self._checkEventYear(event, year)
+                        # URL of the website
+                        # url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
+                        # Sending GET request to parse races' names
+                        response = requests.get(url, timeout=20)
+                        # Check if request was successful
+                        if response.status_code == 200:
+                            # 'race' is an id and 'name' a more human-readble version
+                            races = self._parseRaces(response.text)
+                            fullRaces[event] = {year: races}
+                            # if url1 fails, some old pages url is like in 2
+                            break
+                        else:
+                            print("Failed to retrieve races' names. Status code:", response.status_code)
                 except ValueError as e:
                     print(e)
-        return fullRaces            
+        return fullRaces
 
-    def downloadData(self) -> int:
+    def downloadData(self, force_download=False) -> int:
         count = 0
         for event in self.events:
             for year in self.years:
                 try:
-                    self._checkEventYear(event, year)
-                    # URL of the website
-                    url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
-                    # Sending GET request to parse races' names
-                    response = requests.get(url)
-                    # Check if request was successful
-                    if response.status_code == 200:
-                        races = self._parseRaces(response.text)
-                        # 'race' is an id and 'name' a more human-readble version
-                        for race, name in races.items():
-                            # Data for the POST request
-                            data = {
-                                'course': race,
-                                'cat': 'scratch',
-                                'from': '1',
-                                'to': '1000000'  # To get all results
-                            }
-                            # Check if data already available or redownload:
-                            folder_path = f'../../data/{event}'
-                            if not os.path.exists(folder_path):
-                                os.makedirs(folder_path)
-                            file_path = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
-                            if os.path.exists(file_path):
-                                pass
-                            else:
-                                # Sending POST request
-                                results_response = requests.post(url, data=data)
-                                # Check if request was successful
-                                if results_response.status_code == 200:
-                                    df = self.parseTable(results_response.text)
-                                    df.to_csv(os.path.join(folder_path, f'{event}_{race}_{year}.csv'), index=False)
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+f"/passages.php"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+f"/passages.php"
+                    for url in [url1, url2]:
+                        self._checkEventYear(event, year)
+                        # URL of the website
+                        # url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
+                        # Sending GET request to parse races' names
+                        response = requests.get(url, timeout=20)
+                        # Check if request was successful
+                        if response.status_code == 200:
+                            races = self._parseRaces(response.text)
+                            # 'race' is an id and 'name' a more human-readble version
+                            for race, name in races.items():
+                                # Data for the POST request
+                                data = {
+                                    'course': race,
+                                    'cat': 'scratch',
+                                    'from': '1',
+                                    'to': '1000000'  # To get all results
+                                }
+                                # Check if data already available or redownload:
+                                folder_path = f'../../data/{event}'
+                                if not os.path.exists(folder_path):
+                                    os.makedirs(folder_path)
+                                file_path = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
+                                if os.path.exists(file_path) and force_download is False:
+                                    pass
                                 else:
-                                    print(f"Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                                          results_response.status_code)
-                                    count += 1
-                    else:
-                        print("Failed to retrieve races' names. Status code:", response.status_code)
-                        count += 1
+                                    # Sending POST request
+                                    results_response = requests.post(url, data=data, timeout=20)
+                                    # Check if request was successful
+                                    if results_response.status_code == 200:
+                                        df = self.parseTable(results_response.text)
+                                        df.to_csv(os.path.join(folder_path, f'{event}_{race}_{year}.csv'), index=False)
+                                    else:
+                                        print(f"Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
+                                            results_response.status_code)
+                                        count += 1
+                            # if url1 fails, some old pages url is like in 2
+                            break
+                        else:
+                            print("Failed to retrieve races' names. Status code:", response.status_code)
+                            count += 1
                 except ValueError as e:
                     print(e)
                     count += 1
                     pass
         # return number of errors
         return count
-    
+
     def getData(self, race) -> pd.DataFrame:
         try:
             if len(self.events) > 1 or len(self.years) > 1:
@@ -224,25 +272,29 @@ class Scraper:
                 df = pd.read_csv(file_path, sep=',')
             else:
                 # Sending POST request
-                url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
-                results_response = requests.post(url, data=data)
-                # Check if request was successful
-                if results_response.status_code == 200:
-                    df = self.parseTable(results_response.text)
-                else:
-                    print("Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                          results_response.status_code)
+                # url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
+                url1 = self.base_url.replace("{event}", event).replace("{year}", year)+f"/passages.php"
+                url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+f"/passages.php"
+                for url in [url1, url2]:
+                    results_response = requests.post(url, data=data, timeout=20)
+                    # Check if request was successful
+                    if results_response.status_code == 200:
+                        df = self.parseTable(results_response.text)
+                        break
+                    else:
+                        print(f"Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
+                            results_response.status_code)
             return df
         except ValueError as e:
             print(e)
-    
+
     def _parseEventList(self, data) -> dict:
         data = json.loads(data)
         events_dict = {}
         for i in data['infoCourse']['cal'].items():
             events_dict[i[0]] = i[1]['nom']
         return events_dict
-        
+
     def _parsePastEventList(self, data) -> dict:
         data = json.loads(data)
         events_dict = {}
@@ -274,7 +326,7 @@ class Scraper:
             'type': 'livetrail.net'
         }
         # Sending POST request
-        response = requests.post(url, data=data)
+        response = requests.post(url, data=data, timeout=20)
         # Check if request was successful
         if response.status_code == 200:
             events_dict = self._parseEventList(response.text)
@@ -282,7 +334,7 @@ class Scraper:
             print("Failed to retrieve Live Trail's event list. Status code:",
                   response.status_code)
         return events_dict
-    
+
     def getEventsYears(self) -> dict:
         url = "https://livetrail.net/phpFonctions/eventFunctions.php"
         # Data for the POST request
@@ -291,7 +343,7 @@ class Scraper:
             'type': 'livetrail.net'
         }
         # Sending POST request
-        response = requests.post(url, data=data)
+        response = requests.post(url, data=data, timeout=20)
         # Check if request was successful
         if response.status_code == 200:
             events_dict = self._parsePastEventList(response.text)
@@ -299,28 +351,32 @@ class Scraper:
             print("Failed to retrieve Live Trail's event list. Status code:",
                   response.status_code)
         return events_dict
-    
+
     def getControlPoints(self) -> dict:
         count = 0
         controlPoints = {}
         for event in self.events:
             for year in self.years:
                 try:
-                    self._checkEventYear(event, year)
-                    # URL of the website
-                    url = f"https://livetrail.net/histo/{event}_{year}/parcours.php"
-                    # Sending GET request to parse races' names
-                    response = requests.get(url)
-                    # Check if request was successful
-                    if response.status_code == 200:
-                        controlPoints = self._parseControlPoints(response.text)
-                    else:
-                        print(f"Failed to retrieve races' control points for {event} {year}. Status code:", response.status_code)
-                        count += 1
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+"/parcours.php"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+"/parcours.php"
+                    for url in [url1, url2]:
+                        self._checkEventYear(event, year)
+                        # URL of the website
+                        # url = f"https://livetrail.net/histo/{event}_{year}/parcours.php"
+                        # Sending GET request to parse races' names
+                        response = requests.get(url, timeout=20)
+                        # Check if request was successful
+                        if response.status_code == 200:
+                            controlPoints = self._parseControlPoints(response.text)
+                            # if url1 fails, some old pages url is like in 2
+                            break
+                        else:
+                            print(f"Failed to retrieve races' control points for {event} {year}. Status code:", response.status_code)
+                            count += 1
                 except ValueError as e:
                     print(e)
                     count += 1
                     pass
         # return number of errors
         return controlPoints
-
