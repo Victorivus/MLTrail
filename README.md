@@ -44,6 +44,8 @@ streamlit run front/app.py
 - [X] Add Events to db
 - [X] Add Races to DB
 - [ ] Add results download + load to DB
+- [ ] Fix path for data and plots (env variable)
+- [ ] Departure time doesn't seem always correct, will have to figure out another way of parsing it
 
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
@@ -53,6 +55,7 @@ streamlit run front/app.py
 - [ ] Improve Front-End
 - [ ] Integrate ML/AI predictors
 - [ ] Change camelCase style to snake_case style naming
+- [ ] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
 
 
 ### Scraping
