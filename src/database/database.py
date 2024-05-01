@@ -78,8 +78,8 @@ class Event:
         conn = sqlite3.connect(self._db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT event_id FROM events WHERE event_code = ? AND  event_name = ? AND year = ? AND country = ?',
-                        (self._event_code, self._event_name, self._year, self._country,))
+            cursor.execute('SELECT event_id FROM events WHERE event_code = ? AND  event_name = ? AND year = ?',
+                        (self._event_code, self._event_name, self._year,))
             row = cursor.fetchone()
         conn.close()
         if row:
@@ -198,25 +198,34 @@ class Race:
                                                 self._race_name,
                                                 self._db) is not None:
             query = '''
-                UPDATE races SET race_id = ?, event_id = ?, race_name =?,
+                UPDATE races SET race_name =?,
                                  distance = ?, elevation_pos = ?,
                                  elevation_neg =?, departure_datetime =?,
-                                 results_filepath = ?)
+                                 results_filepath = ?
+                WHERE race_id = ? AND event_id = ?
             '''
+            conn = sqlite3.connect(self._db.path)
+            with conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (self._race_name, self._distance,
+                                    self._elevation_pos, self._elevation_neg,
+                                    self._departure_datetime, self._results_filepath,
+                                    self._event_id, self._race_id))
+                conn.commit()
         else:
             query = '''
                 INSERT INTO races (race_id, event_id, race_name, distance, elevation_pos,
                                     elevation_neg, departure_datetime, results_filepath)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             '''
-        conn = sqlite3.connect(self._db.path)
-        with conn:
-            cursor = conn.cursor()
-            cursor.execute(query, (self._race_id, self._event_id, self._race_name,
-                                   self._distance, self._elevation_pos,
-                                   self._elevation_neg, self._departure_datetime,
-                                   self._results_filepath))
-            conn.commit()
+            conn = sqlite3.connect(self._db.path)
+            with conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (self._race_id, self._event_id, self._race_name,
+                                    self._distance, self._elevation_pos,
+                                    self._elevation_neg, self._departure_datetime,
+                                    self._results_filepath))
+                conn.commit()
         conn.close()
 
     @staticmethod
