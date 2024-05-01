@@ -38,14 +38,18 @@ streamlit run front/app.py
 ## Actual branch TO-DO list
 - [ ] *Tablelize* countries, categories.
 - [X] Add tests.
-- [ ] Add logic to control creation of objects (manage nullable or not fields)
+- [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
 - [ ] Add Events getid to tests
 - [ ] Add update race case into tests
 - [X] Add Events to db
 - [X] Add Races to DB
-- [ ] Add results download + load to DB
+- [X] Add results download
+- [ ] Load results to DB
 - [ ] Fix path for data and plots (env variable)
 - [ ] Departure time doesn't seem always correct, will have to figure out another way of parsing it
+- [ ] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
+- [ ] add results download + load to DB
+- [ ] make a proper way to import to DB so imports can be scheduled
 
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
