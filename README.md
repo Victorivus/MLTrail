@@ -43,11 +43,12 @@ streamlit run front/app.py
 - [ ] Add update race case into tests
 - [X] Add Events to db
 - [X] Add Races to DB
+- [ ] Need to reload races to DB due to identified bug (2696 from 3333 have a NULL departure_racetime)
 - [X] Add results download
 - [ ] Load results to DB
 - [ ] Fix path for data and plots (env variable)
 - [ ] Departure time doesn't seem always correct, will have to figure out another way of parsing it
-- [ ] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
+- [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [ ] add results download + load to DB
 - [ ] make a proper way to import to DB so imports can be scheduled
 
