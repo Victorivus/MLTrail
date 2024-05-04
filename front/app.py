@@ -7,7 +7,7 @@ import traceback
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
-from scraper.scraper import Scraper
+from scraper.scraper import LiveTrailScraper
 from results.results import Results
 
 # Load variables from .env file
@@ -20,21 +20,21 @@ def get_session_data():
     return {}
 
 
-# Initialize a Scraper instance
-scraper = Scraper()
+# Initialize a LiveTrailScraper instance
+scraper = LiveTrailScraper()
 
 
 def getRS(event, year, race):
-    scraper.setEvents([event])
-    scraper.setYears([year])
-    scraper.setRace(race)
+    scraper.set_events([event])
+    scraper.set_years([year])
+    scraper.set_race(race)
 
     # Let's get the raw data about the race
-    raw_results = scraper.getData(race)
-    race_info = scraper.getRaceInfo(bibN=raw_results.iloc[0]['doss'])
+    raw_results = scraper.get_data(race)
+    race_info = scraper.get_race_info(bibN=raw_results.iloc[0]['doss'])
 
     # Let's get the Control Points information
-    control_points = scraper.getControlPoints()[race]
+    control_points = scraper.get_control_points()[race]
     control_points.pop(next(iter(control_points)))  # Remove 1st CP (starting line)
 
     raw_results.columns = list(raw_results.columns[:5]) + [k for k in control_points.keys()]
@@ -48,11 +48,11 @@ def getRS(event, year, race):
 
 def main():
     # Get the list of events and years
-    events = scraper.getEvents()
-    years = scraper.getEventsYears()
+    events = scraper.get_events()
+    years = scraper.get_events_years()
 
     # Get the list of events and years
-    events = dict(sorted(scraper.getEvents().items(), key=lambda item: item[1]))
+    events = dict(sorted(scraper.get_events().items(), key=lambda item: item[1]))
     # Remove years and strip
     events = {key: ' '.join(word for word in value.split() if not word.isdigit() or len(word) != 4).strip() for key, value in events.items()}
     events = {key: re.sub(r'^\d{4}|\d{4}$', '', value).strip() for key, value in events.items()}
@@ -70,9 +70,9 @@ def main():
     else:
         year = st.selectbox('Select Year:', years[event])
         # Get the races for the selected event and year
-        scraper.setEvents([event])
-        scraper.setYears([year])
-        races = scraper.getRaces()
+        scraper.set_events([event])
+        scraper.set_years([year])
+        races = scraper.get_races()
         if event not in races:
             st.write(f'No data available for {events[event]} {year}. Please select another event.')
         elif year not in races[event]:

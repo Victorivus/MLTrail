@@ -58,7 +58,6 @@ streamlit run front/app.py
 - [ ] Add templates for manual (csv, json) results and control points
 - [ ] Improve Front-End
 - [ ] Integrate ML/AI predictors
-- [ ] Change camelCase style to snake_case style naming
 - [ ] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
 
 
@@ -68,7 +67,8 @@ streamlit run front/app.py
 - [X] Get the name of the checkpoints from the website.
 - [X] Set objective directly by time and not by position.
 - [X] Get a list of available races in LiveTrail.
-- [ ] Rename Scraper to LiveTrail Scraper (others may come later)
+- [X] Rename Scraper to LiveTrail Scraper (others may come later)
+- [X] Change camelCase style to snake_case style naming
 
 
 ### ML/AI
@@ -89,6 +89,7 @@ streamlit run front/app.py
 - [ ] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 - [X] Fix imports
+- [ ] Change camelCase style to snake_case style naming (Results)
 
 ### CI/CD
 - [ ] Create a CI/CD Pipeline
