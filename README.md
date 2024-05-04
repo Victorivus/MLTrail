@@ -35,6 +35,23 @@ streamlit run front/app.py
 
 # Collaborating
 
+## Actual branch TO-DO list
+- [ ] *Tablelize* countries, categories.
+- [X] Add tests.
+- [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
+- [ ] Add Events getid to tests
+- [ ] Add update race case into tests
+- [X] Add Events to db
+- [X] Add Races to DB
+- [ ] Need to reload races to DB due to identified bug (2696 from 3333 have a NULL departure_racetime)
+- [X] Add results download
+- [ ] Load results to DB
+- [ ] Fix path for data and plots (env variable)
+- [ ] Departure time doesn't seem always correct, will have to figure out another way of parsing it
+- [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
+- [ ] add results download + load to DB
+- [ ] make a proper way to import to DB so imports can be scheduled
+
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
 - [X] Add tests.
@@ -42,7 +59,7 @@ streamlit run front/app.py
 - [ ] Add templates for manual (csv, json) results and control points
 - [ ] Improve Front-End
 - [ ] Integrate ML/AI predictors
-- [ ] Change camelCase style to snake_case style naming
+- [ ] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
 
 
 ### Scraping
@@ -51,7 +68,8 @@ streamlit run front/app.py
 - [X] Get the name of the checkpoints from the website.
 - [X] Set objective directly by time and not by position.
 - [X] Get a list of available races in LiveTrail.
-- [ ] Rename Scraper to LiveTrail Scraper (others may come later)
+- [X] Rename Scraper to LiveTrail Scraper (others may come later)
+- [X] Change camelCase style to snake_case style naming
 
 
 ### ML/AI
@@ -72,6 +90,7 @@ streamlit run front/app.py
 - [ ] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 - [X] Fix imports
+- [ ] Change camelCase style to snake_case style naming (Results)
 
 ### CI/CD
 - [ ] Create a CI/CD Pipeline

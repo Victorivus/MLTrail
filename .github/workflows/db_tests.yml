@@ -1,10 +1,9 @@
-name: Pytest
+name: DB Pytest
 
 on:
-  pull_request:
-    types: [ opened, synchronize, reopened ]
+  push:
     branches:
-      - main
+      - feat/rel_db
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -53,7 +52,7 @@ jobs:
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/
+          poetry run pytest tests/test_database*
       #----------------------------------------------
       #              remove temp test db
       #----------------------------------------------
