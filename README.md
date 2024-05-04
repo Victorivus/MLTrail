@@ -35,7 +35,7 @@ streamlit run front/app.py
 
 # Collaborating
 
-## Actual branch TO-DO list
+## feat/rel_db branch TO-DO list
 - [ ] *Tablelize* countries, categories.
 - [X] Add tests.
 - [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
@@ -46,11 +46,11 @@ streamlit run front/app.py
 - [ ] Need to reload races to DB due to identified bug (2696 from 3333 have a NULL departure_racetime)
 - [X] Add results download
 - [ ] Load results to DB
-- [ ] Fix path for data and plots (env variable)
+- [ ] Fix path for data and plots (env variable)
 - [ ] Departure time doesn't seem always correct, will have to figure out another way of parsing it
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [ ] add results download + load to DB
-- [ ] make a proper way to import to DB so imports can be scheduled
+- [ ] make a proper way to import to DB so imports can be scheduled
 
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
