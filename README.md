@@ -59,7 +59,7 @@ streamlit run front/app.py
 - [ ] Add templates for manual (csv, json) results and control points
 - [ ] Improve Front-End
 - [ ] Integrate ML/AI predictors
-- [ ] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
+- [ ] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
 
 
 ### Scraping
@@ -90,9 +90,10 @@ streamlit run front/app.py
 - [ ] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 - [X] Fix imports
-- [ ] Change camelCase style to snake_case style naming (Results)
+- [X] Change camelCase style to snake_case style naming (Results)
 
 ### CI/CD
-- [ ] Create a CI/CD Pipeline
+- [X] Create a CI
 - [ ] Contenarize
+- [ ] Create a CD Pipeline once contenarized
 - [X] Add installation procedure
