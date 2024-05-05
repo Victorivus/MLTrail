@@ -449,25 +449,25 @@ class TestResults():
 
     def test_plot_control_points(self, sample_results):
         plot_path = "test_plot_control_points_default.png"
-        sample_results.plot_control_points(sample_results.get_stats(), showHours=False, xrotate=False, inverty=False, savePath=plot_path)
+        sample_results.plot_control_points(sample_results.get_stats(), show_hours=False, xrotate=False, inverty=False, save_path=plot_path)
         assert os.path.exists(plot_path)
         os.remove(plot_path)
 
     def test_plot_control_points_show_hours(self, sample_results):
         plot_path = "test_plot_control_points_show_hours.png"
-        sample_results.plot_control_points(sample_results.get_stats(), showHours=True, xrotate=False, inverty=False, savePath=plot_path)
+        sample_results.plot_control_points(sample_results.get_stats(), show_hours=True, xrotate=False, inverty=False, save_path=plot_path)
         assert os.path.exists(plot_path)
         os.remove(plot_path)
 
     def test_plot_control_points_xrotate(self, sample_results):
         plot_path = "test_plot_control_points_xrotate.png"
-        sample_results.plot_control_points(sample_results.get_stats(), showHours=False, xrotate=True, inverty=False, savePath=plot_path)
+        sample_results.plot_control_points(sample_results.get_stats(), show_hours=False, xrotate=True, inverty=False, save_path=plot_path)
         assert os.path.exists(plot_path)
         os.remove(plot_path)
 
     def test_plot_control_points_inverty(self, sample_results):
         plot_path = "test_plot_control_points_inverty.png"
-        sample_results.plot_control_points(sample_results.get_stats(), showHours=False, xrotate=False, inverty=True, savePath=plot_path)
+        sample_results.plot_control_points(sample_results.get_stats(), show_hours=False, xrotate=False, inverty=True, save_path=plot_path)
         assert os.path.exists(plot_path)
         os.remove(plot_path)
 

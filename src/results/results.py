@@ -102,8 +102,8 @@ class Results:
     def fix_format(df: pd.DataFrame) -> pd.DataFrame:
         return df.map(lambda x: str(x)+':00')
 
-    def plot_control_points(self, df, showHours=False, xrotate=False, inverty=False, savePath=None):
-        if showHours:
+    def plot_control_points(self, df, show_hours=False, xrotate=False, inverty=False, save_path=None):
+        if show_hours:
             label_format = '%H:%M:%S'
         else:
             label_format = '%M:%S'
@@ -120,8 +120,8 @@ class Results:
             plt.xticks(rotation=45)
         plt.ylabel("pace (min/km)")
         plt.legend(loc="best")
-        if savePath is not None:
-            plt.savefig(savePath)
+        if save_path is not None:
+            plt.savefig(save_path)
         else:
             plt.show()
 
@@ -188,9 +188,9 @@ class Results:
             else:
                 times_paces['__allNorm__'+point] = times_paces.apply(lambda x: self.get_allure_norm(self.total_time_to_delta(x[point], x[prev_point]),
                                                                                         self.control_points[point][0]-self.control_points[prev_point][0],
-                                                                                        self.control_points[point][1]-self.control_points[prev_point][1] +
-                                                                                            self.control_points[point][2]-self.control_points[prev_point][2]
-                                                                                                  ), axis=1)
+                                                                                        self.control_points[point][1]-self.control_points[prev_point][1]
+                                                                                        # + self.control_points[point][2]-self.control_points[prev_point][2]
+                                                                                                    ), axis=1)
             prev_point = point
 
         paces_norm = times_paces[[col for col in times_paces.columns if col.startswith('__allNorm__')]]
@@ -211,7 +211,7 @@ class Results:
         means['index'] = index
         means.set_index('index', inplace=True)
         return means
-    
+
     def get_stats_norm(self, n1=4, n2=20):
         means = self.get_stats(n1=n1, n2=n2, paces=self.paces_norm)
         return means

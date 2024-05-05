@@ -46,8 +46,8 @@ def get_results(event, year, race):
     raw_results.columns = list(raw_results.columns[:5]) + list(control_points.keys())
     raw_results = raw_results.sort_values(by=raw_results.columns[-1])
     times = raw_results[control_points.keys()]
-    rs = Results(controlPoints=control_points, times=times, offset=race_info['hd'],
-                 cleanDays=False, startDay=int(race_info['jd']))
+    rs = Results(control_points=control_points, times=times, offset=race_info['hd'],
+                 clean_days=False, start_day=int(race_info['jd']))
 
     return raw_results, control_points, rs, race_info
 
@@ -117,9 +117,9 @@ def main():
                     os.makedirs(folder_path)
                 file_path = os.path.join(folder_path, f'{event}_{race}_{year}.png')
                 raw_results, control_points, rs, race_info = get_results(event, year, race)
-                rs.plotControlPoints(rs.getStats(), xrotate=True, inverty=True, savePath=file_path)
+                rs.plot_control_points(rs.get_stats(), xrotate=True, inverty=True, save_path=file_path)
                 data = {
-                    'times': rs.times.map(rs.formatTimeOver24h),
+                    'times': rs.times.map(rs.format_time_over24h),
                     'paces': rs.paces,
                     # 'plot_image_tag': file_path,
                     'event': event,
@@ -128,7 +128,7 @@ def main():
                 }
                 session_data['race_info'] = race_info
                 # Display data
-                # TODO: Add button to toggle view between hours and time (apply or not rs.formatTimeOver24h)
+                # TODO: Add button to toggle view between hours and time (apply or not rs.format_time_over24h)
                 st.write(f"Departure time: {race_info['hd']}")
                 st.write('Times:')
                 st.write(data['times'].sort_index())
@@ -150,13 +150,13 @@ def main():
                     race = session_data['race']
 
                     raw_results, control_points, rs, race_info = get_results(event, year, race)
-                    objective_position = rs.getClosestTimeToObjective(input_time)
+                    objective_position = rs.get_closest_time_to_objective(input_time)
 
-                    rs.setObjective(objective_position)
-                    obj = rs.getObjectivePaces()
+                    rs.set_objective(objective_position)
+                    obj = rs.get_objective_paces()
 
-                    mean_obj = rs.getObjectiveMeanPaces()
-                    mean_obj_times = rs.getObjectiveMeanTimes()
+                    mean_obj = rs.get_objective_mean_paces()
+                    mean_obj_times = rs.get_objective_mean_times()
 
                     st.write('Total cumulative time per checkpoint:')
                     st.write(mean_obj_times)
@@ -167,7 +167,7 @@ def main():
                     paces.set_index('index', inplace=True)
 
                     obj_file_path = os.path.join(folder_path, f'objective_{event}_{race}_{year}.png')
-                    rs.plotControlPoints(paces, xrotate=True, inverty=True, savePath=obj_file_path)
+                    rs.plot_control_points(paces, xrotate=True, inverty=True, save_path=obj_file_path)
 
                     st.image(obj_file_path)
 
