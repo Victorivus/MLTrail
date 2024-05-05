@@ -6,48 +6,46 @@ import matplotlib.dates as mdates
 
 
 class Results:
-    def __init__(self, controlPoints, times, objective=0, offset=0,
-                 cleanDays=False, startDay=7) -> None:
-        self.controlPoints = controlPoints
+    def __init__(self, control_points, times, objective=0, offset=0,
+                 clean_days=False, start_day=7) -> None:
+        self.control_points = control_points
         self.objective = objective
         self.times = times
-        if (isinstance(cleanDays, str) and cleanDays == 'Auto') or\
-                (isinstance(cleanDays, bool) and cleanDays):
+        if (isinstance(clean_days, str) and clean_days == 'Auto') or\
+                (isinstance(clean_days, bool) and clean_days):
             days = ['Lu.', 'Ma.', 'Me.', 'Je.', 'Ve.', 'Sa.', 'Di.']  # Weekdays abreviations in French
-            days = [days[(startDay - 1 + j) % len(days)] for j in range(len(days))]
-            self.times = self.cleanDays(times, days)
-        self.times = self.cleanTimes()
-        if isinstance(offset, int):
-            self.offset = offset
-        elif isinstance(offset, str):
-            self.offset = self.getSeconds(offset, offset=False)
-        self.times = self.times.apply(self._correctTimes24h, axis=1)
-        self.timeDeltas = self.getTimeDeltas()
-        self.distanceDeltas = self.getDistanceDeltas()
-        self.paces = self.getPaces()
-        self.pacesNorm = self.getPacesNorm()
+            days = [days[(start_day - 1 + j) % len(days)] for j in range(len(days))]
+            self.times = self.clean_days(times, days)
+        self.times = self.clean_times()
+        self.set_offset(offset)
+        self.times = self.times.apply(self._correct_times24h, axis=1)
+        self.time_deltas = self.get_time_deltas()
+        self.distance_deltas = self.get_distance_deltas()
+        self.paces = self.get_paces()
+        self.paces_norm = self.get_paces_norm()
 
-    def _correctTimes24h(self, row):
+    def _correct_times24h(self, row):
         previous_time = row.iloc[0]
         adjusted_row = [row.iloc[0]]
         for time in row[1:]:
-            if self.getSeconds(time) < self.getSeconds(previous_time):
-                time = self.getTime(self.getSeconds(time) + 24*60*60)
+            if self.get_seconds(time) < self.get_seconds(previous_time):
+                time = self.get_time(self.get_seconds(time) + 24*60*60)
             adjusted_row.append(time)
             previous_time = time
         return pd.Series(adjusted_row, index=row.index)
-    
-    def cleanDays(self, times, days):
+
+    def clean_days(self, times: pd.DataFrame, days: list[str]):
         # Not tested
+        times = times.apply(lambda x: x.map(lambda y: y[:9] if '\n' in y and len(y) > 9 else y))
         for i, day in enumerate(days):
             if (i+1) == 1:
-                times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{day}' in y else y))\
+                times = times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{day}' in y else y))\
                      .apply(lambda x: x.map(lambda y: np.NaN if y == '.' or '.\n.' in y else y.replace(f'{day} ', '')+':00'))
             else:
-                times.apply(lambda x: x.map(lambda y: self.getTime(self.getSeconds(y.replace(f'{day} ', ''), offset=False)+i*24*3600) if str(y).startswith(f'{day}') else y))       
+                times = times.apply(lambda x: x.map(lambda y: self.format_time_over24h(self.get_time(self.get_seconds(y.replace(f'{day} ', ''), offset=False)+i*24*3600) if str(y).startswith(f'{day}') else y)))
         return times
 
-    def cleanTimes(self, interpolate='previous'):
+    def clean_times(self, interpolate='previous'):
         # Filter out DNFs (last column is NaN)
         self.times = self.times.replace('', pd.NA)  # Some races instead of NaN, place an empty string
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
@@ -59,15 +57,15 @@ class Results:
         elif interpolate == 'mean':
             # Not tested
             df_ffilled = self.times.ffill()
-            df_ffilled = df_ffilled.applymap(self.getSeconds)
+            df_ffilled = df_ffilled.applymap(self.get_seconds)
             df_bfilled = self.times.bfill()
-            df_bfilled = df_bfilled.applymap(self.getSeconds)
+            df_bfilled = df_bfilled.applymap(self.get_seconds)
             self.times = (df_ffilled + df_bfilled) / 2
-            self.times = self.times.applymap(self.getTime)
+            self.times = self.times.applymap(self.get_time)
             # raise NotImplementedError("This feature is not implemented yet.")
         return self.times
 
-    def getSeconds(self, time, offset=True):
+    def get_seconds(self, time: str, offset=True):
         d = 0  # days
         if 'day' in time:
             days, time = time.split(", ")
@@ -79,123 +77,133 @@ class Results:
             return d * 24 * 3600 + h * 3600 + m * 60 + s    
         return d * 24 * 3600 + h * 3600 + m * 60 + s - self.offset
 
-    def getTime(self, seconds):
+    def get_time(self, seconds: int) -> str:
+        '''
+            Returns formated time in string from a number of seconds
+        '''
         return str(dt.timedelta(seconds=(seconds))).split('.')[0]
 
-    def getAllure(self, seconds, distance, offset=False):
-        return self.getTime(self.getSeconds(seconds, offset=offset) / distance)
+    def get_allure(self, seconds, distance, offset=False):
+        return self.get_time(self.get_seconds(seconds, offset=offset) / distance)
 
-    def getAllureNorm(self, seconds, distance, D, offset=False):
-        return self.getAllure(seconds, distance + D/100, offset=offset)
+    def get_allure_norm(self, seconds, distance, D, offset=False):
+        return self.get_allure(seconds, distance + D/100, offset=offset)
 
-    def totalTimeToDelta(self, point2, point1):
-        return self.getTime(self.getSeconds(point2) - self.getSeconds(point1))
+    def total_time_to_delta(self, point_2, point_1):
+        return self.get_time(self.get_seconds(point_2) - self.get_seconds(point_1))
 
-    def tdToString(self, x):
+    def td_to_string(self, x):
         ts = x.total_seconds()
         hours, remainder = divmod(ts, 3600)
         minutes, seconds = divmod(remainder, 60)
         return ('{}:{:02d}:{:02d}').format(int(hours), int(minutes), int(seconds)) 
 
-    def fixFormat(self, df):
-        return df.apply(lambda x: str(x)+':00')
+    @staticmethod
+    def fix_format(df: pd.DataFrame) -> pd.DataFrame:
+        return df.map(lambda x: str(x)+':00')
 
-    def plotControlPoints(self, df, showHours=False, xrotate=False, inverty=False, savePath=None):
-        if showHours:
-            labelFormat = '%H:%M:%S'
+    def plot_control_points(self, df, show_hours=False, xrotate=False, inverty=False, save_path=None):
+        if show_hours:
+            label_format = '%H:%M:%S'
         else:
-            labelFormat = '%M:%S'
+            label_format = '%M:%S'
 
         fig, ax1 = plt.subplots(figsize=(12, 10), dpi=150)
         for i in df.reset_index()['index']:
             y = mdates.datestr2num(df.loc[i])
             ax1.plot(df.columns, y, marker='o', label=i)
 
-        ax1.yaxis.set_major_formatter(mdates.DateFormatter(labelFormat))
+        ax1.yaxis.set_major_formatter(mdates.DateFormatter(label_format))
         if inverty:
             ax1.invert_yaxis()
         if xrotate:
             plt.xticks(rotation=45)
         plt.ylabel("pace (min/km)")
         plt.legend(loc="best")
-        if savePath is not None:
-            plt.savefig(savePath)
+        if save_path is not None:
+            plt.savefig(save_path)
         else:
             plt.show()
-        
-    def getTimeDeltas(self):
-        timeDeltas = self.times.copy()
-        prevPoint = ''
-        for point in self.controlPoints.keys():
-            if prevPoint == '':
-                timeDeltas[point] = self.times.apply(lambda x: self.totalTimeToDelta(x[point], self.getTime(self.offset)), axis=1)
-            else:
-                timeDeltas[point] = self.times.apply(lambda x: self.totalTimeToDelta(x[point], x[prevPoint]), axis=1)
-            prevPoint = point
-        return timeDeltas
 
-    def getDistanceDeltas(self) -> dict:
-        distanceDeltas = {}
-        prevPoint = ''
-        for point in self.controlPoints.keys():
-            if prevPoint == '':
-                distanceDeltas[point] = (self.controlPoints[point][0],
-                                         self.controlPoints[point][1],
-                                         self.controlPoints[point][2])
+    def get_time_deltas(self):
+        time_deltas = self.times.copy()
+        prev_point = ''
+        for point in self.control_points.keys():
+            if prev_point == '':
+                time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], self.get_time(self.offset)), axis=1)
             else:
-                distanceDeltas[point] = (self.controlPoints[point][0] - self.controlPoints[prevPoint][0],
-                                         self.controlPoints[point][1] - self.controlPoints[prevPoint][1],
-                                         self.controlPoints[point][2] - self.controlPoints[prevPoint][2])
+                time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], x[prev_point]), axis=1)
+            prev_point = point
+        return time_deltas
+
+    def get_distance_deltas(self) -> dict:
+        distance_deltas = {}
+        prev_point = ''
+        for point in self.control_points.keys():
+            if prev_point == '':
+                distance_deltas[point] = (self.control_points[point][0],
+                                         self.control_points[point][1],
+                                         self.control_points[point][2])
+            else:
+                distance_deltas[point] = (self.control_points[point][0] - self.control_points[prev_point][0],
+                                         self.control_points[point][1] - self.control_points[prev_point][1],
+                                         self.control_points[point][2] - self.control_points[prev_point][2])
                                         
-            prevPoint = point
-        return distanceDeltas
+            prev_point = point
+        return distance_deltas
 
-    def setOffset(self, offset):
-        self.offset = offset
+    def set_offset(self, offset):
+        if isinstance(offset, int) and not isinstance(offset, bool):
+            self.offset = offset
+        elif isinstance(offset, str):
+            self.offset = self.get_seconds(offset, offset=False)
+        else:
+            raise ValueError("offset must be departure time in 'hh:mm:ss'\
+                              format or # seconds since midnight.")
         return True
-    
-    def getPaces(self):
+
+    def get_paces(self):
         times_paces = self.times.copy()
         times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
 
-        prevPoint = ''
-        for point in self.controlPoints.keys():
-            if prevPoint == '':
-                times_paces['__all__'+point] = times_paces[point].map(lambda x: self.getAllure(x, self.controlPoints[point][0], offset=True))
+        prev_point = ''
+        for point in self.control_points.keys():
+            if prev_point == '':
+                times_paces['__all__'+point] = times_paces[point].map(lambda x: self.get_allure(x, self.control_points[point][0], offset=True))
             else:
-                times_paces['__all__'+point] = times_paces.apply(lambda x: self.getAllure(self.totalTimeToDelta(x[point], x[prevPoint]), self.controlPoints[point][0]-self.controlPoints[prevPoint][0]), axis=1)
-            prevPoint = point
+                times_paces['__all__'+point] = times_paces.apply(lambda x: self.get_allure(self.total_time_to_delta(x[point], x[prev_point]), self.control_points[point][0]-self.control_points[prev_point][0]), axis=1)
+            prev_point = point
         paces = times_paces[[col for col in times_paces.columns if col.startswith('__all__')]]
         paces.columns = [col.replace('__all__', '') for col in paces.columns]
         return paces
 
-    def getPacesNorm(self):
+    def get_paces_norm(self):
         times_paces = self.times[(self.times[self.times.columns] != ':00')].copy()
         times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
         
-        prevPoint = ''
-        for point in self.controlPoints.keys():
-            if prevPoint == '':
-                times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.getAllureNorm(x, self.controlPoints[point][0], self.controlPoints[point][1], offset=True))
+        prev_point = ''
+        for point in self.control_points.keys():
+            if prev_point == '':
+                times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.get_allure_norm(x, self.control_points[point][0], self.control_points[point][1], offset=True))
             else:
-                times_paces['__allNorm__'+point] = times_paces.apply(lambda x: self.getAllureNorm(self.totalTimeToDelta(x[point], x[prevPoint]),
-                                                                                        self.controlPoints[point][0]-self.controlPoints[prevPoint][0],
-                                                                                        self.controlPoints[point][1]-self.controlPoints[prevPoint][1] +
-                                                                                            self.controlPoints[point][2]-self.controlPoints[prevPoint][2]
-                                                                                                  ), axis=1)
-            prevPoint = point
+                times_paces['__allNorm__'+point] = times_paces.apply(lambda x: self.get_allure_norm(self.total_time_to_delta(x[point], x[prev_point]),
+                                                                                        self.control_points[point][0]-self.control_points[prev_point][0],
+                                                                                        self.control_points[point][1]-self.control_points[prev_point][1]
+                                                                                        # + self.control_points[point][2]-self.control_points[prev_point][2]
+                                                                                                    ), axis=1)
+            prev_point = point
 
         paces_norm = times_paces[[col for col in times_paces.columns if col.startswith('__allNorm__')]]
         paces_norm.columns = [col.replace('__allNorm__', '') for col in paces_norm.columns]
         return paces_norm
 
-    def getStats(self, n1=4, n2=20, paces=None):
+    def get_stats(self, n1=4, n2=20, paces=None):
         if paces is None:
             paces = self.paces
-        mean_n1 = pd.DataFrame(paces.head(n1).apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
-        mean_n2 = pd.DataFrame(paces.head(n2).apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
-        first = pd.DataFrame(paces.head(1).apply(lambda x: pd.to_timedelta(x)).min().map(self.tdToString)).T 
-        mins = pd.DataFrame(paces.apply(lambda x: pd.to_timedelta(x)).min().map(self.tdToString)).T
+        mean_n1 = pd.DataFrame(paces.head(n1).apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
+        mean_n2 = pd.DataFrame(paces.head(n2).apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
+        first = pd.DataFrame(paces.head(1).apply(lambda x: pd.to_timedelta(x)).min().map(self.td_to_string)).T 
+        mins = pd.DataFrame(paces.apply(lambda x: pd.to_timedelta(x)).min().map(self.td_to_string)).T
 
         index = ['mins', 'first', f'mean_{n1}', f'mean_{n2}']
 
@@ -203,47 +211,47 @@ class Results:
         means['index'] = index
         means.set_index('index', inplace=True)
         return means
-    
-    def getStatsNorm(self, n1=4, n2=20):
-        means = self.getStats(n1=n1, n2=n2, paces=self.pacesNorm)
+
+    def get_stats_norm(self, n1=4, n2=20):
+        means = self.get_stats(n1=n1, n2=n2, paces=self.paces_norm)
         return means
 
-    def setObjective(self, obj=0):
+    def set_objective(self, obj=0):
         self.objective = obj
         return
 
-    def getObjectiveTimes(self):
-        return pd.DataFrame(self.times.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.tdToString)).T 
+    def get_objective_times(self):
+        return pd.DataFrame(self.times.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T 
 
-    def getObjectivePaces(self):
-        return pd.DataFrame(self.paces.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.tdToString)).T 
+    def get_objective_paces(self):
+        return pd.DataFrame(self.paces.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T 
 
-    def getObjectivePacesNorm(self):
-        return pd.DataFrame(self.pacesNorm.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.tdToString)).T 
+    def get_objective_paces_norm(self):
+        return pd.DataFrame(self.paces_norm.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T 
 
-    def getObjectiveMeanPaces(self, n=5, paces=None):
+    def get_objective_mean_paces(self, n=5, paces=None):
         n = n-1  # objective is already one of the n to compute mean on
         if paces is None:
             paces = self.paces
         # note: if n is impair, n-n/2 before objective and n/2 after it
         return pd.DataFrame(paces.iloc[self.objective-(n-n//2):self.objective+n//2]\
-                            .apply(lambda x: pd.to_timedelta(x)).mean().map(self.tdToString)).T
+                            .apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
 
-    def getObjectiveMeanTimes(self, n=5):
-        return self.getObjectiveMeanPaces(n=n, paces=self.times)
+    def get_objective_mean_times(self, n=5):
+        return self.get_objective_mean_paces(n=n, paces=self.times)
     
-    def getObjectiveMeanPacesNorm(self, n=5):
-        return self.getObjectiveMeanPaces(n=n, paces=self.pacesNorm)
+    def get_objective_mean_paces_norm(self, n=5):
+        return self.get_objective_mean_paces(n=n, paces=self.paces_norm)
 
-    def getClosestTimeToObjective(self, time):
+    def get_closest_time_to_objective(self, time):
         # Compute absolute difference between each element in the DataFrame and X
-        time = self.getSeconds(time, offset=False)
+        time = self.get_seconds(time, offset=False)
         closest_index = None
         min_diff = float('inf')  # Initialize with infinity
         # Iterate over each row in the DataFrame
         for index, row in self.times.iterrows():
             # Compute absolute difference between each element in the row and X
-            diff = abs(self.getSeconds(row.iloc[-1]) - time)
+            diff = abs(self.get_seconds(row.iloc[-1]) - time)
             # Check if this row has the minimum difference seen so far
             if diff < min_diff:
                 min_diff = diff
@@ -253,8 +261,8 @@ class Results:
         return closest_index
     
     # Function to format timedelta to string in hours instead of default 1 day, ...
-    def formatTimeOver24h(self, td):
-        total_seconds = self.getSeconds(td, offset=False)
+    def format_time_over24h(self, td):
+        total_seconds = self.get_seconds(td, offset=False)
         hours, remainder = divmod(total_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
