@@ -53,7 +53,7 @@ class Event:
         conn = sqlite3.connect(self._db.path)
         query = '''
                         UPDATE events
-                        SET event_code = ?,  event_name = ?, year = ?, country = ?
+                        SET code = ?,  name = ?, year = ?, country = ?
                         WHERE event_id = ?
                     '''
         with conn:
@@ -61,7 +61,7 @@ class Event:
             if self._event_id is None:
                 self._set_event_id(self.get_event_id_from_database())
                 if self._event_id is None:
-                    cursor.execute('INSERT INTO events (event_code, event_name, year, country) VALUES (?, ?, ?, ?)',
+                    cursor.execute('INSERT INTO events (code, name, year, country) VALUES (?, ?, ?, ?)',
                                    (self._event_code, self._event_name, self._year, self._country))
                 else:
                     cursor.execute(query, (self._event_code, self._event_name, self._year,
@@ -78,7 +78,7 @@ class Event:
         conn = sqlite3.connect(self._db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT event_id FROM events WHERE event_code = ? AND  event_name = ? AND year = ?',
+            cursor.execute('SELECT event_id FROM events WHERE code = ? AND  name = ? AND year = ?',
                         (self._event_code, self._event_name, self._year,))
             row = cursor.fetchone()
         conn.close()
@@ -93,7 +93,7 @@ class Event:
         else:
             conn = sqlite3.connect(db.path)
         cursor = conn.cursor()
-        cursor.execute('SELECT event_code, event_name, year, country FROM events WHERE event_id = ?',
+        cursor.execute('SELECT code, name, year, country FROM events WHERE event_id = ?',
                        (event_id,))
         row = cursor.fetchone()
         conn.close()
@@ -114,7 +114,7 @@ class Event:
         else:
             conn = sqlite3.connect(db.path)
         cursor = conn.cursor()
-        cursor.execute('SELECT event_id FROM events WHERE event_code = ? AND year = ?',
+        cursor.execute('SELECT event_id FROM events WHERE code = ? AND year = ?',
                        (event_code, year))
         row = cursor.fetchone()
         conn.close()
@@ -210,7 +210,7 @@ class Race:
                 cursor.execute(query, (self._race_name, self._distance,
                                     self._elevation_pos, self._elevation_neg,
                                     self._departure_datetime, self._results_filepath,
-                                    self._event_id, self._race_id))
+                                    self._race_id, self._event_id))
                 conn.commit()
         else:
             query = '''

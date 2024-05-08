@@ -10,7 +10,7 @@ class Database:
     path: str = 'events.db'
 
     @classmethod
-    def create_database(cls, path=None) -> Connection:
+    def create_database(cls, path=None):
         '''
             Create app's SQLite database
         '''
@@ -30,8 +30,8 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS events (
                 event_id INTEGER PRIMARY KEY,
-                event_code TEXT,
-                event_name TEXT,
+                code TEXT,
+                name TEXT,
                 year TEXT,
                 country TEXT
             )

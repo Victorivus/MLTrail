@@ -14,6 +14,13 @@ from database.database import Event
 class TestEvent(unittest.TestCase):
     db: Database = Database.create_database(path='test.db')
 
+    # rm done in CI pipeline
+    # @classmethod
+    # def tearDownClass(cls):
+    #     # Remove the test.db file if it exists
+    #     if os.path.exists('test.db'):
+    #         os.remove('test.db')
+
     def test_get_event_id(self):
         event = Event(db=self.db)
         event._set_event_id(1)
@@ -49,7 +56,7 @@ class TestEvent(unittest.TestCase):
         conn = sqlite3.connect(self.db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM events WHERE event_name = "Test Event" AND year = "2024-01-01" AND country = "USA"')
+            cursor.execute('SELECT * FROM events WHERE name = "Test Event" AND year = "2024-01-01" AND country = "USA"')
             row = cursor.fetchone()
         conn.close()
         self.assertIsNotNone(row)
@@ -68,7 +75,7 @@ class TestEvent(unittest.TestCase):
         conn = sqlite3.connect(self.db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT event_id FROM events WHERE event_name="Test Event bis"')
+            cursor.execute('SELECT event_id FROM events WHERE name="Test Event bis"')
             row = cursor.fetchone()
         self.assertEqual(event.get_event_id_from_database(), row[0])
 
@@ -84,7 +91,7 @@ class TestEvent(unittest.TestCase):
         conn = sqlite3.connect(self.db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM events WHERE event_name = "Test Event"')
+            cursor.execute('SELECT * FROM events WHERE name = "Test Event"')
             row = cursor.fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(row[0], event_id)
