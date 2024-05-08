@@ -189,7 +189,7 @@ def main(path='../data/parsed_data.db', clean=False):
     with db_connection:
         cursor = db_connection.cursor()
         event_ids = fetch_all_event_ids(cursor)
-    
+
     for event_id in event_ids:
         with db_connection:
             cursor = db_connection.cursor()
