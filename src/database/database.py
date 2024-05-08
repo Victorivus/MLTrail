@@ -210,7 +210,7 @@ class Race:
                 cursor.execute(query, (self._race_name, self._distance,
                                     self._elevation_pos, self._elevation_neg,
                                     self._departure_datetime, self._results_filepath,
-                                    self._event_id, self._race_id))
+                                    self._race_id, self._event_id))
                 conn.commit()
         else:
             query = '''
