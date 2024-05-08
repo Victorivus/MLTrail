@@ -265,6 +265,49 @@ class Race:
             return race
         return None
 
+    @staticmethod
+    def load_control_points(race_id, event_id, db: Database = None) -> tuple[dict, dict]:
+        '''
+        Get control points from the database.
+        '''
+        if not isinstance(event_id, int):
+            raise ValueError("Please call Events.get_id_from_code_year(event_code, year) to get event_id")
+
+        if db is None:
+            conn = sqlite3.connect(Database().path)
+        else:
+            conn = sqlite3.connect(db.path)
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT code, name, distance, elevation_pos, elevation_neg
+                FROM control_points WHERE race_id = ? AND event_id = ?
+                ORDER BY distance
+            ''', (race_id, event_id,))
+            rows = cursor.fetchall()
+            control_points = {}
+            control_points_names = {}
+            for row in rows:
+                control_points[row[0]] = (row[2], row[3], row[4])
+                control_points_names[row[0]] = row[1]
+        return control_points, control_points_names
+
+
+    @staticmethod
+    def save_control_points_to_db(race_id, event_id, control_points, db: Database = None) -> None:
+        '''
+        Get control points from the database.
+        '''
+        if not isinstance(event_id, int):
+            raise ValueError("Please call Events.get_id_from_code_year(event_code, year) to get event_id")
+
+        if db is None:
+            conn = sqlite3.connect(Database().path)
+        else:
+            conn = sqlite3.connect(db.path)
+        raise NotImplementedError("Method not yet implemented.")
+
+
 
 class Results:
     def __init__(self, race_id: int = None, event_id: int = None, position: int = None,

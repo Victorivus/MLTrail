@@ -85,7 +85,9 @@ class Database:
                 elevation_pos INTEGER,
                 elevation_neg INTEGER,
                 FOREIGN KEY (race_id) REFERENCES races(race_id),
-                FOREIGN KEY (event_id) REFERENCES events(event_id)
+                FOREIGN KEY (event_id) REFERENCES events(event_id),
+                UNIQUE (event_id, race_id, code)
+                
             )
         ''')
 
@@ -97,11 +99,12 @@ class Database:
                 race_id TEXT,
                 event_id INTEGER,
                 bib TEXT,
-                time TEXT
+                time TEXT,
                 FOREIGN KEY (control_point_id) REFERENCES control_points(control_point_id),
                 FOREIGN KEY (race_id) REFERENCES races(race_id),
                 FOREIGN KEY (event_id) REFERENCES events(event_id),
-                FOREIGN KEY (bib) REFERENCES results(bib)
+                FOREIGN KEY (bib) REFERENCES results(bib),
+                UNIQUE (control_point_id, bib)
             )
         ''')
 
