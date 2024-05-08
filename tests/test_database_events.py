@@ -14,11 +14,12 @@ from database.database import Event
 class TestEvent(unittest.TestCase):
     db: Database = Database.create_database(path='test.db')
 
-    @classmethod
-    def tearDownClass(cls):
-        # Remove the test.db file if it exists
-        if os.path.exists('test.db'):
-            os.remove('test.db')
+    # rm done in CI pipeline
+    # @classmethod
+    # def tearDownClass(cls):
+    #     # Remove the test.db file if it exists
+    #     if os.path.exists('test.db'):
+    #         os.remove('test.db')
 
     def test_get_event_id(self):
         event = Event(db=self.db)
