@@ -78,7 +78,7 @@ class Event:
         conn = sqlite3.connect(self._db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT event_id FROM events WHERE code = ? AND  name = ? AND year = ?',
+            cursor.execute('SELECT event_id FROM events WHERE code = ? AND name = ? AND year = ?',
                         (self._event_code, self._event_name, self._year,))
             row = cursor.fetchone()
         conn.close()
@@ -121,6 +121,27 @@ class Event:
         if row:
             return row[0]
         return None
+    
+    @staticmethod
+    def get_events_years(db: Database = None) -> dict:
+        '''
+        Get all events and years stored in DB.
+        '''
+        conn = sqlite3.connect(Database().path) if db is None else sqlite3.connect(db.path)
+        events = {}
+        years = {}
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT code, name, year FROM events")
+            for row in cursor.fetchall():
+                code, name, year = row
+                events[code] = name
+                if code not in years:
+                    years[code] = []
+                years[code].append(year)
+        conn.close()
+        return events, years
+
 
 
 class Race:
