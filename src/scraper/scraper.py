@@ -307,6 +307,16 @@ class LiveTrailScraper:
             events_dict[i[0]] = list(i[1]['res'].keys())
         return events_dict
 
+    def _clean_control_name(self, cps, name):
+        if name in cps:
+            if name[0].isdigit():
+                name = str(int(name[0])+1) + name[1:]
+                return self._clean_control_name(cps, name)
+            else:
+                name = '2-' + name
+                return self._clean_control_name(cps, name)
+        else:
+            return name
     def _parse_control_points(self, data):
         soup = BeautifulSoup(data, 'lxml')
         p_tags = soup.find_all('points')
@@ -321,6 +331,8 @@ class LiveTrailScraper:
                 # of the route and substract this quantity from cummulated elevaation gain.
                 elev_loss = int(pt_tag['d']) - (int(pt_tag['a']) - int(pt_tags[0]['a']))
                 # {'cp_name' : (acc_dist, acc_elev+, -acc_elev-)}
+                if pt_tag['nc'] in cps:
+                    pt_tag['nc'] = self._clean_control_name(cps, pt_tag['nc'])
                 cps[pt_tag['nc']] = (float(pt_tag['km']), int(pt_tag['d']), -elev_loss)
                 cps_names[pt_tag['nc']] = pt_tag['n']
             control_points[p_tag['course']] = cps

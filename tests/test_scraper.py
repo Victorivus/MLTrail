@@ -115,6 +115,37 @@ class TestLiveTrailScraper(unittest.TestCase):
         assert cp == control_points
         assert cpn == control_points_names
 
+    def test_clean_control_name(self):
+        control_points = {
+            'Friday ': (0.0, 0, 0),
+            'Charlotte ': (9.03, 229, -109),
+            ' Charlotte': (21.19, 512, -392),
+            '2-Charlotte ': (21.31, 512, -408),
+            'Guthega Bu': (31.01, 816, -879),
+            'Sponars Ch': (49.28, 1456, -1647),
+            'Sawpit Cre': (62.85, 1783, -2305),
+            '2-Sawpit Cre': (62.9, 1783, -2304),
+            'Trout Hatc': (67.03, 1862, -2652),
+            '2-Trout Hatc': (67.21, 1866, -2661),
+            'Lake Cross': (70.37, 1925, -2744),
+            '2-Lake Cross': (74.02, 1941, -2761),
+            'Banjo Patt': (85.38, 2436, -3246),
+            '2-Banjo Patt': (85.47, 2440, -3245),
+            '3-Lake Cross': (95.38, 2692, -3512),
+            '4-Lake Cross': (99.03, 2708, -3528),
+            '3-Banjo Patt': (110.43, 3220, -4030),
+            '4-Banjo Patt': (110.51, 3223, -4029),
+            ' Trout Hat': (123.0, 3556, -4348),
+            '3-Trout Hatc': (123.14, 3561, -4351),
+            'Bullocks C': (142.12, 4495, -5077),
+            'Ngarigo Ca': (156.42, 4875, -5366),
+            'Finish': (163.92, 5055, -5642)
+            }
+        scraper = LiveTrailScraper(events=["kosciuszko"], years=["2022"])
+        cp, cpn = scraper.get_control_points()
+        cp = cp['miller']
+        assert cp == control_points
+
     # Test case for downloadData method
     def test_download_data(self):
         scraper = LiveTrailScraper(events=["transgrancanaria"], years=["2023"])
