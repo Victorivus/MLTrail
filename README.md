@@ -85,8 +85,9 @@ streamlit run front/MLTrail.py
 
 
 ### FrontEnd
+- [ ] Make rows in my results pages links to races' results
 - [ ] Add a switch button to tables between cumulative race time and time of the day(s)
-- [ ] Add normalized pace plot and add a switch button between it and regular pace one.
+- [ ] Add normalized pace plot and add a switch button between it and regular pace one. --> try with st.container
 - [ ] Integrate printing version of times
 - [ ] Show race profile from distance, D+ and D- data? Maybe too aproximative and need real gps data
 - [ ] Objective graph is only paces, show times / normalised pace?
