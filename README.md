@@ -30,7 +30,7 @@ poetry install
 Launch the following command:
 
 ```
-streamlit run front/app.py
+streamlit run front/MLTrail.py
 ```
 
 # Collaborating
@@ -56,6 +56,7 @@ streamlit run front/app.py
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
+- [ ] BUG: Races with different start time per participant (e.g. 'Marathon du Mont-Blanc', '2014' , 'kmv', 402, 'KM Vertical')
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
 - [X] Add partial passing times (timing_points)
 - [X] Add control points to DB
@@ -85,11 +86,13 @@ streamlit run front/app.py
 
 
 ### FrontEnd
+- [ ] Make rows in my results pages links to races' results
 - [ ] Add a switch button to tables between cumulative race time and time of the day(s)
-- [ ] Add normalized pace plot and add a switch button between it and regular pace one.
+- [ ] Add normalized pace plot and add a switch button between it and regular pace one. --> try with st.container
 - [ ] Integrate printing version of times
 - [ ] Show race profile from distance, D+ and D- data? Maybe too aproximative and need real gps data
 - [ ] Objective graph is only paces, show times / normalised pace?
+- [X] Bug when races include departure time in timing_points file
 
 
 ### BackEnd
@@ -98,6 +101,8 @@ streamlit run front/app.py
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 - [X] Fix imports
 - [X] Change camelCase style to snake_case style naming (Results)
+- [X] Fix: Add support for front bug races having departuire in timing_points (Results)
+- [ ] Add this kind of races to tests (e.g. 'mbm' 2023 '42km')
 
 ### CI/CD
 - [X] Create a CI

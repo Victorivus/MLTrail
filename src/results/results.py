@@ -96,6 +96,8 @@ class Results:
         ts = x.total_seconds()
         hours, remainder = divmod(ts, 3600)
         minutes, seconds = divmod(remainder, 60)
+        if ts is None or pd.isna(ts):
+            return str(np.nan)
         return ('{}:{:02d}:{:02d}').format(int(hours), int(minutes), int(seconds)) 
 
     @staticmethod
@@ -109,6 +111,7 @@ class Results:
             label_format = '%M:%S'
 
         fig, ax1 = plt.subplots(figsize=(12, 10), dpi=150)
+        df = df.loc[:, ~(df == 'nan').all()]  # All column Nan is departure
         for i in df.reset_index()['index']:
             y = mdates.datestr2num(df.loc[i])
             ax1.plot(df.columns, y, marker='o', label=i)
@@ -130,7 +133,10 @@ class Results:
         prev_point = ''
         for point in self.control_points.keys():
             if prev_point == '':
-                time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], self.get_time(self.offset)), axis=1)
+                if self.control_points[point][0] > 0.0:
+                    time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], self.get_time(self.offset)), axis=1)
+                else:
+                    time_deltas[point] = self.times.apply(lambda x: None, axis=1)
             else:
                 time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], x[prev_point]), axis=1)
             prev_point = point
@@ -169,7 +175,10 @@ class Results:
         prev_point = ''
         for point in self.control_points.keys():
             if prev_point == '':
-                times_paces['__all__'+point] = times_paces[point].map(lambda x: self.get_allure(x, self.control_points[point][0], offset=True))
+                if self.control_points[point][0] > 0.0:
+                    times_paces['__all__'+point] = times_paces[point].map(lambda x: self.get_allure(x, self.control_points[point][0], offset=True))
+                else:
+                    times_paces['__all__'+point] = times_paces[point].map(lambda x: None)
             else:
                 times_paces['__all__'+point] = times_paces.apply(lambda x: self.get_allure(self.total_time_to_delta(x[point], x[prev_point]), self.control_points[point][0]-self.control_points[prev_point][0]), axis=1)
             prev_point = point
@@ -184,7 +193,10 @@ class Results:
         prev_point = ''
         for point in self.control_points.keys():
             if prev_point == '':
-                times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.get_allure_norm(x, self.control_points[point][0], self.control_points[point][1], offset=True))
+                if self.control_points[point][0] > 0.0:
+                    times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.get_allure_norm(x, self.control_points[point][0], self.control_points[point][1], offset=True))
+                else:
+                    times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: None)
             else:
                 times_paces['__allNorm__'+point] = times_paces.apply(lambda x: self.get_allure_norm(self.total_time_to_delta(x[point], x[prev_point]),
                                                                                         self.control_points[point][0]-self.control_points[prev_point][0],

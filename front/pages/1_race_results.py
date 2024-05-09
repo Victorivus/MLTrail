@@ -1,5 +1,5 @@
 '''
-Test module for the Results class
+Viz test module for the Results class
 '''
 import os
 import re
@@ -42,7 +42,8 @@ def get_results(event, year, race):
     # Let's get the Control Points information
     control_points, _ = scraper.get_control_points()
     control_points = control_points[race]
-    control_points.pop(next(iter(control_points)))  # Remove 1st CP (starting line)
+    if not '00' in raw_results.columns:  # if results do not contain starting time
+        control_points.pop(next(iter(control_points)))  # Remove 1st CP (starting line)
 
     raw_results.columns = list(raw_results.columns[:5]) + list(control_points.keys())
     raw_results = raw_results.sort_values(by=raw_results.columns[-1])
