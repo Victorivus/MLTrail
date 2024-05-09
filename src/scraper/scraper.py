@@ -1,8 +1,13 @@
 import os
 import json
 import requests
+import warnings
 import pandas as pd
 from bs4 import BeautifulSoup
+
+# Suppress the XMLParsedAsHTMLWarning
+warnings.filterwarnings("ignore", category=UserWarning,
+                        message=".*XMLParsedAsHTMLWarning.*")
 
 
 class LiveTrailScraper:
@@ -69,7 +74,7 @@ class LiveTrailScraper:
 
     def get_races_physical_details(self) -> dict:
         races_data = {}
-        cp = self.get_control_points()
+        cp, _ = self.get_control_points()
         for race in cp.keys():
             race_data = {}
             race_data_tuple = cp[race].popitem()[1]
@@ -306,17 +311,21 @@ class LiveTrailScraper:
         soup = BeautifulSoup(data, 'lxml')
         p_tags = soup.find_all('points')
         control_points = {}
+        control_points_names = {}
         for p_tag in p_tags:
             pt_tags = p_tag.find_all('pt')
             cps = {}
+            cps_names = {}
             for pt_tag in pt_tags:
                 # Calculate the altitude difference between the current point and the first point
                 # of the route and substract this quantity from cummulated elevaation gain.
                 elev_loss = int(pt_tag['d']) - (int(pt_tag['a']) - int(pt_tags[0]['a']))
                 # {'cp_name' : (acc_dist, acc_elev+, -acc_elev-)}
-                cps[pt_tag['n']] = (float(pt_tag['km']), int(pt_tag['d']), -elev_loss)
+                cps[pt_tag['nc']] = (float(pt_tag['km']), int(pt_tag['d']), -elev_loss)
+                cps_names[pt_tag['nc']] = pt_tag['n']
             control_points[p_tag['course']] = cps
-        return control_points
+            control_points_names[p_tag['course']] = cps_names
+        return control_points, control_points_names
 
     def get_events(self) -> dict:
         url = "https://livetrail.net/phpFonctions/homeFunctions.php"
@@ -355,6 +364,7 @@ class LiveTrailScraper:
     def get_control_points(self) -> dict:
         count = 0
         control_points = {}
+        control_points_names = {}
         for event in self.events:
             for year in self.years:
                 try:
@@ -368,7 +378,7 @@ class LiveTrailScraper:
                         response = requests.get(url, timeout=20)
                         # Check if request was successful
                         if response.status_code == 200:
-                            control_points = self._parse_control_points(response.text)
+                            control_points, control_points_names  = self._parse_control_points(response.text)
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
@@ -379,4 +389,4 @@ class LiveTrailScraper:
                     count += 1
                     pass
         # return number of errors
-        return control_points
+        return control_points, control_points_names
