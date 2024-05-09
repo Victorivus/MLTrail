@@ -42,10 +42,11 @@ streamlit run front/app.py
 - [ ] Add templates for manual (csv, json) results and control points
 - [ ] Improve Front-End
 - [ ] Integrate ML/AI predictors
-- [ ] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
+- [X] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
 
 
 ### Scraping
+- [X] BUG: for some races, control point code is not unique since it gets revisited in different laps (e.g. event 'tapalpa23', 2023, 'enigma')
 - [X] Scraped timestamps are different (there is no day added and it gets back to 00:00:00 after 24h in race)
 - [ ] There is a bug where if a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now.
 - [X] Get the name of the checkpoints from the website.
@@ -56,7 +57,9 @@ streamlit run front/app.py
 
 ### Relational DB
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
-- [ ] We have full Results now, need to integrate passing times (new table)
+- [X] Add partial passing times (timing_points)
+- [X] Add control points to DB
+- [ ] Races with CSV results but no control points : create default ones with numbers
 - [ ] *Tablelize* countries, categories.
 - [X] Add tests.
 - [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
@@ -73,7 +76,7 @@ streamlit run front/app.py
 - [ ] Not sure: Departure time doesn't seem always correct, will have to figure out another way of parsing it
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [ ] add results download + load to DB to lib instead of notebook + script
-- [ ] make a proper way to import to DB so imports can be scheduled
+- [ ] make a proper way to import to DB so imports can be scheduled : compare scraper.get_events_years to Event.get_events_years and scapre only diff
 
 
 ### ML/AI

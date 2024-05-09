@@ -1,7 +1,11 @@
 import unittest
 import sqlite3
+import pytest
 from database.create_db import Database
 from database.database import Results
+
+pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
+
 
 class TestResults(unittest.TestCase):
     db: Database = Database.create_database(path='test.db')

@@ -1,7 +1,10 @@
 import unittest
 import sqlite3
+import pytest
 from database.create_db import Database
 from database.database import Race
+
+pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
 # We use results from previous tests for the following ones,
 # i.e. when inserting events in the DB and then modifying them 
@@ -9,7 +12,7 @@ from database.database import Race
 # executes tests alphabetically
 
 
-class TestEvent(unittest.TestCase):
+class TestRace(unittest.TestCase):
     db: Database = Database.create_database(path='test.db')
 
     def test_init(self):
@@ -78,6 +81,69 @@ class TestEvent(unittest.TestCase):
         self.assertEqual(race.get_elevation_neg(), retrieved_race.get_elevation_neg())
         self.assertEqual(race.get_departure_datetime(), retrieved_race.get_departure_datetime())
         self.assertEqual(race.get_results_filepath(), retrieved_race.get_results_filepath())
+
+    def test_load_control_points(self):
+        # Transgrancanaria 2023 data
+        control_points = {
+                            'Salida Cla': (0.0, 0, 0),
+                            'Tenoya': (11.08, 341, -181),
+                            'Barreto': (18.86, 693, -471),
+                            'Teror': (31.0, 1491, -904),
+                            'Fontanales': (42.28, 2402, -1400),
+                            'El Hornill': (51.97, 3010, -2260),
+                            'Artenara': (65.2, 4061, -2866),
+                            'Tejeda': (77.36, 4799, -3758),
+                            'Roque Nubl': (85.63, 5711, -3970),
+                            'Garañon': (88.72, 5888, -4218),
+                            'Tunte': (101.28, 6191, -5305),
+                            'Ayagaures': (113.23, 6593, -6290),
+                            'Meta Parqu': (126.98, 6792, -6762)
+                            }
+        control_points_names = {
+                            'Salida Cla': 'Las Palmas',
+                            'Tenoya': 'Tenoya',
+                            'Barreto': 'Barreto',
+                            'Teror': 'Teror',
+                            'Fontanales': 'Fontanales',
+                            'El Hornill': 'El Hornillo',
+                            'Artenara': 'Artenara',
+                            'Tejeda': 'Tejeda',
+                            'Roque Nubl': 'Roque Nublo',
+                            'Garañon': 'Garañon',
+                            'Tunte': 'Tunte',
+                            'Ayagaures': 'Ayagaures',
+                            'Meta Parqu': 'Meta Parque Sur'
+                            }
+        with pytest.raises(ValueError):
+            cp, cpn = Race.load_control_points('classic', 'transgrancanaria', self.db)
+        cp, cpn = Race.load_control_points('classic', 616, self.db)  # 616 is transgrancanaria 2024
+        # Need to include data to test.db before this
+        # assert cp == control_points
+        # assert cpn == control_points_names
+
+        # Sainté-Lyon 2021 data
+        control_points = {  
+                            'StEtien': (0.0, 0, 0),
+                            'Saint-Chri': (18.14, 602, -338),
+                            'Sainte-Cat': (31.96, 1109, -908),
+                            'Saint-Gen': (45.01, 1522, -1396),
+                            'Soucieu-en': (55.86, 1736, -1863),
+                            'Chapon': (65.38, 1857, -2041),
+                            'Lyon': (78.3, 2126, -2448)
+                        }
+        control_points_names = {  
+                            'StEtien': 'Saint Etienne',
+                            'Saint-Chri': 'Saint-Christo-en-Jarez',
+                            'Sainte-Cat': 'Sainte-Catherine',
+                            'Saint-Gen': 'Le Camp - Saint-Genou',
+                            'Soucieu-en': 'Soucieu-en-Jarrest',
+                            'Chapon': 'Chaponost',
+                            'Lyon': 'Lyon'
+                        }
+        cp, cpn = Race.load_control_points('78km', 5, self.db)  # 5 is SaintéLyon 2021
+        # Need to include data to test.db before this
+        # assert cp == control_points
+        # assert cpn == control_points_names
 
 
 if __name__ == '__main__':

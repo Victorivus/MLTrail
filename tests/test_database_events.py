@@ -1,9 +1,12 @@
 import os
 import unittest
 import sqlite3
+import pytest
 from unittest.mock import patch
 from database.create_db import Database
 from database.database import Event
+
+pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
 # We use results from previous tests for the following ones,
 # i.e. when inserting events in the DB and then modifying them 

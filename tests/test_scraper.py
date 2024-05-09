@@ -7,6 +7,8 @@ from scraper.scraper import LiveTrailScraper
 import pandas as pd
 from tools import get_untested_functions
 
+pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
+
 
 class TestLiveTrailScraper(unittest.TestCase):
     # Test case for _checkEventYear method
@@ -51,36 +53,97 @@ class TestLiveTrailScraper(unittest.TestCase):
     def test_get_control_points(self):
         # Transgrancanaria 2023 data
         control_points = {
-                            'Salida Clasic': (0.0, 0, 0),
+                            'Salida Cla': (0.0, 0, 0),
                             'Tenoya': (11.43, 348, -188),
                             'Arucas': (19.44, 704, -482),
                             'Teror': (31.95, 1509, -922),
                             'Fontanales': (43.55, 2463, -1461),
-                            'El Hornillo': (53.51, 3089, -2339),
+                            'El Hornill': (53.51, 3089, -2339),
                             'Artenara': (67.11, 4156, -2961),
                             'Tejeda': (79.63, 4919, -3878),
-                            'Roque Nublo': (88.15, 5869, -4128),
+                            'Roque Nubl': (88.15, 5869, -4128),
                             'Garañon': (91.32, 6042, -4372),
                             'Tunte': (104.26, 6369, -5483),
                             'Ayagaures': (116.57, 6803, -6500),
-                            'Meta Parque Sur': (130.74, 7000, -6970)
+                            'Meta Parqu': (130.74, 7000, -6970)
+                        }
+        control_points_names = {
+                            'Salida Cla': 'Salida Clasic',
+                            'Tenoya': 'Tenoya',
+                            'Arucas': 'Arucas',
+                            'Teror': 'Teror',
+                            'Fontanales': 'Fontanales',
+                            'El Hornill': 'El Hornillo',
+                            'Artenara': 'Artenara',
+                            'Tejeda': 'Tejeda',
+                            'Roque Nubl': 'Roque Nublo',
+                            'Garañon': 'Garañon',
+                            'Tunte': 'Tunte',
+                            'Ayagaures': 'Ayagaures',
+                            'Meta Parqu': 'Meta Parque Sur'
                         }
         scraper = LiveTrailScraper(events=["transgrancanaria"], years=["2023"])
-        cp = scraper.get_control_points()['classic']
+        cp, cpn = scraper.get_control_points()
+        cp = cp['classic']
+        cpn = cpn['classic']
         assert cp == control_points
+        assert cpn == control_points_names
 
         # Sainté-Lyon 2021 data
         control_points = {  
-                            'Saint Etienne': (0.0, 0, 0),
-                            'Saint-Christo-en-Jarez': (18.14, 602, -338),
-                            'Sainte-Catherine': (31.96, 1109, -908),
-                            'Le Camp - Saint-Genou': (45.01, 1522, -1396),
-                            'Soucieu-en-Jarrest': (55.86, 1736, -1863),
-                            'Chaponost': (65.38, 1857, -2041),
+                            'StEtien': (0.0, 0, 0),
+                            'Saint-Chri': (18.14, 602, -338),
+                            'Sainte-Cat': (31.96, 1109, -908),
+                            'Saint-Gen': (45.01, 1522, -1396),
+                            'Soucieu-en': (55.86, 1736, -1863),
+                            'Chapon': (65.38, 1857, -2041),
                             'Lyon': (78.3, 2126, -2448)
                         }
+        control_points_names = {  
+                            'StEtien': 'Saint Etienne',
+                            'Saint-Chri': 'Saint-Christo-en-Jarez',
+                            'Sainte-Cat': 'Sainte-Catherine',
+                            'Saint-Gen': 'Le Camp - Saint-Genou',
+                            'Soucieu-en': 'Soucieu-en-Jarrest',
+                            'Chapon': 'Chaponost',
+                            'Lyon': 'Lyon'
+                        }
         scraper = LiveTrailScraper(events=["saintelyon"], years=["2021"])
-        cp = scraper.get_control_points()['78km']
+        cp, cpn = scraper.get_control_points()
+        cp = cp['78km']
+        cpn = cpn['78km']
+        assert cp == control_points
+        assert cpn == control_points_names
+
+    def test_clean_control_name(self):
+        control_points = {
+            'Friday ': (0.0, 0, 0),
+            'Charlotte ': (9.03, 229, -109),
+            ' Charlotte': (21.19, 512, -392),
+            '2-Charlotte ': (21.31, 512, -408),
+            'Guthega Bu': (31.01, 816, -879),
+            'Sponars Ch': (49.28, 1456, -1647),
+            'Sawpit Cre': (62.85, 1783, -2305),
+            '2-Sawpit Cre': (62.9, 1783, -2304),
+            'Trout Hatc': (67.03, 1862, -2652),
+            '2-Trout Hatc': (67.21, 1866, -2661),
+            'Lake Cross': (70.37, 1925, -2744),
+            '2-Lake Cross': (74.02, 1941, -2761),
+            'Banjo Patt': (85.38, 2436, -3246),
+            '2-Banjo Patt': (85.47, 2440, -3245),
+            '3-Lake Cross': (95.38, 2692, -3512),
+            '4-Lake Cross': (99.03, 2708, -3528),
+            '3-Banjo Patt': (110.43, 3220, -4030),
+            '4-Banjo Patt': (110.51, 3223, -4029),
+            ' Trout Hat': (123.0, 3556, -4348),
+            '3-Trout Hatc': (123.14, 3561, -4351),
+            'Bullocks C': (142.12, 4495, -5077),
+            'Ngarigo Ca': (156.42, 4875, -5366),
+            'Finish': (163.92, 5055, -5642)
+            }
+        scraper = LiveTrailScraper(events=["kosciuszko"], years=["2022"])
+        cp, cpn = scraper.get_control_points()
+        cp = cp['miller']
         assert cp == control_points
 
     # Test case for downloadData method

@@ -40,7 +40,8 @@ def get_results(event, year, race):
     race_info = scraper.get_race_info(bibN=raw_results.iloc[0]['doss'])
 
     # Let's get the Control Points information
-    control_points = scraper.get_control_points()[race]
+    control_points, _ = scraper.get_control_points()
+    control_points = control_points[race]
     control_points.pop(next(iter(control_points)))  # Remove 1st CP (starting line)
 
     raw_results.columns = list(raw_results.columns[:5]) + list(control_points.keys())

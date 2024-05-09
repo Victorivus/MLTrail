@@ -78,7 +78,7 @@ class Event:
         conn = sqlite3.connect(self._db.path)
         with conn:
             cursor = conn.cursor()
-            cursor.execute('SELECT event_id FROM events WHERE code = ? AND  name = ? AND year = ?',
+            cursor.execute('SELECT event_id FROM events WHERE code = ? AND name = ? AND year = ?',
                         (self._event_code, self._event_name, self._year,))
             row = cursor.fetchone()
         conn.close()
@@ -121,6 +121,27 @@ class Event:
         if row:
             return row[0]
         return None
+
+    @staticmethod
+    def get_events_years(db: Database = None) -> dict:
+        '''
+        Get all events and years stored in DB.
+        '''
+        conn = sqlite3.connect(Database().path) if db is None else sqlite3.connect(db.path)
+        events = {}
+        years = {}
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT code, name, year FROM events")
+            for row in cursor.fetchall():
+                code, name, year = row
+                events[code] = name
+                if code not in years:
+                    years[code] = []
+                years[code].append(year)
+        conn.close()
+        return events, years
+
 
 
 class Race:
@@ -264,6 +285,49 @@ class Race:
                         departure_datetime=row[4], results_filepath=row[5])
             return race
         return None
+
+    @staticmethod
+    def load_control_points(race_id, event_id, db: Database = None) -> tuple[dict, dict]:
+        '''
+        Get control points from the database.
+        '''
+        if not isinstance(event_id, int):
+            raise ValueError("Please call Event.get_id_from_code_year(event_code, year) to get event_id")
+
+        if db is None:
+            conn = sqlite3.connect(Database().path)
+        else:
+            conn = sqlite3.connect(db.path)
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT code, name, distance, elevation_pos, elevation_neg
+                FROM control_points WHERE race_id = ? AND event_id = ?
+                ORDER BY distance
+            ''', (race_id, event_id,))
+            rows = cursor.fetchall()
+            control_points = {}
+            control_points_names = {}
+            for row in rows:
+                control_points[row[0]] = (row[2], row[3], row[4])
+                control_points_names[row[0]] = row[1]
+        return control_points, control_points_names
+
+
+    @staticmethod
+    def save_control_points_to_db(race_id, event_id, control_points, db: Database = None) -> None:
+        '''
+        Get control points from the database.
+        '''
+        if not isinstance(event_id, int):
+            raise ValueError("Please call Events.get_id_from_code_year(event_code, year) to get event_id")
+
+        if db is None:
+            conn = sqlite3.connect(Database().path)
+        else:
+            conn = sqlite3.connect(db.path)
+        raise NotImplementedError("Method not yet implemented.")
+
 
 
 class Results:

@@ -54,10 +54,10 @@ def insert_into_results(cursor, race_id, event_id, departure_time, data):
                 time = previous_time + time_difference
                 time_str = format_timedelta(calculate_time_difference(time,departure_time))
                 previous_time = time
-            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row[:5], time_str,))  # Add a comma after *row        
+            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row[:5], time_str,))
     else:
         for row in data:
-            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row,))  # Add a comma after *row        
+            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row,))
 
 # Function to calculate time difference and handle cases where it exceeds 24 hours
 def calculate_time_difference(time, previous_time):
