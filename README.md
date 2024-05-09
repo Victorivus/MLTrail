@@ -56,6 +56,7 @@ streamlit run front/MLTrail.py
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
+- [ ] BUG: Races with different start time per participant (e.g. 'Marathon du Mont-Blanc', '2014' , 'kmv', 402, 'KM Vertical')
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
 - [X] Add partial passing times (timing_points)
 - [X] Add control points to DB
