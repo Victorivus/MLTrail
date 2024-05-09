@@ -13,6 +13,8 @@ from datetime import timedelta
 from results.results import Results
 from tools import get_untested_functions
 
+pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
+
 
 class TestResults():
     def tearDown(self):
