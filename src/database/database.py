@@ -292,7 +292,7 @@ class Race:
         Get control points from the database.
         '''
         if not isinstance(event_id, int):
-            raise ValueError("Please call Events.get_id_from_code_year(event_code, year) to get event_id")
+            raise ValueError("Please call Event.get_id_from_code_year(event_code, year) to get event_id")
 
         if db is None:
             conn = sqlite3.connect(Database().path)
