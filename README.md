@@ -56,7 +56,9 @@ streamlit run front/app.py
 
 ### Relational DB
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
-- [ ] We have full Results now, need to integrate passing times (new table)
+- [ ] Add partial passing times (timing_points)
+- [X] Add control points to DB
+- [ ] Races with CSV results but no control points : create default ones with numbers
 - [ ] *Tablelize* countries, categories.
 - [X] Add tests.
 - [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
