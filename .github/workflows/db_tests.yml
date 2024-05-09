@@ -3,7 +3,8 @@ name: DB Pytest
 on:
   push:
     branches:
-      - feat/rel_db
+      - 'feat*/*DB*'
+      - 'fix/*DB*'
 jobs:
   test:
     runs-on: ubuntu-latest
