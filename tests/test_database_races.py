@@ -140,7 +140,7 @@ class TestRace(unittest.TestCase):
                             'Chapon': 'Chaponost',
                             'Lyon': 'Lyon'
                         }
-        cp, cpn = Race.load_control_points('78km', 5, db)  # 5 is SaintéLyon 2021
+        cp, cpn = Race.load_control_points('78km', 5, self.db)  # 5 is SaintéLyon 2021
         # Need to include data to test.db before this
         # assert cp == control_points
         # assert cpn == control_points_names
