@@ -121,7 +121,7 @@ class Event:
         if row:
             return row[0]
         return None
-    
+
     @staticmethod
     def get_events_years(db: Database = None) -> dict:
         '''
