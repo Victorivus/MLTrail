@@ -30,8 +30,8 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS events (
                 event_id INTEGER PRIMARY KEY,
-                event_code TEXT,
-                event_name TEXT,
+                code TEXT,
+                name TEXT,
                 year TEXT,
                 country TEXT
             )
@@ -87,7 +87,6 @@ class Database:
                 FOREIGN KEY (race_id) REFERENCES races(race_id),
                 FOREIGN KEY (event_id) REFERENCES events(event_id),
                 UNIQUE (event_id, race_id, code)
-                
             )
         ''')
 
