@@ -93,7 +93,7 @@ def main(path='../data/parsed_data.db', clean=False):
         with db_connection:
             cursor = db_connection.cursor()
             clean_table(cursor)
-            print('Results table emptied')
+            print('timing_points table emptied')
 
     # Iterate through folders
     for folder in os.listdir(data_folder):
