@@ -92,6 +92,7 @@ streamlit run front/MLTrail.py
 - [ ] Integrate printing version of times
 - [ ] Show race profile from distance, D+ and D- data? Maybe too aproximative and need real gps data
 - [ ] Objective graph is only paces, show times / normalised pace?
+- [X] Bug when races include departure time in timing_points file
 
 
 ### BackEnd
@@ -100,6 +101,8 @@ streamlit run front/MLTrail.py
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 - [X] Fix imports
 - [X] Change camelCase style to snake_case style naming (Results)
+- [X] Fix: Add support for front bug races having departuire in timing_points (Results)
+- [ ] Add this kind of races to tests (e.g. 'mbm' 2023 '42km')
 
 ### CI/CD
 - [X] Create a CI
