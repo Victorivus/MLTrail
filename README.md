@@ -30,7 +30,7 @@ poetry install
 Launch the following command:
 
 ```
-streamlit run front/app.py
+streamlit run front/MLTrail.py
 ```
 
 # Collaborating
