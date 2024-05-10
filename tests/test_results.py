@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from pandas.testing import assert_frame_equal
 from datetime import timedelta
 from results.results import Results
 from tools import get_untested_functions
@@ -67,6 +68,41 @@ class TestResults():
         times = results_raw[control_points.keys()]
         race_info = {'date': '2024-02-24', 'tz': '0', 'hd': '00:00:03', 'jd': '6'}
         return Results(control_points, times, offset=race_info['hd'], clean_days=False, start_day=race_info['jd'])
+
+    @staticmethod
+    @pytest.fixture
+    def sample_results_bis() -> Results:
+        # Marathon du Mont-Blanc 2023 data
+        # Mainly to test a race with waves system (different departure times)
+        # There were depart times at 7h (Female) 7h30, 8h, etc.
+        control_points = {
+                            'Place du t': (0.0, 0, 0),
+                            'Argenti': (9.68, 588, -364),
+                            'Col des po': (19.96, 1643, -673),
+                            'Vallo': (24.83, 1651, -1414),
+                            'Bois plagn': (33.02, 2215, -1790),
+                            'Flégère ra': (36.88, 2684, -1825),
+                            'Arrivée': (45.56, 2755, -2755)
+                            }
+        data = {
+                            'n': [1, 2, 3, 4, 5],
+                            'doss': [4, 15, 115, 13, 1],
+                            'nom': ['BONNET', 'HEMMING', 'LAUKLI', 'ENGDAHL', 'MERILLAS'],
+                            'prenom': ['Rémi', 'Eli', 'Sophia', 'Petter', 'Manuel'],
+                            'cat': ['SE H', 'SE H', 'SE F', 'SE H', 'SE H'],
+                            'Place du t': ['07:30:01', '07:30:01', '07:00:01', '07:30:01', '07:30:01'],
+                            'Argenti': ['08:07:42', '08:07:43', '07:41:25', '08:07:57', '08:08:06'],
+                            'Col des po': ['09:04:17', '09:06:04', '08:47:39', '09:08:00', '09:08:37'],
+                            'Vallo': ['09:21:19', '09:23:13', '09:07:21', '09:26:24', '09:25:50'],
+                            'Bois plagn': ['10:05:02', '10:08:24', '09:57:12', '10:12:42', '10:11:21'],
+                            'Flégère ra': ['10:27:36', '10:33:59', '10:27:10', '10:39:21', '10:39:29'],
+                            'Arrivée': ['11:05:05', '11:10:51', '11:12:40', '11:16:45', '11:18:32']
+                            }
+        results_raw = pd.DataFrame(data)
+        times = results_raw[control_points.keys()]
+        race_info = {'date': '2023-06-25', 'tz': '2', 'hd': '07:30:01', 'jd': '7'}
+        return Results(control_points, times, offset=race_info['hd'], clean_days=False,
+                       start_day=race_info['jd'], waves=True)
 
 
     # Test case for getData method
@@ -416,6 +452,53 @@ class TestResults():
         expected_result_more_than_hour = "2:45:20"
         assert sample_results.get_time(seconds_more_than_hour) == expected_result_more_than_hour
 
+    def test_get_times(self, sample_results_bis):
+        data = {
+            'Place du t': ['0:00:00', '0:00:00', '-1 day, 23:30:00', '0:00:00', '0:00:00'],
+            'Argenti': ['0:37:41', '0:37:42', '0:11:24', '0:37:56', '0:38:05'],
+            'Col des po': ['1:34:16', '1:36:03', '1:17:38', '1:37:59', '1:38:36'],
+            'Vallo': ['1:51:18', '1:53:12', '1:37:20', '1:56:23', '1:55:49'],
+            'Bois plagn': ['2:35:01', '2:38:23', '2:27:11', '2:42:41', '2:41:20'],
+            'Flégère ra': ['2:57:35', '3:03:58', '2:57:09', '3:09:20', '3:09:28'],
+            'Arrivée': ['3:35:04', '3:40:50', '3:42:39', '3:46:44', '3:48:31']
+        }
+
+        times = pd.DataFrame(data)
+        # This method is None if there are no differences and asserts the differences if they exist
+        assert assert_frame_equal(sample_results_bis.get_times(), times) is None
+
+    def test_get_hours(self, sample_results_bis):
+        data = {
+            'Place du t': ['07:30:01', '07:30:01', '07:00:01', '07:30:01', '07:30:01'],
+            'Argenti': ['08:07:42', '08:07:43', '07:41:25', '08:07:57', '08:08:06'],
+            'Col des po': ['09:04:17', '09:06:04', '08:47:39', '09:08:00', '09:08:37'],
+            'Vallo': ['09:21:19', '09:23:13', '09:07:21', '09:26:24', '09:25:50'],
+            'Bois plagn': ['10:05:02', '10:08:24', '09:57:12', '10:12:42', '10:11:21'],
+            'Flégère ra': ['10:27:36', '10:33:59', '10:27:10', '10:39:21', '10:39:29'],
+            'Arrivée': ['11:05:05', '11:10:51', '11:12:40', '11:16:45', '11:18:32']
+        }
+
+        hours = pd.DataFrame(data)
+        assert assert_frame_equal(sample_results_bis.get_hours(), hours) is None
+
+    def test_get_real_times(self, sample_results_bis):
+        data = {
+            'Place du t': ['0:00:00', '0:00:00', '0:00:00', '0:00:00', '0:00:00'],
+            'Argenti': ['0:37:41', '0:37:42', '0:41:24', '0:37:56', '0:38:05'],
+            'Col des po': ['1:34:16', '1:36:03', '1:47:38', '1:37:59', '1:38:36'],
+            'Vallo': ['1:51:18', '1:53:12', '2:07:20', '1:56:23', '1:55:49'],
+            'Bois plagn': ['2:35:01', '2:38:23', '2:57:11', '2:42:41', '2:41:20'],
+            'Flégère ra': ['2:57:35', '3:03:58', '3:27:09', '3:09:20', '3:09:28'],
+            'Arrivée': ['3:35:04', '3:40:50', '4:12:39', '3:46:44', '3:48:31']
+        }
+
+        times = pd.DataFrame(data)
+        assert assert_frame_equal(sample_results_bis.get_real_times(), times) is None
+
+    def test_compute_real_times(self, sample_results_bis):
+        # if the above works, this is called and processes well
+        assert self.test_get_real_times(sample_results_bis) is None
+
     def test_clean_days(self, sample_results):
         # Create a sample DataFrame for testing
         data = {
@@ -472,6 +555,12 @@ class TestResults():
         sample_results.plot_control_points(sample_results.get_stats(), show_hours=False, xrotate=False, inverty=True, save_path=plot_path)
         assert os.path.exists(plot_path)
         os.remove(plot_path)
+
+##########################################################################################
+#
+#       Test that all functions are tested
+#
+##########################################################################################
 
     def test_implemented_tests(self):
         unused_functions = get_untested_functions(Results, TestResults)

@@ -77,8 +77,6 @@ class Results:
         self.real_times = real_times.map(self.get_time)
         return True
 
-        raise NotImplementedError
-
     def get_seconds(self, time: str, offset=True):
         d = 0  # days
         if 'day' in time:
