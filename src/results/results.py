@@ -89,8 +89,8 @@ class Results:
         '''
             Getter for times in time since departure
         '''
-        numeric_times = self.times.applymap(lambda x: self.get_seconds(x, offset=True))
-        return numeric_times.applymap(self.get_time)
+        numeric_times = self.times.map(lambda x: self.get_seconds(x, offset=True))
+        return numeric_times.map(self.get_time)
 
     def get_hours(self) -> pd.DataFrame:
         '''
