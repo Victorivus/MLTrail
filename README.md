@@ -56,7 +56,6 @@ streamlit run front/MLTrail.py
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
-- [ ] BUG: Races with different start time per participant (e.g. 'Marathon du Mont-Blanc', '2014' , 'kmv', 402, 'KM Vertical')
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
 - [X] Add partial passing times (timing_points)
 - [X] Add control points to DB
@@ -72,7 +71,7 @@ streamlit run front/MLTrail.py
 - [X] Add results download
 - [X] Load results to DB
 - [X] Compute category results in DB
-- [ ] Design a way of having passing times in DB and not only final times
+- [X] Design a way of having passing times in DB and not only final times
 - [ ] Fix path for data and plots (env variable)
 - [ ] Not sure: Departure time doesn't seem always correct, will have to figure out another way of parsing it
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
@@ -102,7 +101,8 @@ streamlit run front/MLTrail.py
 - [X] Fix imports
 - [X] Change camelCase style to snake_case style naming (Results)
 - [X] Fix: Add support for front bug races having departuire in timing_points (Results)
-- [ ] Add this kind of races to tests (e.g. 'mbm' 2023 '42km')
+- [X] Add this kind of races to tests (e.g. 'mbm' 2023 '42km')
+- [X] BUG: Races with different start time per participant (e.g. 'Marathon du Mont-Blanc', '2014' , 'kmv', 402, 'KM Vertical').
 
 ### CI/CD
 - [X] Create a CI
