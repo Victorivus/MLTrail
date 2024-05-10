@@ -20,8 +20,9 @@ class Results:
         self.set_offset(offset)
         self.times = self.times.apply(self._correct_times24h, axis=1)
         self.real_times = self.times
-        if waves:
-            self.real_times = self.compute_real_times()
+        self.waves = waves
+        if self.waves:
+            self.compute_real_times()
         self.time_deltas = self.get_time_deltas()
         self.distance_deltas = self.get_distance_deltas()
         self.paces = self.get_paces()
@@ -71,6 +72,11 @@ class Results:
     def compute_real_times(self):
         first_cp_key, first_cp_value = list(self.control_points.items())[0]
         # self.real_times = 
+        real_times = self.times.map(self.get_seconds)
+        real_times = real_times.sub(real_times[first_cp_key], axis=0)
+        self.real_times = real_times.map(self.get_time)
+        return True
+
         raise NotImplementedError
 
     def get_seconds(self, time: str, offset=True):
@@ -82,15 +88,25 @@ class Results:
             time += ':00'
         h, m, s = map(int, time.split(':'))
         if not offset:
-            return d * 24 * 3600 + h * 3600 + m * 60 + s    
+            return d * 24 * 3600 + h * 3600 + m * 60 + s
         return d * 24 * 3600 + h * 3600 + m * 60 + s - self.offset
 
     def get_times(self) -> pd.DataFrame:
         '''
-            Getter for times in time since departure
+            Getter for times in hh:mm:ss since OFFICIAL departure time
         '''
         numeric_times = self.times.map(lambda x: self.get_seconds(x, offset=True))
         return numeric_times.map(self.get_time)
+
+    def get_real_times(self) -> pd.DataFrame:
+        '''
+            Getter for real times: in hh:mm:ss since SELF departure if waves is True
+            or get_times() if False
+        '''
+        if self.waves:
+            return self.real_times
+        else:
+            return self.get_times()
 
     def get_hours(self) -> pd.DataFrame:
         '''
@@ -169,13 +185,13 @@ class Results:
         for point in self.control_points.keys():
             if prev_point == '':
                 distance_deltas[point] = (self.control_points[point][0],
-                                         self.control_points[point][1],
-                                         self.control_points[point][2])
+                                          self.control_points[point][1],
+                                          self.control_points[point][2])
             else:
                 distance_deltas[point] = (self.control_points[point][0] - self.control_points[prev_point][0],
-                                         self.control_points[point][1] - self.control_points[prev_point][1],
-                                         self.control_points[point][2] - self.control_points[prev_point][2])
-                                        
+                                          self.control_points[point][1] - self.control_points[prev_point][1],
+                                          self.control_points[point][2] - self.control_points[prev_point][2])
+
             prev_point = point
         return distance_deltas
 
@@ -267,7 +283,7 @@ class Results:
         if paces is None:
             paces = self.paces
         # note: if n is impair, n-n/2 before objective and n/2 after it
-        return pd.DataFrame(paces.iloc[self.objective-(n-n//2):self.objective+n//2]\
+        return pd.DataFrame(paces.iloc[self.objective-(n-n//2):self.objective+n//2]
                             .apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
 
     def get_objective_mean_times(self, n=5):
