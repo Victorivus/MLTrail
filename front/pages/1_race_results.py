@@ -42,7 +42,7 @@ def get_results(event, year, race):
     # Let's get the Control Points information
     control_points, _ = scraper.get_control_points()
     control_points = control_points[race]
-    waves = True
+    waves = True # some races have different departure times
     if '00' not in raw_results.columns:  # if results do not contain starting time
         waves = False
         control_points.pop(next(iter(control_points)))  # Remove 1st CP (starting line)
