@@ -1,5 +1,5 @@
 '''
-Test module for the Results class
+Viz test module for the Results class
 '''
 import os
 import re
@@ -42,16 +42,18 @@ def get_results(event, year, race):
     # Let's get the Control Points information
     control_points, _ = scraper.get_control_points()
     control_points = control_points[race]
-    if not '00' in raw_results.columns:  # if results do not contain starting time
+    waves = True # some races have different departure times
+    if '00' not in raw_results.columns:  # if results do not contain starting time
+        waves = False
         control_points.pop(next(iter(control_points)))  # Remove 1st CP (starting line)
 
     raw_results.columns = list(raw_results.columns[:5]) + list(control_points.keys())
     raw_results = raw_results.sort_values(by=raw_results.columns[-1])
     times = raw_results[control_points.keys()]
     rs = Results(control_points=control_points, times=times, offset=race_info['hd'],
-                 clean_days=False, start_day=int(race_info['jd']))
+                 clean_days=False, start_day=int(race_info['jd']), waves=waves)
 
-    return raw_results, control_points, rs, race_info
+    return raw_results, control_points, rs, race_info, waves
 
 
 def clean_events(events: dict) -> dict:
@@ -118,10 +120,12 @@ def main():
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 file_path = os.path.join(folder_path, f'{event}_{race}_{year}.png')
-                raw_results, control_points, rs, race_info = get_results(event, year, race)
+                raw_results, control_points, rs, race_info, waves = get_results(event, year, race)
                 rs.plot_control_points(rs.get_stats(), xrotate=True, inverty=True, save_path=file_path)
                 data = {
-                    'times': rs.times.map(rs.format_time_over24h),
+                    'times': rs.get_times().map(rs.format_time_over24h),
+                    'hours': rs.get_hours().map(rs.format_time_over24h),
+                    'real_times': rs.get_real_times().map(rs.format_time_over24h),
                     'paces': rs.paces,
                     # 'plot_image_tag': file_path,
                     'event': event,
@@ -132,8 +136,16 @@ def main():
                 # Display data
                 # TODO: Add button to toggle view between hours and time (apply or not rs.format_time_over24h)
                 st.write(f"Departure time: {race_info['hd']}")
-                st.write('Times:')
-                st.write(data['times'].sort_index())
+                st.write('Hours:')
+                st.write(data['hours'].sort_index())
+
+                if waves:
+                    st.write('REAL Times:')
+                    st.write(data['real_times'].sort_index())
+
+                else:
+                    st.write('Times:')
+                    st.write(data['times'].sort_index())
 
                 st.write('Paces:')
                 st.write(data['paces'].sort_index())
@@ -151,7 +163,7 @@ def main():
                     year = session_data['year']
                     race = session_data['race']
 
-                    raw_results, control_points, rs, race_info = get_results(event, year, race)
+                    raw_results, control_points, rs, race_info, waves = get_results(event, year, race)
                     objective_position = rs.get_closest_time_to_objective(input_time)
 
                     rs.set_objective(objective_position)

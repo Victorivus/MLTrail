@@ -5,6 +5,7 @@ on:
     types: [ opened, synchronize, reopened ]
     branches:
       - main
+      - frontend
 jobs:
   test:
     runs-on: ubuntu-latest

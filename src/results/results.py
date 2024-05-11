@@ -6,8 +6,8 @@ import matplotlib.dates as mdates
 
 
 class Results:
-    def __init__(self, control_points, times, objective=0, offset=0,
-                 clean_days=False, start_day=7) -> None:
+    def __init__(self, control_points: dict, times: pd.DataFrame, objective=0, offset=0,
+                 clean_days=False, start_day=7, waves=False) -> None:
         self.control_points = control_points
         self.objective = objective
         self.times = times
@@ -19,12 +19,16 @@ class Results:
         self.times = self.clean_times()
         self.set_offset(offset)
         self.times = self.times.apply(self._correct_times24h, axis=1)
+        self.real_times = self.times
+        self.waves = waves
+        if self.waves:
+            self.compute_real_times()
         self.time_deltas = self.get_time_deltas()
         self.distance_deltas = self.get_distance_deltas()
         self.paces = self.get_paces()
         self.paces_norm = self.get_paces_norm()
 
-    def _correct_times24h(self, row):
+    def _correct_times24h(self, row) -> pd.Series:
         previous_time = row.iloc[0]
         adjusted_row = [row.iloc[0]]
         for time in row[1:]:
@@ -34,7 +38,7 @@ class Results:
             previous_time = time
         return pd.Series(adjusted_row, index=row.index)
 
-    def clean_days(self, times: pd.DataFrame, days: list[str]):
+    def clean_days(self, times: pd.DataFrame, days: list[str]) -> pd.DataFrame:
         # Not tested
         times = times.apply(lambda x: x.map(lambda y: y[:9] if '\n' in y and len(y) > 9 else y))
         for i, day in enumerate(days):
@@ -45,7 +49,7 @@ class Results:
                 times = times.apply(lambda x: x.map(lambda y: self.format_time_over24h(self.get_time(self.get_seconds(y.replace(f'{day} ', ''), offset=False)+i*24*3600) if str(y).startswith(f'{day}') else y)))
         return times
 
-    def clean_times(self, interpolate='previous'):
+    def clean_times(self, interpolate='previous') -> pd.DataFrame:
         # Filter out DNFs (last column is NaN)
         self.times = self.times.replace('', pd.NA)  # Some races instead of NaN, place an empty string
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
@@ -65,6 +69,14 @@ class Results:
             # raise NotImplementedError("This feature is not implemented yet.")
         return self.times
 
+    def compute_real_times(self):
+        first_cp_key, first_cp_value = list(self.control_points.items())[0]
+        # self.real_times = 
+        real_times = self.times.map(self.get_seconds)
+        real_times = real_times.sub(real_times[first_cp_key], axis=0)
+        self.real_times = real_times.map(self.get_time)
+        return True
+
     def get_seconds(self, time: str, offset=True):
         d = 0  # days
         if 'day' in time:
@@ -74,8 +86,31 @@ class Results:
             time += ':00'
         h, m, s = map(int, time.split(':'))
         if not offset:
-            return d * 24 * 3600 + h * 3600 + m * 60 + s    
+            return d * 24 * 3600 + h * 3600 + m * 60 + s
         return d * 24 * 3600 + h * 3600 + m * 60 + s - self.offset
+
+    def get_times(self) -> pd.DataFrame:
+        '''
+            Getter for times in hh:mm:ss since OFFICIAL departure time
+        '''
+        numeric_times = self.times.map(lambda x: self.get_seconds(x, offset=True))
+        return numeric_times.map(self.get_time)
+
+    def get_real_times(self) -> pd.DataFrame:
+        '''
+            Getter for real times: in hh:mm:ss since SELF departure if waves is True
+            or get_times() if False
+        '''
+        if self.waves:
+            return self.real_times
+        else:
+            return self.get_times()
+
+    def get_hours(self) -> pd.DataFrame:
+        '''
+            Getter for times in hour of the day
+        '''
+        return self.times
 
     def get_time(self, seconds: int) -> str:
         '''
@@ -96,6 +131,8 @@ class Results:
         ts = x.total_seconds()
         hours, remainder = divmod(ts, 3600)
         minutes, seconds = divmod(remainder, 60)
+        if ts is None or pd.isna(ts):
+            return str(np.nan)
         return ('{}:{:02d}:{:02d}').format(int(hours), int(minutes), int(seconds)) 
 
     @staticmethod
@@ -109,6 +146,7 @@ class Results:
             label_format = '%M:%S'
 
         fig, ax1 = plt.subplots(figsize=(12, 10), dpi=150)
+        df = df.loc[:, ~(df == 'nan').all()]  # All column Nan is departure
         for i in df.reset_index()['index']:
             y = mdates.datestr2num(df.loc[i])
             ax1.plot(df.columns, y, marker='o', label=i)
@@ -130,7 +168,10 @@ class Results:
         prev_point = ''
         for point in self.control_points.keys():
             if prev_point == '':
-                time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], self.get_time(self.offset)), axis=1)
+                if self.control_points[point][0] > 0.0:
+                    time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], self.get_time(self.offset)), axis=1)
+                else:
+                    time_deltas[point] = self.times.apply(lambda x: None, axis=1)
             else:
                 time_deltas[point] = self.times.apply(lambda x: self.total_time_to_delta(x[point], x[prev_point]), axis=1)
             prev_point = point
@@ -142,13 +183,13 @@ class Results:
         for point in self.control_points.keys():
             if prev_point == '':
                 distance_deltas[point] = (self.control_points[point][0],
-                                         self.control_points[point][1],
-                                         self.control_points[point][2])
+                                          self.control_points[point][1],
+                                          self.control_points[point][2])
             else:
                 distance_deltas[point] = (self.control_points[point][0] - self.control_points[prev_point][0],
-                                         self.control_points[point][1] - self.control_points[prev_point][1],
-                                         self.control_points[point][2] - self.control_points[prev_point][2])
-                                        
+                                          self.control_points[point][1] - self.control_points[prev_point][1],
+                                          self.control_points[point][2] - self.control_points[prev_point][2])
+
             prev_point = point
         return distance_deltas
 
@@ -169,7 +210,10 @@ class Results:
         prev_point = ''
         for point in self.control_points.keys():
             if prev_point == '':
-                times_paces['__all__'+point] = times_paces[point].map(lambda x: self.get_allure(x, self.control_points[point][0], offset=True))
+                if self.control_points[point][0] > 0.0:
+                    times_paces['__all__'+point] = times_paces[point].map(lambda x: self.get_allure(x, self.control_points[point][0], offset=True))
+                else:
+                    times_paces['__all__'+point] = times_paces[point].map(lambda x: None)
             else:
                 times_paces['__all__'+point] = times_paces.apply(lambda x: self.get_allure(self.total_time_to_delta(x[point], x[prev_point]), self.control_points[point][0]-self.control_points[prev_point][0]), axis=1)
             prev_point = point
@@ -184,7 +228,10 @@ class Results:
         prev_point = ''
         for point in self.control_points.keys():
             if prev_point == '':
-                times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.get_allure_norm(x, self.control_points[point][0], self.control_points[point][1], offset=True))
+                if self.control_points[point][0] > 0.0:
+                    times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.get_allure_norm(x, self.control_points[point][0], self.control_points[point][1], offset=True))
+                else:
+                    times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: None)
             else:
                 times_paces['__allNorm__'+point] = times_paces.apply(lambda x: self.get_allure_norm(self.total_time_to_delta(x[point], x[prev_point]),
                                                                                         self.control_points[point][0]-self.control_points[prev_point][0],
@@ -234,12 +281,12 @@ class Results:
         if paces is None:
             paces = self.paces
         # note: if n is impair, n-n/2 before objective and n/2 after it
-        return pd.DataFrame(paces.iloc[self.objective-(n-n//2):self.objective+n//2]\
+        return pd.DataFrame(paces.iloc[self.objective-(n-n//2):self.objective+n//2]
                             .apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
 
     def get_objective_mean_times(self, n=5):
         return self.get_objective_mean_paces(n=n, paces=self.times)
-    
+
     def get_objective_mean_paces_norm(self, n=5):
         return self.get_objective_mean_paces(n=n, paces=self.paces_norm)
 
@@ -259,9 +306,11 @@ class Results:
         self.objective = int(closest_index)
 
         return closest_index
-    
-    # Function to format timedelta to string in hours instead of default 1 day, ...
-    def format_time_over24h(self, td):
+
+    def format_time_over24h(self, td) -> str:
+        '''
+        Function to format timedelta to string in hours instead of default 1 day, ...
+        '''
         total_seconds = self.get_seconds(td, offset=False)
         hours, remainder = divmod(total_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
