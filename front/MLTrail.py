@@ -1,9 +1,6 @@
 '''
 Viz test module for the Results class
 '''
-import os
-import re
-import traceback
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -46,4 +43,4 @@ st.markdown('''
             Ready to explore the world of trail running with ML Trail? Visit our website and start exploring today!
 
             '''
-)
+            )
