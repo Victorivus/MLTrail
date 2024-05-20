@@ -17,7 +17,7 @@ from bs4 import GuessedAtParserWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
 warnings.filterwarnings("ignore", message="XMLParsedAsHTMLWarning")
 warnings.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
-
+warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 def parse_events_years_txt_file(file_path) -> dict:
     '''Used to resume from a partial download'''
@@ -143,6 +143,13 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
     # Sort alphabetically
     events = dict(sorted(events.items(), key=lambda item: item[1]))
 
+    if os.path.exists('parsed_races.txt'):
+        print("INFO: Skipping events and years defined in output_parsing.txt")
+        skip_races = parse_events_years_txt_file('parsed_races.txt')
+        events, years = get_years_only_in_v1(events, years, skip_races)
+        print(events)
+        print(years)
+
     for code, name in events.items():
         if code in years:
             for year in years[code]:
@@ -153,17 +160,9 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                               db=db)
                 event.save_to_database()
 
-    if os.path.exists('output_parsing.txt'):
-        print("INFO: Skipping events and years defined in output_parsing.txt")
-        skip_races = parse_events_years_txt_file('output_parsing.txt')
-    else:
-        skip_races = {}
     for event, name in events.items():
         if event in years:
             for year in years[event]:
-                if event in skip_races:
-                    if year in skip_races[event]:
-                        continue
                 print(event, year)
                 scraper.set_events([event])
                 scraper.set_years([year])
@@ -226,7 +225,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
             script.main(path=os.path.join(actual_path, path), clean=clean,
                         update=os.path.join(actual_path, "update.txt"))
         else:
-            script.main(path=os.path.join(actual_path, path), clean=clean)
+            script.main(path=os.path.join(actual_path, path), clean=clean, years=years)
     print("INFO: Updated events:")
     print(open('updated_events_years.txt', encoding='utf-8').read())
 

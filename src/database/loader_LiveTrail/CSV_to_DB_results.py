@@ -160,7 +160,8 @@ def clean_table(cursor):
 
 
 # Main function
-def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False, update: str = None):
+def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False,
+         update: str = None, years: dict = None):
     '''
     Args:
         path (str): Path to SQLite3 DB.
@@ -168,6 +169,7 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
         clean (bool): If True, the tables will be emtied before execution.
         update (str): If specified, path for the file containing the list of files in the DB before
                         executing the main script (db_LiveTrail_loader)
+        years (str): If specified, dict containing the list of files to use.
     '''
 
     db: Database = Database.create_database(path=path)
@@ -184,6 +186,8 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
         parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(update)
         print(f"INFO: Updating {len(db_years)-len(parsed_data)} events")
         _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
+        folders = list(years.keys())
+    elif years:
         folders = list(years.keys())
     print("INFO: Inserting data into Results table.")
     # Iterate through folders
@@ -210,10 +214,17 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
                             # Read CSV file
                             csv_data = read_csv(file_path)
                             # Insert data into results table
-                            insert_into_results(cursor, race_id, event_id, departure_time, csv_data)
+                            try:
+                                insert_into_results(cursor, race_id, event_id, departure_time, csv_data)
+                            except sqlite3.IntegrityError:
+                                pass
+                            except ValueError:
+                                pass    
                             update_category(cursor, event_id)
                         db_connection.commit()
                     db_connection.close()
+    # TODO: implement if years or update is provided
+    # if years:
 
     db_connection = connect_to_db(db.path)
     with db_connection:

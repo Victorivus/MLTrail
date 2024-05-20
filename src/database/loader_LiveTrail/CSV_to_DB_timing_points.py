@@ -90,7 +90,8 @@ def clean_table(cursor):
     ''')
 
 
-def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False, update: str = None):
+def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False,
+         update: str = None, years: dict = None):
     '''
     Args:
         path (str): Path to SQLite3 DB.
@@ -98,6 +99,7 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
         clean (bool): If True, the tables will be emtied before execution.
         update (str): If specified, path for the file containing the list of files in the DB before
                         executing the main script (db_LiveTrail_loader)
+        years (str): If specified, dict containing the list of files to use.
     '''
     # Path to the directory containing folders of CSV files
     data_folder = '../../data/'
@@ -115,6 +117,9 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
         _, db_years = Event.get_events_years(db)
         parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(update)
         _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
+        folders = list(years.keys())
+        db_LiveTrail_loader.save_years_to_txt('updated_events_years.txt', years)
+    elif years:
         folders = list(years.keys())
         db_LiveTrail_loader.save_years_to_txt('updated_events_years.txt', years)
     print("INFO: Inserting data into Timing Points table.")
