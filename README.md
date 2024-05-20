@@ -127,6 +127,7 @@ streamlit run front/MLTrail.py
 
 ### FrontEnd
 - [ ] Make rows in my results pages links to races' results
+- [X] Make header in my results pages clickable (for sorting)
 - [ ] Add a switch button to tables between cumulative race time and time of the day(s)
 - [ ] Add normalized pace plot and add a switch button between it and regular pace one. --> try with st.container
 - [ ] Integrate printing version of times
