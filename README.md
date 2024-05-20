@@ -97,6 +97,7 @@ streamlit run front/MLTrail.py
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
+- [ ] BUG: When loading data, need to recheck category rankings.
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
 - [X] Add partial passing times (timing_points)
 - [X] Add control points to DB
@@ -123,6 +124,8 @@ streamlit run front/MLTrail.py
 ### ML/AI
 - [ ] Add inference points from models
 - [ ] Add modelling capabilities from own data, start simple (ensemble methods)
+- [ ] Generate training file with simple variables (dist_total, D_total, d_total, dist_segment, dist_cumul, D_segment, D_cumul, d_segment, d_cumul, time)
+- [ ] Research constrained methods (total_estimation = sum(sections_estimation))
 
 
 ### FrontEnd
