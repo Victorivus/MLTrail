@@ -33,6 +33,16 @@ def fetch_all_event_ids(cursor):
     return event_ids
 
 
+# Function to fetch race_id and event_id from races table
+def check_event_id_in_list(cursor, event_id, years) -> bool:
+    cursor.execute("SELECT code, year FROM events WHERE event_id = ?", (event_id,))
+    row = cursor.fetchone()
+    if row[0] in years:
+        if row[1] in years[row[0]]:
+            return True
+    return False
+
+
 # Function to fetch race's departure date_time
 def fetch_departure_date_time(cursor, race_id, event_id) -> datetime | None:
     # Fetch departure time from races table
@@ -61,10 +71,12 @@ def insert_into_results(cursor, race_id, event_id, departure_time, data):
                 time = previous_time + time_difference
                 time_str = format_timedelta(calculate_time_difference(time, departure_time))
                 previous_time = time
-            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row[:5], time_str,))
+            cursor.execute("""INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (race_id, event_id, *row[:5], time_str,))
     else:
         for row in data:
-            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row,))
+            cursor.execute("""INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (race_id, event_id, *row,))
 
 
 # Function to calculate time difference and handle cases where it exceeds 24 hours
@@ -97,7 +109,8 @@ def update_category(cursor, event_id):
                     CASE
                         WHEN LOWER(full_category) LIKE '%mx%' OR LOWER(full_category) LIKE '%mi%' THEN 'Mixed'
                         WHEN UPPER(full_category) LIKE '%H' OR UPPER(full_category) LIKE '%M' THEN 'Male'
-                        WHEN UPPER(full_category) LIKE '%F' OR UPPER(full_category) LIKE '%D' OR UPPER(full_category) LIKE '%W' THEN 'Female'
+                        WHEN UPPER(full_category) LIKE '%F' OR UPPER(full_category) LIKE '%D' OR
+                             UPPER(full_category) LIKE '%W' THEN 'Female'
                         ELSE NULL
                     END
                     WHERE event_id = ?
@@ -223,8 +236,6 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
                             update_category(cursor, event_id)
                         db_connection.commit()
                     db_connection.close()
-    # TODO: implement if years or update is provided
-    # if years:
 
     db_connection = connect_to_db(db.path)
     with db_connection:
@@ -234,7 +245,11 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
     for event_id in event_ids:
         with db_connection:
             cursor = db_connection.cursor()
-            compute_category_rankings(cursor, event_id)
+            if years:
+                if check_event_id_in_list(cursor, event_id, years):
+                    compute_category_rankings(cursor, event_id)
+            else:
+                compute_category_rankings(cursor, event_id)
 
 
 if __name__ == "__main__":
