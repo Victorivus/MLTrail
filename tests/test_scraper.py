@@ -34,13 +34,13 @@ class TestLiveTrailScraper(unittest.TestCase):
         scraper = LiveTrailScraper()
         scraper.set_years(["2015", "2023"])
         assert scraper.years == ["2015", "2023"]
-    
+
     def test_set_events(self):
         scraper = LiveTrailScraper()
         events = ['transgrancanaria', 'penyagolosa', 'utmb']
         scraper.set_events(events)
         self.assertEqual(scraper.events, events)
-        
+
     def test_set_race(self):
         scraper = LiveTrailScraper()
         events = ['penyagolosa']

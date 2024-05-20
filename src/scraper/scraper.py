@@ -9,7 +9,9 @@ from bs4 import GuessedAtParserWarning
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
+warnings.filterwarnings("ignore", message="XMLParsedAsHTMLWarning")
 warnings.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
+
 
 class LiveTrailScraper:
     base_url: str = "https://livetrail.net/histo/{event}_{year}"

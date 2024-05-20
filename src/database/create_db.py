@@ -7,6 +7,9 @@ from sqlite3 import Connection, Cursor
 
 
 class Database:
+    '''
+        SQLite3 Database for storing locally racing data.
+    '''
     path: str = 'events.db'
 
     @classmethod

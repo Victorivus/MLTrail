@@ -3,7 +3,6 @@
 
 import os
 import re
-import sys
 import argparse
 import sqlite3
 from scraper.scraper import LiveTrailScraper
@@ -16,6 +15,7 @@ from bs4 import GuessedAtParserWarning
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
+warnings.filterwarnings("ignore", message="XMLParsedAsHTMLWarning")
 warnings.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
 
@@ -78,6 +78,7 @@ def get_years_only_in_v1(events, years_v1, years_v2) -> tuple[dict, dict]:
 
     return filtered_events, only_in_v1
 
+
 def generate_code_year_txt(db_path, output_file: str = None) -> dict:
     '''
     Get all axisting events in the Database.
@@ -113,8 +114,9 @@ def generate_code_year_txt(db_path, output_file: str = None) -> dict:
     conn.close()
     return parsed_years
 
+
 def main(path='../data/parsed_data.db', clean=False, update=False):
-    '''Script used to parse LiveTrail and insert all available data into DB.'''   
+    '''Script used to parse LiveTrail and insert all available data into DB.'''
     db: Database = Database.create_database(path=path)
 
     scraper = LiveTrailScraper()
@@ -140,7 +142,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
 
     for code, name in events.items():
         if code in years:
-            for year in years[code]: 
+            for year in years[code]:
                 event = Event(event_code=code,
                               event_name=name,
                               year=year,
@@ -150,7 +152,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
 
 
 # If you want to skip races, create a text file `output_parsing.txt` containing one code and year per line wanting to be ignored, for example:
-# 
+#
 # ```
 # saintelyon 2018
 # saintelyon 2017
@@ -188,10 +190,10 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                 scraper.download_data()
                 races_data = scraper.get_races_physical_details()
                 if event not in races:
-                    #st.write(f'No data available for {events[event]} {year}. Please select another event.')
+                    # st.write(f'No data available for {events[event]} {year}. Please select another event.')
                     pass
                 elif year not in races[event]:
-                    #st.write(f'No data available for {events[event]} {year}. Please select another event or year.')
+                    # st.write(f'No data available for {events[event]} {year}. Please select another event or year.')
                     pass
                 else:
                     races = races[event][year]
@@ -206,13 +208,13 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                         scraper.set_race(race)
                         folder_path = f'data/{event}'
                         filepath = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
-                        results_filepath = filepath if os.path.exists(os.path.join('../../',filepath)) else None
-                        race_info = scraper.get_race_info(bibN=rr[year][race]) if rr[year][race] is not None else {'date':None, 'hd':None}
+                        results_filepath = filepath if os.path.exists(os.path.join('../../', filepath)) else None
+                        race_info = scraper.get_race_info(bibN=rr[year][race]) if rr[year][race] is not None else {'date': None, 'hd': None}
                         control_points = cps[race]
                         race_data = races_data[race]
                         if race_info:  # some races are empty but have empty rows in data (e.g. 'templiers', 'Templi', 2019)
                             # the .split('.')[0] is needed since few races sometime contain a dot at the end or '000' for milliseconds
-                            departure_datetime = ' '.join([race_info['date'], race_info['hd']]).split('.')[0] if race_info['date'] else None
+                            departure_datetime = ' '.join([race_info['date'], race_info['hd']]).split('.', maxsplit=1)[0] if race_info['date'] else None
                         else:
                             departure_datetime = None
                         r = Race(race_id=race, event_id=event_id, race_name=name, distance=race_data['distance'],
@@ -233,9 +235,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                                                     data[0], data[1], data[2],))
                                 except sqlite3.IntegrityError:
                                     pass
-                    break  # TODO: DEBUG
-                break  # TODO: DEBUG
-            break  # TODO: DEBUG
+
     for script in [CSV_to_DB_results, CSV_to_DB_timing_points]:
         actual_path = os.getcwd()  # os.path.split(os.path.realpath(__file__))
         if update:
@@ -244,7 +244,8 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
         else:
             script.main(path=os.path.join(actual_path, path), clean=clean)
     print("INFO: Updated events:")
-    print(open('updated_events_years.txt').read())
+    print(open('updated_events_years.txt', encoding='utf-8').read())
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Data loader from CSV files into results table.')

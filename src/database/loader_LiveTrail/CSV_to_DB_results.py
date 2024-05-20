@@ -1,4 +1,3 @@
-import sys
 import os
 import csv
 import sqlite3
@@ -8,10 +7,12 @@ from database.database import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
 
+
 # Function to connect to SQLite database
 def connect_to_db(db_file):
     conn = sqlite3.connect(db_file, timeout=3600)
     return conn
+
 
 # Function to fetch race_id and event_id from races table
 def fetch_race_event_ids(cursor, filepath):
@@ -21,6 +22,8 @@ def fetch_race_event_ids(cursor, filepath):
         return row
     else:
         return None
+
+
 # Function to fetch race_id and event_id from races table
 def fetch_all_event_ids(cursor):
     cursor.execute("SELECT DISTINCT(event_id) FROM races WHERE results_filepath IS NOT NULL AND results_filepath NOT LIKE ''")
@@ -28,6 +31,7 @@ def fetch_all_event_ids(cursor):
     for row in cursor.fetchall():
         event_ids.append(row[0])
     return event_ids
+
 
 # Function to fetch race's departure date_time
 def fetch_departure_date_time(cursor, race_id, event_id) -> datetime | None:
@@ -40,26 +44,28 @@ def fetch_departure_date_time(cursor, race_id, event_id) -> datetime | None:
             return departure_time
     return None
 
+
 # Function to insert data into results table
 def insert_into_results(cursor, race_id, event_id, departure_time, data):
 
     if departure_time is not None:
-        previous_time = departure_time # to take into account >24h races
+        previous_time = departure_time  # to take into account >24h races
         for row in data:
             # Parse the time from the row
             time_str = row[-1]
             if time_str != '' and time_str is not None:
                 time = datetime.strptime(time_str, '%H:%M:%S')
                 time = time.replace(year=departure_time.year, month=departure_time.month, day=departure_time.day)
-                #time_difference = str((time - departure_time).total_seconds())
+                # time_difference = str((time - departure_time).total_seconds())
                 time_difference = calculate_time_difference(time, previous_time)
                 time = previous_time + time_difference
-                time_str = format_timedelta(calculate_time_difference(time,departure_time))
+                time_str = format_timedelta(calculate_time_difference(time, departure_time))
                 previous_time = time
             cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row[:5], time_str,))
     else:
         for row in data:
             cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row,))
+
 
 # Function to calculate time difference and handle cases where it exceeds 24 hours
 def calculate_time_difference(time, previous_time):
@@ -72,6 +78,7 @@ def calculate_time_difference(time, previous_time):
         # Calculate the time difference
         return time - previous_time
 
+
 # Function to format timedelta as HH:MM:SS
 def format_timedelta(td):
     # Extract days, hours, minutes, and seconds
@@ -81,12 +88,13 @@ def format_timedelta(td):
     # Format as HH:MM:SS
     return f"{days * 24 + hours:02d}:{minutes:02d}:{seconds:02d}"
 
+
 def update_category(cursor, event_id):
     # Set category
     cursor.execute('''
                     UPDATE results
-                    SET sex_category = 
-                    CASE 
+                    SET sex_category =
+                    CASE
                         WHEN LOWER(full_category) LIKE '%mx%' OR LOWER(full_category) LIKE '%mi%' THEN 'Mixed'
                         WHEN UPPER(full_category) LIKE '%H' OR UPPER(full_category) LIKE '%M' THEN 'Male'
                         WHEN UPPER(full_category) LIKE '%F' OR UPPER(full_category) LIKE '%D' OR UPPER(full_category) LIKE '%W' THEN 'Female'
@@ -96,17 +104,18 @@ def update_category(cursor, event_id):
                     ''', (event_id,)
                    )
 
+
 def compute_category_rankings(cursor, event_id):
     # Set category
     cursor.execute('''
                     WITH RankedResults AS (
-                    SELECT 
-                        race_id, 
-                        event_id, 
-                        bib, 
-                        surname, 
-                        name, 
-                        full_category, 
+                    SELECT
+                        race_id,
+                        event_id,
+                        bib,
+                        surname,
+                        name,
+                        full_category,
                         sex_category,
                         time,
                         RANK() OVER (PARTITION BY race_id, event_id, sex_category ORDER BY TIME(time)) AS cat_position_rank,
@@ -119,18 +128,19 @@ def compute_category_rankings(cursor, event_id):
                         AND event_id=?
                 )
                 UPDATE results
-                SET 
+                SET
                     cat_position = cat_position_rank,
                     full_cat_position = full_cat_position_rank
-                FROM 
+                FROM
                     RankedResults
-                WHERE 
+                WHERE
                     results.race_id = RankedResults.race_id
                     AND results.event_id = RankedResults.event_id
                     AND results.bib = RankedResults.bib
                     AND results.event_id=?
                     ''', (event_id, event_id,)
                    )
+
 
 # Function to read CSV file
 def read_csv(file_path):
@@ -141,11 +151,13 @@ def read_csv(file_path):
         # n, doss, nom, prenom, cat, {numbers for each control point of variable length}
         return [[row[0], row[1], row[2], row[3], row[4], row[-1]] for row in reader]
 
+
 def clean_table(cursor):
     cursor.execute('''
-        DELETE 
+        DELETE
         FROM results
     ''')
+
 
 # Main function
 def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False, update: str = None):
@@ -212,6 +224,7 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
         with db_connection:
             cursor = db_connection.cursor()
             compute_category_rankings(cursor, event_id)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Data loader from CSV files into results table.')

@@ -1,19 +1,17 @@
-import sys
 import os
 import csv
 import sqlite3
 import argparse
-from datetime import datetime, timedelta
 from database.database import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
-from itertools import islice
 
 
 # Function to connect to SQLite database
 def connect_to_db(db_file):
     conn = sqlite3.connect(db_file, timeout=3600)
     return conn
+
 
 # Function to fetch race_id and event_id from races table
 def fetch_race_event_ids(cursor, filepath):
@@ -23,6 +21,8 @@ def fetch_race_event_ids(cursor, filepath):
         return row
     else:
         return None
+
+
 # Function to fetch race_id and event_id from races table
 def fetch_all_event_ids(cursor):
     cursor.execute("SELECT DISTINCT(event_id) FROM races WHERE results_filepath IS NOT NULL AND results_filepath NOT LIKE ''")
@@ -30,6 +30,7 @@ def fetch_all_event_ids(cursor):
     for row in cursor.fetchall():
         event_ids.append(row[0])
     return event_ids
+
 
 # Function to fetch information from control_points table
 def fetch_control_points(cursor, race_id, event_id):
@@ -47,6 +48,7 @@ def fetch_control_points(cursor, race_id, event_id):
         control_points_names[row[0]] = row[1]
         control_points_ids[row[0]] = row[-1]
     return control_points, control_points_names, control_points_ids
+
 
 # Function to insert data into results table
 def insert_into_timing_points(cursor, race_id, event_id, data):
@@ -69,7 +71,8 @@ def insert_into_timing_points(cursor, race_id, event_id, data):
                 INSERT INTO timing_points (control_point_id, race_id, event_id, bib, time)
                 VALUES (?, ?, ?, ?, ?)
             """, (control_point_id, race_id, event_id, bib, time))
-    
+
+
 # Function to read CSV file
 def read_csv(file_path):
     with open(file_path, newline='', encoding='utf-8') as csvfile:
@@ -79,11 +82,13 @@ def read_csv(file_path):
         # n, doss, nom, prenom, cat, {numbers for each control point of variable length}
         return [[row[1], row[5:]] for row in reader]
 
+
 def clean_table(cursor):
     cursor.execute('''
-        DELETE 
+        DELETE
         FROM timing_points
     ''')
+
 
 def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False, update: str = None):
     '''
