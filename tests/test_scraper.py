@@ -5,7 +5,7 @@ import unittest
 import pytest
 from scraper.scraper import LiveTrailScraper
 import pandas as pd
-from tools import get_untested_functions
+from tests.tools import get_untested_functions
 
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 

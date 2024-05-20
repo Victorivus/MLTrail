@@ -12,7 +12,7 @@ import matplotlib.dates as mdates
 from pandas.testing import assert_frame_equal
 from datetime import timedelta
 from results.results import Results
-from tools import get_untested_functions
+from tests.tools import get_untested_functions
 
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
