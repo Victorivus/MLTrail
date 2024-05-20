@@ -47,7 +47,7 @@ options:
   -u, --update          Download only events and reces not already present in DB.
 ```
 
-If you want to skip races, create a text file `output_parsing.txt` containing one code and year per line wanting to be ignored, for example:
+If you want to skip races, create a text file `parsed_races.txt` containing one code and year per line wanting to be ignored, for example:
 
 ```
 saintelyon 2018
