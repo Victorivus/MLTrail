@@ -80,15 +80,11 @@ def main():
 
             # Display results in table
             if results:
-                results = pd.DataFrame(fetch_results(surname), columns=["Event", "Year", "Race", "Position", "Sex Position",
-                      "Category Position", "Surname", "Name", "Sex Category",
-                      "Full Category", "Time"])
-                # header = ["Event", "Year", "Race", "Position", "Sex Position",
-                #       "Category Position", "Surname", "Name", "Sex Category",
-                #       "Full Category", "Time"]
-                # st.subheader("Results:")
-                # results = [[str(cell) for cell in row] for row in results]
-                # st.table([header] + results)
+                results = pd.DataFrame(fetch_results(surname), columns=["Event", "Year", "Race",
+                                                                        "Position", "Sex Position",
+                                                                        "Category Position", "Surname",
+                                                                        "Name", "Sex Category",
+                                                                        "Full Category", "Time"])
                 st.write(results)
             else:
                 st.error("No results found for the provided surname.")
