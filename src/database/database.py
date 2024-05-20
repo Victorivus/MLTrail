@@ -79,7 +79,7 @@ class Event:
         with conn:
             cursor = conn.cursor()
             cursor.execute('SELECT event_id FROM events WHERE code = ? AND name = ? AND year = ?',
-                        (self._event_code, self._event_name, self._year,))
+                           (self._event_code, self._event_name, self._year,))
             row = cursor.fetchone()
         conn.close()
         if row:
