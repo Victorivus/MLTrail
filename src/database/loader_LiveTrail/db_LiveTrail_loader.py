@@ -119,6 +119,9 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
     '''Script used to parse LiveTrail and insert all available data into DB.'''
     db: Database = Database.create_database(path=path)
 
+    if clean:
+        Database.empty_all_tables(db.path)
+
     scraper = LiveTrailScraper()
     events = scraper.get_events()
     years = scraper.get_events_years()
@@ -248,7 +251,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Data loader from CSV files into results table.')
+    parser = argparse.ArgumentParser(description='Data loader from LiveTrail website into DB.')
     parser.add_argument('-p', '--path', default='../data/parsed_data.db', help='DB path.')
     parser.add_argument('-d', '--data-path', default='../../data/', help='CSV files path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
