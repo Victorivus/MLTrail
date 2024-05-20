@@ -175,6 +175,27 @@ class LiveTrailScraper:
         return rr
 
     def get_races(self) -> dict:
+        '''
+            Get all races information in the format: {event: year: races}
+                where races is a dictionary containing code: full_name.
+                
+            Here is an example for Transgrancanaria 2023:
+            {
+                'transgrancanaria':
+                    {
+                        '2023':
+                            {
+                                'classic': 'Classic 128 KM',
+                                'advance': 'Advanced 84 KM',
+                                'maraton': 'Maraton 45 KM',
+                                'starter': 'Starter 24 KM',
+                                'promo': 'Promo',
+                                'youth': 'Youth',
+                                'family': 'Family'
+                            }
+                    }
+            }
+        '''
         full_races = {}
         for event in self.events:
             for year in self.years:
