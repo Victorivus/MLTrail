@@ -234,7 +234,7 @@ class TestLiveTrailScraper(unittest.TestCase):
         # We pop 'tz' since it returns actual timezone, not event's so it changes over time and may fail
         race_info.pop('tz')
         scr = LiveTrailScraper(events=["transgrancanaria"], years=["2024"])
-        scr_race_info = scr.get_race_info(bibN=20)
+        scr_race_info = scr.get_race_info(bib_n=20)
         scr_race_info.pop('tz')
         sorted_dict1 = sorted(race_info.items())
         sorted_dict2 = sorted(scr_race_info.items())
