@@ -1,13 +1,17 @@
 import os
 import json
-import requests
 import warnings
+import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+from bs4 import GuessedAtParserWarning
+
 
 # Suppress the XMLParsedAsHTMLWarning
-warnings.filterwarnings("ignore", category=UserWarning,
-                        message=".*XMLParsedAsHTMLWarning.*")
+warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
+warnings.filterwarnings("ignore", message="XMLParsedAsHTMLWarning")
+warnings.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
+warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 
 class LiveTrailScraper:
@@ -46,17 +50,17 @@ class LiveTrailScraper:
     def set_race(self, race: str) -> None:
         self.race = race
 
-    def get_race_info(self, bibN=1) -> dict:
+    def get_race_info(self, bib_n=1) -> dict:
         race_info = {}
         for event in self.events:
             for year in self.years:
                 try:
-                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+f"/coureur.php?rech={bibN}"
-                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+f"/coureur.php?rech={bibN}"
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year) + f"/coureur.php?rech={bib_n}"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year) + f"/coureur.php?rech={bib_n}"
                     for url in [url1, url2]:
                         self._check_event_year(event, year)
                         # URL of the website
-                        # url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech={bibN}"
+                        # url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech={bib_n}"
                         # Sending GET request to parse races' names
                         response = requests.get(url, timeout=20)
                         # Check if request was successful
@@ -100,7 +104,7 @@ class LiveTrailScraper:
         # Extract id and n attributes from each <c> tag
         for e_tag in e_tags:
             if e_tag['idpt'] == '0':
-                race_info['date'] = e_tag['date'] if e_tag.has_attr('date') else None # date of departure
+                race_info['date'] = e_tag['date'] if e_tag.has_attr('date') else None  # date of departure
                 race_info['tz'] = e_tag['tz'] if e_tag.has_attr('tz') else None  # timezone of date
                 race_info['hd'] = e_tag['hd'] if e_tag.has_attr('hd') else None  # departure time
                 race_info['jd'] = e_tag['jd'] if e_tag.has_attr('jd') else None  # departure day of the week (1 Monday...7 Sunday)
@@ -172,12 +176,33 @@ class LiveTrailScraper:
         return rr
 
     def get_races(self) -> dict:
+        '''
+            Get all races information in the format: {event: year: races}
+                where races is a dictionary containing code: full_name.
+
+            Here is an example for Transgrancanaria 2023:
+            {
+                'transgrancanaria':
+                    {
+                        '2023':
+                            {
+                                'classic': 'Classic 128 KM',
+                                'advance': 'Advanced 84 KM',
+                                'maraton': 'Maraton 45 KM',
+                                'starter': 'Starter 24 KM',
+                                'promo': 'Promo',
+                                'youth': 'Youth',
+                                'family': 'Family'
+                            }
+                    }
+            }
+        '''
         full_races = {}
         for event in self.events:
             for year in self.years:
                 try:
-                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+"/passages.php"
-                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+"/passages.php"
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year) + "/passages.php"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year) + "/passages.php"
                     for url in [url1, url2]:
                         self._check_event_year(event, year)
                         # URL of the website
@@ -202,8 +227,8 @@ class LiveTrailScraper:
         for event in self.events:
             for year in self.years:
                 try:
-                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+"/passages.php"
-                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+"/passages.php"
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year) + "/passages.php"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year) + "/passages.php"
                     for url in [url1, url2]:
                         self._check_event_year(event, year)
                         # URL of the website
@@ -248,7 +273,6 @@ class LiveTrailScraper:
                 except ValueError as e:
                     print(e)
                     count += 1
-                    pass
         # return number of errors
         return count
 
@@ -278,8 +302,8 @@ class LiveTrailScraper:
             else:
                 # Sending POST request
                 # url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
-                url1 = self.base_url.replace("{event}", event).replace("{year}", year)+"/passages.php"
-                url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+"/passages.php"
+                url1 = self.base_url.replace("{event}", event).replace("{year}", year) + "/passages.php"
+                url2 = self.base_url2.replace("{event}", event).replace("{year}", year) + "/passages.php"
                 for url in [url1, url2]:
                     results_response = requests.post(url, data=data, timeout=20)
                     # Check if request was successful
@@ -310,13 +334,14 @@ class LiveTrailScraper:
     def _clean_control_name(self, cps, name):
         if name in cps:
             if name[0].isdigit():
-                name = str(int(name[0])+1) + name[1:]
+                name = str(int(name[0]) + 1) + name[1:]
                 return self._clean_control_name(cps, name)
             else:
                 name = '2-' + name
                 return self._clean_control_name(cps, name)
         else:
             return name
+
     def _parse_control_points(self, data):
         soup = BeautifulSoup(data, 'lxml')
         p_tags = soup.find_all('points')
@@ -380,8 +405,8 @@ class LiveTrailScraper:
         for event in self.events:
             for year in self.years:
                 try:
-                    url1 = self.base_url.replace("{event}", event).replace("{year}", year)+"/parcours.php"
-                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year)+"/parcours.php"
+                    url1 = self.base_url.replace("{event}", event).replace("{year}", year) + "/parcours.php"
+                    url2 = self.base_url2.replace("{event}", event).replace("{year}", year) + "/parcours.php"
                     for url in [url1, url2]:
                         self._check_event_year(event, year)
                         # URL of the website
@@ -390,7 +415,7 @@ class LiveTrailScraper:
                         response = requests.get(url, timeout=20)
                         # Check if request was successful
                         if response.status_code == 200:
-                            control_points, control_points_names  = self._parse_control_points(response.text)
+                            control_points, control_points_names = self._parse_control_points(response.text)
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
@@ -399,6 +424,5 @@ class LiveTrailScraper:
                 except ValueError as e:
                     print(e)
                     count += 1
-                    pass
         # return number of errors
         return control_points, control_points_names

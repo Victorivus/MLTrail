@@ -5,7 +5,7 @@ import unittest
 import pytest
 from scraper.scraper import LiveTrailScraper
 import pandas as pd
-from tools import get_untested_functions
+from tests.tools import get_untested_functions
 
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
@@ -34,13 +34,13 @@ class TestLiveTrailScraper(unittest.TestCase):
         scraper = LiveTrailScraper()
         scraper.set_years(["2015", "2023"])
         assert scraper.years == ["2015", "2023"]
-    
+
     def test_set_events(self):
         scraper = LiveTrailScraper()
         events = ['transgrancanaria', 'penyagolosa', 'utmb']
         scraper.set_events(events)
         self.assertEqual(scraper.events, events)
-        
+
     def test_set_race(self):
         scraper = LiveTrailScraper()
         events = ['penyagolosa']
@@ -234,7 +234,7 @@ class TestLiveTrailScraper(unittest.TestCase):
         # We pop 'tz' since it returns actual timezone, not event's so it changes over time and may fail
         race_info.pop('tz')
         scr = LiveTrailScraper(events=["transgrancanaria"], years=["2024"])
-        scr_race_info = scr.get_race_info(bibN=20)
+        scr_race_info = scr.get_race_info(bib_n=20)
         scr_race_info.pop('tz')
         sorted_dict1 = sorted(race_info.items())
         sorted_dict2 = sorted(scr_race_info.items())

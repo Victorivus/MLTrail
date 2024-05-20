@@ -4,7 +4,6 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-
 class Results:
     def __init__(self, control_points: dict, times: pd.DataFrame, objective=0, offset=0,
                  clean_days=False, start_day=7, waves=False) -> None:

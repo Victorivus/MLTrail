@@ -1,15 +1,18 @@
-import sys
 import os
 import csv
 import sqlite3
 import argparse
 from datetime import datetime, timedelta
+from database.database import Event
 from database.create_db import Database
+from database.loader_LiveTrail import db_LiveTrail_loader
+
 
 # Function to connect to SQLite database
 def connect_to_db(db_file):
     conn = sqlite3.connect(db_file, timeout=3600)
     return conn
+
 
 # Function to fetch race_id and event_id from races table
 def fetch_race_event_ids(cursor, filepath):
@@ -19,6 +22,8 @@ def fetch_race_event_ids(cursor, filepath):
         return row
     else:
         return None
+
+
 # Function to fetch race_id and event_id from races table
 def fetch_all_event_ids(cursor):
     cursor.execute("SELECT DISTINCT(event_id) FROM races WHERE results_filepath IS NOT NULL AND results_filepath NOT LIKE ''")
@@ -26,6 +31,17 @@ def fetch_all_event_ids(cursor):
     for row in cursor.fetchall():
         event_ids.append(row[0])
     return event_ids
+
+
+# Function to fetch race_id and event_id from races table
+def check_event_id_in_list(cursor, event_id, years) -> bool:
+    cursor.execute("SELECT code, year FROM events WHERE event_id = ?", (event_id,))
+    row = cursor.fetchone()
+    if row[0] in years:
+        if row[1] in years[row[0]]:
+            return True
+    return False
+
 
 # Function to fetch race's departure date_time
 def fetch_departure_date_time(cursor, race_id, event_id) -> datetime | None:
@@ -38,26 +54,30 @@ def fetch_departure_date_time(cursor, race_id, event_id) -> datetime | None:
             return departure_time
     return None
 
+
 # Function to insert data into results table
 def insert_into_results(cursor, race_id, event_id, departure_time, data):
-    
+
     if departure_time is not None:
-        previous_time = departure_time # to take into account >24h races
+        previous_time = departure_time  # to take into account >24h races
         for row in data:
             # Parse the time from the row
             time_str = row[-1]
             if time_str != '' and time_str is not None:
                 time = datetime.strptime(time_str, '%H:%M:%S')
                 time = time.replace(year=departure_time.year, month=departure_time.month, day=departure_time.day)
-                #time_difference = str((time - departure_time).total_seconds())
+                # time_difference = str((time - departure_time).total_seconds())
                 time_difference = calculate_time_difference(time, previous_time)
                 time = previous_time + time_difference
-                time_str = format_timedelta(calculate_time_difference(time,departure_time))
+                time_str = format_timedelta(calculate_time_difference(time, departure_time))
                 previous_time = time
-            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row[:5], time_str,))
+            cursor.execute("""INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (race_id, event_id, *row[:5], time_str,))
     else:
         for row in data:
-            cursor.execute("INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (race_id, event_id, *row,))
+            cursor.execute("""INSERT INTO results (race_id, event_id, position, bib, surname, name, full_category, time)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (race_id, event_id, *row,))
+
 
 # Function to calculate time difference and handle cases where it exceeds 24 hours
 def calculate_time_difference(time, previous_time):
@@ -70,6 +90,7 @@ def calculate_time_difference(time, previous_time):
         # Calculate the time difference
         return time - previous_time
 
+
 # Function to format timedelta as HH:MM:SS
 def format_timedelta(td):
     # Extract days, hours, minutes, and seconds
@@ -79,32 +100,35 @@ def format_timedelta(td):
     # Format as HH:MM:SS
     return f"{days * 24 + hours:02d}:{minutes:02d}:{seconds:02d}"
 
+
 def update_category(cursor, event_id):
     # Set category
     cursor.execute('''
                     UPDATE results
-                    SET sex_category = 
-                    CASE 
+                    SET sex_category =
+                    CASE
                         WHEN LOWER(full_category) LIKE '%mx%' OR LOWER(full_category) LIKE '%mi%' THEN 'Mixed'
                         WHEN UPPER(full_category) LIKE '%H' OR UPPER(full_category) LIKE '%M' THEN 'Male'
-                        WHEN UPPER(full_category) LIKE '%F' OR UPPER(full_category) LIKE '%D' OR UPPER(full_category) LIKE '%W' THEN 'Female'
+                        WHEN UPPER(full_category) LIKE '%F' OR UPPER(full_category) LIKE '%D' OR
+                             UPPER(full_category) LIKE '%W' THEN 'Female'
                         ELSE NULL
                     END
                     WHERE event_id = ?
                     ''', (event_id,)
                    )
 
+
 def compute_category_rankings(cursor, event_id):
     # Set category
     cursor.execute('''
                     WITH RankedResults AS (
-                    SELECT 
-                        race_id, 
-                        event_id, 
-                        bib, 
-                        surname, 
-                        name, 
-                        full_category, 
+                    SELECT
+                        race_id,
+                        event_id,
+                        bib,
+                        surname,
+                        name,
+                        full_category,
                         sex_category,
                         time,
                         RANK() OVER (PARTITION BY race_id, event_id, sex_category ORDER BY TIME(time)) AS cat_position_rank,
@@ -117,18 +141,19 @@ def compute_category_rankings(cursor, event_id):
                         AND event_id=?
                 )
                 UPDATE results
-                SET 
+                SET
                     cat_position = cat_position_rank,
                     full_cat_position = full_cat_position_rank
-                FROM 
+                FROM
                     RankedResults
-                WHERE 
+                WHERE
                     results.race_id = RankedResults.race_id
                     AND results.event_id = RankedResults.event_id
                     AND results.bib = RankedResults.bib
                     AND results.event_id=?
                     ''', (event_id, event_id,)
                    )
+
 
 # Function to read CSV file
 def read_csv(file_path):
@@ -139,16 +164,26 @@ def read_csv(file_path):
         # n, doss, nom, prenom, cat, {numbers for each control point of variable length}
         return [[row[0], row[1], row[2], row[3], row[4], row[-1]] for row in reader]
 
+
 def clean_table(cursor):
     cursor.execute('''
-        DELETE 
+        DELETE
         FROM results
     ''')
 
+
 # Main function
-def main(path='../data/parsed_data.db', clean=False):
-    # Path to the directory containing folders of CSV files
-    data_folder = '../../data/'
+def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False,
+         update: str = None, years: dict = None):
+    '''
+    Args:
+        path (str): Path to SQLite3 DB.
+        data_folder (dict): Path to the directory containing folders of CSV files.
+        clean (bool): If True, the tables will be emtied before execution.
+        update (str): If specified, path for the file containing the list of files in the DB before
+                        executing the main script (db_LiveTrail_loader)
+        years (str): If specified, dict containing the list of files to use.
+    '''
 
     db: Database = Database.create_database(path=path)
 
@@ -158,14 +193,26 @@ def main(path='../data/parsed_data.db', clean=False):
             cursor = db_connection.cursor()
             clean_table(cursor)
             print('Results table emptied')
-
+    folders = os.listdir(data_folder)
+    if update:
+        _, db_years = Event.get_events_years(db)
+        parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(update)
+        print(f"INFO: Updating {len(db_years)-len(parsed_data)} events")
+        _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
+        folders = list(years.keys())
+    elif years:
+        folders = list(years.keys())
+    print("INFO: Inserting data into Results table.")
     # Iterate through folders
-    for folder in os.listdir(data_folder):
+    for folder in folders:
+        #  print(f"folder: {folder}")
         folder_path = os.path.join(data_folder, folder)
         if os.path.isdir(folder_path):
             # Iterate through CSV files in the folder
             for file in os.listdir(folder_path):
                 if file.endswith('.csv'):
+                    if update and not any(file.endswith(f'{year}.csv') for year in years):
+                        continue
                     file_path = os.path.join(folder_path, file)
                     # Fetch race_id and event_id from races table
 
@@ -180,7 +227,12 @@ def main(path='../data/parsed_data.db', clean=False):
                             # Read CSV file
                             csv_data = read_csv(file_path)
                             # Insert data into results table
-                            insert_into_results(cursor, race_id, event_id, departure_time, csv_data)
+                            try:
+                                insert_into_results(cursor, race_id, event_id, departure_time, csv_data)
+                            except sqlite3.IntegrityError:
+                                pass
+                            except ValueError:
+                                pass    
                             update_category(cursor, event_id)
                         db_connection.commit()
                     db_connection.close()
@@ -193,15 +245,22 @@ def main(path='../data/parsed_data.db', clean=False):
     for event_id in event_ids:
         with db_connection:
             cursor = db_connection.cursor()
-            compute_category_rankings(cursor, event_id)
+            if years:
+                if check_event_id_in_list(cursor, event_id, years):
+                    compute_category_rankings(cursor, event_id)
+            else:
+                compute_category_rankings(cursor, event_id)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Data loader from CSV files into results table.')
     parser.add_argument('-p', '--path', default='../data/parsed_data.db', help='DB path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
+    parser.add_argument('-u', '--update', default='update.txt', help='Filepath to list of events and years to update.')
 
     args = parser.parse_args()
     path = args.path
     clean = args.clean
+    update = args.update
 
-    main(path=path, clean=clean)
+    main(path=path, clean=clean, update=update)

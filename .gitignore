@@ -8,11 +8,13 @@
 !src/
 !src/*/
 !src/*/*
+!src/*/*/*
 !pyproject.toml
 !examples/
 !examples/*
 !tests/
 !tests/*
+!tests/test_database/*
 !front/
 !front/*
 !front/pages/
@@ -23,3 +25,5 @@
 examples/tmp_load_db_tests_n_code.ipynb
 examples/tests.ipynb
 *.log
+*.txt
+*.pyc

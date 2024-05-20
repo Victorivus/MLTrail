@@ -1,5 +1,5 @@
+import os
 import unittest
-import sqlite3
 import pytest
 from database.create_db import Database
 from database.database import Results
@@ -8,7 +8,15 @@ pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarn
 
 
 class TestResults(unittest.TestCase):
+    if os.path.exists('test.db'):
+        os.remove('test.db')
+
     db: Database = Database.create_database(path='test.db')
+
+    @classmethod
+    def tearDownClass(self) -> None:
+        if os.path.exists('test.db'):
+            os.remove('test.db')
 
     def test_init(self):
         results = Results(race_id=1, event_id=1, position=1, cat_position=1, full_cat_position=1,

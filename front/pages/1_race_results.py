@@ -37,7 +37,7 @@ def get_results(event, year, race):
 
     # Let's get the raw data about the race
     raw_results = scraper.get_data(race)
-    race_info = scraper.get_race_info(bibN=raw_results.iloc[0]['doss'])
+    race_info = scraper.get_race_info(bib_n=raw_results.iloc[0]['doss'])
 
     # Let's get the Control Points information
     control_points, _ = scraper.get_control_points()

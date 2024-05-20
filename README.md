@@ -26,6 +26,47 @@ Execute the following command:
 poetry install
 ```
 
+# Download data from LiveTrail locally 
+Launch the following command:
+
+```
+python src/database/loader_LiveTrail/db_LiveTrail_loader.py -p data/parsed_data.db -d ../data
+```
+
+usage: db_LiveTrail_loader.py [-h] [-p PATH] [-d DATA_PATH] [-c] [-u]
+
+Data loader from LiveTrail website into DB.
+
+```bash
+options:
+  -h, --help            show this help message and exit
+  -p PATH, --path PATH  DB path.
+  -d DATA_PATH, --data-path DATA_PATH
+                        CSV files path.
+  -c, --clean           Remove all data from tables before execution.
+  -u, --update          Download only events and reces not already present in DB.
+```
+
+If you want to skip races, create a text file `parsed_races.txt` containing one code and year per line wanting to be ignored, for example:
+
+```
+saintelyon 2018
+saintelyon 2017
+saintelyon 2016
+saintelyon 2015
+saintelyon 2014
+saintelyon 2013
+penyagolosa 2024
+penyagolosa 2023
+penyagolosa 2022
+penyagolosa 2021
+penyagolosa 2019
+# lut 2016 -> parcours.php is empty
+lut 2016
+# oxfamtrailwalkerhk 2021 -> Password protected
+oxfamtrailwalkerhk 2021
+```
+
 # Launch web app
 Launch the following command:
 
@@ -73,10 +114,10 @@ streamlit run front/MLTrail.py
 - [X] Compute category results in DB
 - [X] Design a way of having passing times in DB and not only final times
 - [ ] Fix path for data and plots (env variable)
-- [ ] Not sure: Departure time doesn't seem always correct, will have to figure out another way of parsing it
+- [X] Not sure: Departure time doesn't seem always correct, will have to figure out another way of parsing it
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
-- [ ] add results download + load to DB to lib instead of notebook + script
-- [ ] make a proper way to import to DB so imports can be scheduled : compare scraper.get_events_years to Event.get_events_years and scapre only diff
+- [X] add results download + load to DB to lib instead of notebook + script
+- [X] make a proper way to import to DB so imports can be scheduled : compare scraper.get_events_years to Event.get_events_years and scapre only diff
 
 
 ### ML/AI
