@@ -14,7 +14,7 @@
 !examples/*
 !tests/
 !tests/*
-!tests/database/*
+!tests/test_database/*
 !front/
 !front/*
 !front/pages/

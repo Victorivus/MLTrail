@@ -2,7 +2,7 @@ import unittest
 import os
 import sqlite3
 from database.create_db import Database
-from tools import get_untested_functions
+from tests.tools import get_untested_functions
 
 
 class TestDatabase(unittest.TestCase):
