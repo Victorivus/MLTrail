@@ -47,6 +47,26 @@ options:
   -u, --update          Download only events and reces not already present in DB.
 ```
 
+If you want to skip races, create a text file `output_parsing.txt` containing one code and year per line wanting to be ignored, for example:
+
+```
+saintelyon 2018
+saintelyon 2017
+saintelyon 2016
+saintelyon 2015
+saintelyon 2014
+saintelyon 2013
+penyagolosa 2024
+penyagolosa 2023
+penyagolosa 2022
+penyagolosa 2021
+penyagolosa 2019
+# lut 2016 -> parcours.php is empty
+lut 2016
+# oxfamtrailwalkerhk 2021 -> Password protected
+oxfamtrailwalkerhk 2021
+```
+
 # Launch web app
 Launch the following command:
 

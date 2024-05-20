@@ -153,34 +153,17 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                               db=db)
                 event.save_to_database()
 
-
-# If you want to skip races, create a text file `output_parsing.txt` containing one code and year per line wanting to be ignored, for example:
-#
-# ```
-# saintelyon 2018
-# saintelyon 2017
-# saintelyon 2016
-# saintelyon 2015
-# saintelyon 2014
-# saintelyon 2013
-# penyagolosa 2024
-# penyagolosa 2023
-# penyagolosa 2022
-# penyagolosa 2021
-# penyagolosa 2019
-# # lut 2016 -> parcours.php is empty
-# lut 2016
-# # oxfamtrailwalkerhk 2021 -> Password protected
-# oxfamtrailwalkerhk 2021
-# ```
-
-    #  parsed_races = parse_events_years_txt_file('output_parsing.txt')
+    if os.path.exists('output_parsing.txt'):
+        print("INFO: Skipping events and years defined in output_parsing.txt")
+        skip_races = parse_events_years_txt_file('output_parsing.txt')
+    else:
+        skip_races = {}
     for event, name in events.items():
         if event in years:
             for year in years[event]:
-                # if event in parsed_races:
-                #     if year in parsed_races[event]:
-                #         continue
+                if event in skip_races:
+                    if year in skip_races[event]:
+                        continue
                 print(event, year)
                 scraper.set_events([event])
                 scraper.set_years([year])
@@ -193,11 +176,9 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                 scraper.download_data()
                 races_data = scraper.get_races_physical_details()
                 if event not in races:
-                    # st.write(f'No data available for {events[event]} {year}. Please select another event.')
-                    pass
+                    print(f'INFO: No data available for {events[event]} {year}.')
                 elif year not in races[event]:
-                    # st.write(f'No data available for {events[event]} {year}. Please select another event or year.')
-                    pass
+                    print(f'INFO: No data available for {events[event]} {year}.')
                 else:
                     races = races[event][year]
                     for race, name in races.items():
