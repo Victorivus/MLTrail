@@ -60,7 +60,13 @@ jobs:
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/test_database_r*
+          poetry run pytest tests/test_database_ra*
+      #----------------------------------------------
+      #              run test suite
+      #----------------------------------------------
+      - name: Run tests
+        run: |
+          poetry run pytest tests/test_database_re*
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
