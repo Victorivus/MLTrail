@@ -19,6 +19,7 @@ warnings.filterwarnings("ignore", message="XMLParsedAsHTMLWarning")
 warnings.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
+
 def parse_events_years_txt_file(file_path) -> dict:
     '''Used to resume from a partial download'''
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -192,7 +193,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                         folder_path = f'data/{event}'
                         filepath = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
                         results_filepath = filepath if os.path.exists(os.path.join('../../', filepath)) else None
-                        race_info = scraper.get_race_info(bibN=rr[year][race]) if rr[year][race] is not None else {'date': None, 'hd': None}
+                        race_info = scraper.get_race_info(bib_n=rr[year][race]) if rr[year][race] is not None else {'date': None, 'hd': None}
                         control_points = cps[race]
                         race_data = races_data[race]
                         if race_info:  # some races are empty but have empty rows in data (e.g. 'templiers', 'Templi', 2019)
