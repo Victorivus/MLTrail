@@ -78,7 +78,7 @@ jobs:
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/!(test_database_*).py
+          poetry run pytest tests/\!(test_database_*).py
       #----------------------------------------------
       #              remove temp test db
       #----------------------------------------------
