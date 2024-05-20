@@ -118,3 +118,31 @@ class Database:
         print("Database created successfully.")
 
         return cls
+
+    @classmethod
+    def empty_all_tables(cls, path=None):
+        '''
+            Empty all database's tables
+        '''
+        if path:
+            cls.path = path
+        try:
+            # Connect to the database
+            conn = sqlite3.connect(path)
+            cursor = conn.cursor()
+
+            # Get a list of all tables in the database
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+
+            # Iterate over each table and delete all rows
+            for table in tables:
+                table_name = table[0]
+                cursor.execute(f"DELETE FROM {table_name};")
+
+            # Commit changes and close connection
+            conn.commit()
+            conn.close()
+            print("INFO: All tables have been emptied successfully.")
+        except sqlite3.Error as e:
+            print("ERROR: ", e)
