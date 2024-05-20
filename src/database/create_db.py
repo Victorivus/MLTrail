@@ -19,7 +19,8 @@ class Database:
 
         # Check if the database file already exists
         if os.path.exists(cls.path):
-            print("Database already exists.")
+            print(f"INFO: {cls.path}")
+            print("INFO: Database already exists.")
             return cls
 
         # Connect to SQLite database (creates if not exists)
