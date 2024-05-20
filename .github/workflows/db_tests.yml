@@ -53,7 +53,19 @@ jobs:
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/test_database*
+          poetry run pytest tests/test_database_c*
+      #----------------------------------------------
+      #              run test suite
+      #----------------------------------------------
+      - name: Run tests
+        run: |
+          poetry run pytest tests/test_database_r*
+      #----------------------------------------------
+      #              run test suite
+      #----------------------------------------------
+      - name: Run tests
+        run: |
+          poetry run pytest tests/test_database_e*
       #----------------------------------------------
       #              remove temp test db
       #----------------------------------------------

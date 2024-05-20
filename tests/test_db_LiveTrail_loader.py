@@ -29,7 +29,9 @@ class Testdb_LiveTrail_loader(unittest.TestCase):
     def test_get_years_only_in_v1(self):
         expected_events = {'event2': 'Event Two', 'event3': 'Event Three'}
         expected_years = {'event2': ['2021'], 'event3': ['2020']}
-        events, only_in_v1 = db_LiveTrail_loader.get_years_only_in_v1(self.events, self.years_v1, self.years_v2)
+        events, only_in_v1 = db_LiveTrail_loader.get_years_only_in_v1(self.events,
+                                                                      self.years_v1,
+                                                                      self.years_v2)
 
         self.assertEqual(events, expected_events)
         self.assertEqual(only_in_v1, expected_years)

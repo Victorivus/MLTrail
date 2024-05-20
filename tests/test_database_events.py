@@ -9,20 +9,21 @@ from database.database import Event
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
 # We use results from previous tests for the following ones,
-# i.e. when inserting events in the DB and then modifying them 
+# i.e. when inserting events in the DB and then modifying them
 # This tests will be named *_records_[letter]_* since unittest
 # executes tests alphabetically
 
 
 class TestEvent(unittest.TestCase):
+    if os.path.exists('test.db'):
+        os.remove('test.db')
+
     db: Database = Database.create_database(path='test.db')
 
-    # rm done in CI pipeline
-    # @classmethod
-    # def tearDownClass(cls):
-    #     # Remove the test.db file if it exists
-    #     if os.path.exists('test.db'):
-    #         os.remove('test.db')
+    @classmethod
+    def tearDownClass(self):
+        if os.path.exists('test.db'):
+            os.remove('test.db')
 
     def test_get_event_id(self):
         event = Event(db=self.db)

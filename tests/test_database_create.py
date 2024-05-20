@@ -9,10 +9,20 @@ class TestDatabase(unittest.TestCase):
     '''
         Test class for Database
     '''
+    db_path = 'test.db'
+    if os.path.exists(db_path):
+        os.remove(db_path)
+
     def setUp(self):
-        self.db_path = 'test_events.db'
+        self.db_path = 'test.db'
 
     def tearDown(self):
+        if os.path.exists(self.db_path):
+            os.remove(self.db_path)
+
+    @classmethod
+    def tearDownClass(self):
+        # Remove the test.db file if it exists
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
 
@@ -73,7 +83,7 @@ class TestDatabase(unittest.TestCase):
     def test_implemented_tests(self):
         unused_functions = get_untested_functions(Database, TestDatabase)
         print(unused_functions)
-        assert len(unused_functions) == 0, "LiveTrailScraper is not tested enough. pytest -s for details."
+        assert len(unused_functions) == 0, "Database is not tested enough. pytest -s for details."
 
 
 if __name__ == '__main__':
