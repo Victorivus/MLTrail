@@ -53,22 +53,22 @@ jobs:
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/test_database_c*
+          poetry run pytest tests/database/test_database_c*
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/test_database_ra*
+          poetry run pytest tests/database/test_database_ra*
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/test_database_re*
+          poetry run pytest tests/database/test_database_re*
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Run tests
         run: |
-          poetry run pytest tests/test_database_e*
+          poetry run pytest tests/database/test_database_e*
