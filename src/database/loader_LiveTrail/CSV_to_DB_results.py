@@ -132,8 +132,8 @@ def compute_category_rankings(cursor, event_id):
                         full_category,
                         sex_category,
                         time,
-                        RANK() OVER (PARTITION BY race_id, event_id, sex_category ORDER BY TIME(time)) AS cat_position_rank,
-                        RANK() OVER (PARTITION BY race_id, event_id, full_category ORDER BY TIME(time)) AS full_cat_position_rank
+                        RANK() OVER (PARTITION BY race_id, event_id, sex_category ORDER BY time) AS cat_position_rank,
+                        RANK() OVER (PARTITION BY race_id, event_id, full_category ORDER BY time) AS full_cat_position_rank
                     FROM
                         results
                     WHERE
@@ -224,8 +224,6 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../data/', cl
                     if update and not any(file.endswith(f'{year}.csv') for year in years):
                         continue
                     file_path = os.path.join(folder_path, file)
-                    # Fetch race_id and event_id from races table
-
                     db_connection = connect_to_db(db.path)
                     with db_connection:
                         cursor = db_connection.cursor()
@@ -284,5 +282,5 @@ if __name__ == "__main__":
         try:
             years = json.loads(args.years)
         except json.JSONDecodeError:
-            years = db_LiveTrail_loader.parse_events_years_txt_file(args.years)
+            years = db_LiveTrail_loader.parse_events_years_txt_file(os.path.join(os.getcwd(), args.years))
     main(path=path, clean=clean, update=update, years=years, force_update=force_update)
