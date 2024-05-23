@@ -267,7 +267,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--path', default='../data/parsed_data.db', help='DB path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
     parser.add_argument('-f', '--force-update', action='store_true', help='Remove all data from specified tables in "years" before execution.')
-    parser.add_argument('-u', '--update', default=None, help='Filepath to list of events and years to update.')
+    parser.add_argument('-u', '--update', default=None, help='Filepath to list of events and years to ignore during update. db_LiveTrail_loader.py generates this list as update.txt')
     parser.add_argument('-y', '--years', type=str, default=None, help='dict containing the list of files to use or path for the file containing the list.')
 
     args = parser.parse_args()
