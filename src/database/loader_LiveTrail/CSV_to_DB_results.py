@@ -2,6 +2,7 @@ import os
 import csv
 import sqlite3
 import argparse
+import json
 from datetime import datetime, timedelta
 from database.database import Event
 from database.create_db import Database
@@ -150,7 +151,7 @@ def compute_category_rankings(cursor, event_id):
                     results.race_id = RankedResults.race_id
                     AND results.event_id = RankedResults.event_id
                     AND results.bib = RankedResults.bib
-                    AND results.event_id=?
+                    AND results.event_id = ?
                     ''', (event_id, event_id,)
                    )
 
@@ -172,9 +173,18 @@ def clean_table(cursor):
     ''')
 
 
+def clean_race(cursor, event_id, race_id):
+    cursor.execute('''
+        DELETE
+        FROM results
+        WHERE event_id = ?
+        AND race_id = ?
+    ''', (event_id, race_id,))
+
+
 # Main function
-def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/', clean: bool = False,
-         update: str = None, years: dict = None):
+def main(path: str = '../data/parsed_data.db', data_folder: str = '../data/', clean: bool = False,
+         update: str = None, years: dict = None, force_update: bool = False):
     '''
     Args:
         path (str): Path to SQLite3 DB.
@@ -182,7 +192,7 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
         clean (bool): If True, the tables will be emtied before execution.
         update (str): If specified, path for the file containing the list of files in the DB before
                         executing the main script (db_LiveTrail_loader)
-        years (str): If specified, dict containing the list of files to use.
+        years (dict): If specified, dict containing the list of files to use.
     '''
 
     db: Database = Database.create_database(path=path)
@@ -228,11 +238,13 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../../data/',
                             csv_data = read_csv(file_path)
                             # Insert data into results table
                             try:
+                                if force_update:
+                                    clean_race(cursor, event_id, race_id)
                                 insert_into_results(cursor, race_id, event_id, departure_time, csv_data)
                             except sqlite3.IntegrityError:
                                 pass
                             except ValueError:
-                                pass    
+                                pass
                             update_category(cursor, event_id)
                         db_connection.commit()
                     db_connection.close()
@@ -256,11 +268,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Data loader from CSV files into results table.')
     parser.add_argument('-p', '--path', default='../data/parsed_data.db', help='DB path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
-    parser.add_argument('-u', '--update', default='update.txt', help='Filepath to list of events and years to update.')
+    parser.add_argument('-f', '--force-update', action='store_true', help='Remove all data from specified tables in "years" before execution.')
+    parser.add_argument('-u', '--update', default=None, help='Filepath to list of events and years to update.')
+    parser.add_argument('-y', '--years', type=str, default=None, help='dict containing the list of files to use or path for the file containing the list.')
 
     args = parser.parse_args()
     path = args.path
     clean = args.clean
+    force_update = args.force_update
     update = args.update
-
-    main(path=path, clean=clean, update=update)
+    if update:
+        update = os.path.join(os.getcwd(), args.update)
+    years = args.years
+    if years:
+        try:
+            years = json.loads(args.years)
+        except json.JSONDecodeError:
+            years = db_LiveTrail_loader.parse_events_years_txt_file(args.years)
+    main(path=path, clean=clean, update=update, years=years, force_update=force_update)
