@@ -30,7 +30,7 @@ poetry install
 Launch the following command:
 
 ```
-python src/database/loader_LiveTrail/db_LiveTrail_loader.py -p data/parsed_data.db -d ../data
+python src/database/loader_LiveTrail/db_LiveTrail_loader.py -p data/events.db -d ../data
 ```
 
 usage: db_LiveTrail_loader.py [-h] [-p PATH] [-d DATA_PATH] [-c] [-u]
@@ -66,6 +66,23 @@ lut 2016
 # oxfamtrailwalkerhk 2021 -> Password protected
 oxfamtrailwalkerhk 2021
 ```
+To recompute the `Results` table, the script `src/database/loader_LiveTrail/CSV_to_DB_results.py` can be used:
+
+`CSV_to_DB_results.py -c -p data/events.db` Will recompute the full table from the data folder.
+`CSV_to_DB_results.py  -y races.txt -p data/events.db -f` Will force the computation and loading of the races events and years specified in `races.txt` from the data folder.
+
+```bash
+options:
+  -h, --help            show this help message and exit
+  -p PATH, --path PATH  DB path.
+  -c, --clean           Remove all data from table before execution.
+  -f, --force-update    Remove all data from specified tables in "years" before execution.
+  -u UPDATE, --update UPDATE
+                        Filepath to list of events and years to ignore during update. db_LiveTrail_loader.py generates this list as update.txt
+  -y YEARS, --years YEARS
+                        dict containing the list of files to use or path for the file containing the list.
+```
+
 
 # Launch web app
 Launch the following command:
