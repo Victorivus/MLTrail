@@ -20,8 +20,9 @@
 !front/pages/
 !front/pages/*
 !data/
-!data/transgrancanaria/
-!data/transgrancanaria/transgrancanaria_classic_2023.csv
+!data/csv/
+!data/csv/transgrancanaria/
+!data/csv/transgrancanaria/transgrancanaria_classic_2023.csv
 examples/tmp_load_db_tests_n_code.ipynb
 examples/tests.ipynb
 *.log

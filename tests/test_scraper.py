@@ -150,7 +150,7 @@ class TestLiveTrailScraper(unittest.TestCase):
     def test_download_data(self):
         scraper = LiveTrailScraper(events=["transgrancanaria"], years=["2023"])
         scraper.download_data()
-        results_raw = pd.read_csv('data/transgrancanaria/transgrancanaria_classic_2023.csv', sep=',')
+        results_raw = pd.read_csv('data/csv/transgrancanaria/transgrancanaria_classic_2023.csv', sep=',')
         data = {
             'n': 4,
             'doss': 18,
