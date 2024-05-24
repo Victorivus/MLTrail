@@ -73,7 +73,7 @@ jobs:
       - name: Run tests
         run: |
           poetry run pytest tests/test_database/test_database_e*
-      ----------------------------------------------
+      #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Run tests
