@@ -161,6 +161,7 @@ streamlit run front/MLTrail.py
 
 
 ### BackEnd
+- [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. 410. mut 2023)
 - [ ] Add printing version of times
 - [ ] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
