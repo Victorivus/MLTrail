@@ -184,15 +184,14 @@ def clean_race(cursor, event_id, race_id):
 
 # Main function
 def main(path: str = '../data/parsed_data.db', data_folder: str = '../data/', clean: bool = False,
-         update: str = None, years: dict = None, force_update: bool = False):
+         skip: str = None, update: dict = None, force_update: bool = False):
     '''
     Args:
         path (str): Path to SQLite3 DB.
         data_folder (dict): Path to the directory containing folders of CSV files.
         clean (bool): If True, the tables will be emtied before execution.
-        update (str): If specified, path for the file containing the list of files in the DB before
-                        executing the main script (db_LiveTrail_loader)
-        years (dict): If specified, dict containing the list of files to use.
+        skip (str): If specified, path for the file containing the list of (event, year) to skip
+        update (dict): If specified, dict containing the list of files to use.
     '''
 
     db: Database = Database.create_database(path=path)
@@ -204,13 +203,14 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../data/', cl
             clean_table(cursor)
             print('Results table emptied')
     folders = os.listdir(data_folder)
-    if update:
+    if skip:
         _, db_years = Event.get_events_years(db)
-        parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(update)
+        parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(skip)
         print(f"INFO: Updating {len(db_years)-len(parsed_data)} events")
         _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
         folders = list(years.keys())
-    elif years:
+    elif update:
+        years = update
         folders = list(years.keys())
     print("INFO: Inserting data into Results table.")
     # Iterate through folders
@@ -221,7 +221,7 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../data/', cl
             # Iterate through CSV files in the folder
             for file in os.listdir(folder_path):
                 if file.endswith('.csv'):
-                    if update and not any(file.endswith(f'{year}.csv') for year in years):
+                    if skip and not any(file.endswith(f'{year}.csv') for year in years):
                         continue
                     file_path = os.path.join(folder_path, file)
                     db_connection = connect_to_db(db.path)
@@ -255,7 +255,7 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../data/', cl
     for event_id in event_ids:
         with db_connection:
             cursor = db_connection.cursor()
-            if years:
+            if update:
                 if check_event_id_in_list(cursor, event_id, years):
                     compute_category_rankings(cursor, event_id)
             else:
@@ -264,23 +264,24 @@ def main(path: str = '../data/parsed_data.db', data_folder: str = '../data/', cl
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Data loader from CSV files into results table.')
+    group = parser.add_mutually_exclusive_group()
     parser.add_argument('-p', '--path', default='../data/parsed_data.db', help='DB path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
     parser.add_argument('-f', '--force-update', action='store_true', help='Remove all data from specified tables in "years" before execution.')
-    parser.add_argument('-u', '--update', default=None, help='Filepath to list of events and years to ignore during update. db_LiveTrail_loader.py generates this list as update.txt')
-    parser.add_argument('-y', '--years', type=str, default=None, help='dict containing the list of files to use or path for the file containing the list.')
+    group.add_argument('-s', '--skip', default=None, help='Filepath to list of events and years to ignore during update. db_LiveTrail_loader.py generates this list as update.txt')
+    group.add_argument('-u', '--update', type=str, default=None, help='dict in "years" format containing the list of events and years to update or path for the file containing the list.')
 
     args = parser.parse_args()
     path = args.path
     clean = args.clean
     force_update = args.force_update
+    skip = args.skip
+    if skip:
+        skip = os.path.join(os.getcwd(), args.skip)
     update = args.update
     if update:
-        update = os.path.join(os.getcwd(), args.update)
-    years = args.years
-    if years:
         try:
-            years = json.loads(args.years)
+            update = json.loads(args.update)
         except json.JSONDecodeError:
-            years = db_LiveTrail_loader.parse_events_years_txt_file(os.path.join(os.getcwd(), args.years))
-    main(path=path, clean=clean, update=update, years=years, force_update=force_update)
+            update = db_LiveTrail_loader.parse_events_years_txt_file(os.path.join(os.getcwd(), args.update))
+    main(path=path, clean=clean, skip=skip, update=update, force_update=force_update)

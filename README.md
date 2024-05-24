@@ -77,10 +77,12 @@ options:
   -p PATH, --path PATH  DB path.
   -c, --clean           Remove all data from table before execution.
   -f, --force-update    Remove all data from specified tables in "years" before execution.
-  -u UPDATE, --update UPDATE
+  -s PATH, --skip PATH
                         Filepath to list of events and years to ignore during update. db_LiveTrail_loader.py generates this list as update.txt
-  -y YEARS, --years YEARS
-                        dict containing the list of files to use or path for the file containing the list.
+  -u JSON/PATH, --update JSON/PATH
+                        dict in "years" format containing the list of events and years to update or path for the file containing the list.
+
+NOTE: --update and --skip options cannot be used together.
 ```
 
 

@@ -224,7 +224,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
         actual_path = os.getcwd()  # os.path.split(os.path.realpath(__file__))
         if update:
             script.main(path=os.path.join(actual_path, path), clean=clean,
-                        update=os.path.join(actual_path, "update.txt"))
+                        skip=os.path.join(actual_path, "update.txt"))
         else:
             script.main(path=os.path.join(actual_path, path), clean=clean, years=years)
     print("INFO: Updated events:")
