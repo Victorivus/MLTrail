@@ -26,12 +26,14 @@ Execute the following command:
 poetry install
 ```
 
-# Download data from LiveTrail locally 
+# Download data from LiveTrail locally
 Launch the following command:
 
 ```
 python src/database/loader_LiveTrail/db_LiveTrail_loader.py
 ```
+
+If nothing is modified, default folder is `.data/`, inside we will find the DB (`events.db`) and a folder `csv/` containing all the downloaded results.
 
 usage: db_LiveTrail_loader.py [-h] [-p PATH] [-d DATA_PATH] [-c] [-u]
 

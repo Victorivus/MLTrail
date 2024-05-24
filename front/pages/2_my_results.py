@@ -1,13 +1,18 @@
 '''
 Viz test module for Results from the database
 '''
+import os
 import sqlite3
 import streamlit as st
 import pandas as pd
+import config
+
+DATA_DIR_PATH = os.environ["DATA_DIR_PATH"]
+DB_PATH = os.path.join(DATA_DIR_PATH, 'events.db')
 
 # Function to fetch distinct surnames and names from the database
 def fetch_distinct_names():
-    conn = sqlite3.connect('data/parsed_data.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT DISTINCT surname, name FROM results")
     names = [f"{row[0]}, {row[1]}" for row in cursor.fetchall()]
@@ -18,7 +23,7 @@ def fetch_distinct_names():
 # Function to execute query and fetch results
 def fetch_results(surname, first_name=None):
     # Connect to SQLite database
-    conn = sqlite3.connect('data/parsed_data.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     if first_name is None and ',' not in surname:

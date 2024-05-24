@@ -112,7 +112,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
         update (dict): If specified, dict containing the list of files to use.
     '''
     if not path:
-        path = os.path.join(os.environ["DATA_DIR_PATH"], 'parsed_data.db')
+        path = os.path.join(os.environ["DATA_DIR_PATH"], 'events.db')
     if not data_path:
         data_path = os.path.join(os.environ["DATA_DIR_PATH"], 'csv')
 

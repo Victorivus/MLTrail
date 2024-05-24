@@ -119,7 +119,7 @@ def generate_code_year_txt(db_path, output_file: str = None) -> dict:
 def main(path=None, data_path=None, clean=False, update=False):
     '''Script used to parse LiveTrail and insert all available data into DB.'''
     if not path:
-        path = os.path.join(os.environ["DATA_DIR_PATH"], 'parsed_data.db')
+        path = os.path.join(os.environ["DATA_DIR_PATH"], 'events.db')
     if not data_path:
         data_path = os.path.join(os.environ["DATA_DIR_PATH"], 'csv')
 
