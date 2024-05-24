@@ -128,7 +128,10 @@ class Results:
         return str(dt.timedelta(seconds=(seconds))).split('.')[0]
 
     def get_allure(self, seconds, distance, offset=False):
-        return self.get_time(self.get_seconds(seconds, offset=offset) / distance)
+        try:
+            return self.get_time(self.get_seconds(seconds, offset=offset) / distance)
+        except ZeroDivisionError:
+            return pd.NA
 
     def get_allure_norm(self, seconds, distance, D, offset=False):
         return self.get_allure(seconds, distance + D / 100, offset=offset)
@@ -230,7 +233,7 @@ class Results:
             prev_point = point
         paces = times_paces[[col for col in times_paces.columns if col.startswith('__all__')]]
         paces.columns = [col.replace('__all__', '') for col in paces.columns]
-        return paces
+        return paces.ffill(axis='columns').bfill(axis='columns')
 
     def get_paces_norm(self):
         times_paces = self.times[(self.times[self.times.columns] != ':00')].copy()
@@ -253,7 +256,7 @@ class Results:
 
         paces_norm = times_paces[[col for col in times_paces.columns if col.startswith('__allNorm__')]]
         paces_norm.columns = [col.replace('__allNorm__', '') for col in paces_norm.columns]
-        return paces_norm
+        return paces_norm.ffill(axis='columns').bfill(axis='columns')
 
     def get_stats(self, n1=4, n2=20, paces=None):
         if paces is None:
