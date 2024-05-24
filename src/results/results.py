@@ -58,14 +58,20 @@ class Results:
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
 
         if interpolate == 'previous':
-            self.times = self.times.ffill()  
+            self.times = self.times.ffill(axis='rows')
+            # First row may stillcontain NaN
+            if self.times.iloc[0].isnull().any():
+                self.times = self.times.bfill(axis='rows')
         elif interpolate == 'next':
-            self.times = self.times.bfill()
+            self.times = self.times.bfill(axis='rows')
+            # Last row may stillcontain NaN
+            if self.times.iloc[-1].isnull().any():
+                self.times = self.times.ffill(axis='rows')
         elif interpolate == 'mean':
             # Not tested
-            df_ffilled = self.times.ffill()
+            df_ffilled = self.times.ffill(axis='rows')
             df_ffilled = df_ffilled.applymap(self.get_seconds)
-            df_bfilled = self.times.bfill()
+            df_bfilled = self.times.bfill(axis ='rows')
             df_bfilled = df_bfilled.applymap(self.get_seconds)
             self.times = (df_ffilled + df_bfilled) / 2
             self.times = self.times.applymap(self.get_time)
