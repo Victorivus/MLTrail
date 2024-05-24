@@ -8,6 +8,7 @@ packages = [
     {include = "results", from="src"},
     {include = "scraper", from="src"},
     {include = "database", from="src"},
+    {include = "config", from="src"},
     {include = "src"}
     ]
 
