@@ -78,7 +78,19 @@ jobs:
       #----------------------------------------------
       - name: Debug import problem
         run: |
-          python -v -c 'import config'
+          pip list
+      #----------------------------------------------
+      #              debug import problem
+      #----------------------------------------------
+      - name: Debug import problem
+        run: |
+          python -v -c 'import MLTrail'
+      #----------------------------------------------
+      #              debug import problem
+      #----------------------------------------------
+      - name: Debug import problem
+        run: |
+          python -v -c 'import MLTrail.config'
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
