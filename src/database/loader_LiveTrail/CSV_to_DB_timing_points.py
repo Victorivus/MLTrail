@@ -3,11 +3,13 @@ import csv
 import json
 import sqlite3
 import argparse
+import pandas as pd
 import config
 from database.database import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
-
+from datetime import datetime
+from results.results import Results
 
 # Function to connect to SQLite database
 def connect_to_db(db_file):
@@ -17,7 +19,7 @@ def connect_to_db(db_file):
 
 # Function to fetch race_id and event_id from races table
 def fetch_race_event_ids(cursor, filepath):
-    cursor.execute("SELECT race_id, event_id FROM races WHERE results_filepath=?", (filepath,))
+    cursor.execute("SELECT race_id, event_id, departure_datetime FROM races WHERE results_filepath=?", (filepath,))
     row = cursor.fetchone()
     if row:
         return row
@@ -53,20 +55,28 @@ def fetch_control_points(cursor, race_id, event_id):
 
 
 # Function to insert data into results table
-def insert_into_timing_points(cursor, race_id, event_id, data):
-    for row in data:
-        bib = row[0]
-        times = row[1]
-        cps, cps_names, cps_ids = fetch_control_points(cursor, race_id, event_id)
-
-        if len(cps_ids) == len(times) + 1:  # This means there is no time for the starting control point
-            cps_ids.popitem()
-        elif len(cps_ids) != len(times):
-            print(f"cps_ids: {len(cps_ids)}, times: {len(times)}")
-            with open('timing_points.log', 'a') as file:
-                # Write the new line to the file
-                file.write(f"{event_id} {race_id}. cps_ids: {len(cps_ids)}, times: {len(times)}\n")
-            raise ValueError("Lengths of control points and times do not match")
+def insert_into_timing_points(cursor, race_id, event_id, departure_datetime, data):
+    cps, cps_names, cps_ids = fetch_control_points(cursor, race_id, event_id)
+    times_first_row = data[0][1]
+    departure_datetime_obj = datetime.strptime(departure_datetime, '%Y-%m-%d %H:%M:%S')
+    departure = departure_datetime_obj.strftime('%H:%M:%S')
+    # Get the day of the week as a number, adjusting for Monday as 1 and Sunday as 7
+    weekday = (departure_datetime_obj.weekday() + 1) % 7
+    weekday = 7 if weekday == 0 else weekday
+    waves = True # some races have different departure times
+    if len(cps_ids) == len(times_first_row) + 1:
+        # This means there is no time for the starting control point
+        # Let's delete it in a "safe" way, smallest distance in dict and below 1
+        key_to_delete = min((k for k, v in cps.items() if v[0] < 1), key=lambda k: cps[k][0], default=None)
+        # delete first key del cps_ids[next(iter(cps_ids))]
+        del cps_ids[key_to_delete]
+        del cps[key_to_delete]
+        del cps_names[key_to_delete]
+        waves = False
+    # Only Finishers are inserted since Results class filters out
+    rs = Results(control_points=cps, times=pd.DataFrame([v[1] for v in data], columns=list(cps.keys())), offset=departure,
+                 clean_days=False, start_day=weekday, waves=waves)
+    for bib, times in zip([v[0] for v in data], [v[1] for v in rs.get_real_times().map(rs.format_time_over24h).iterrows()]):
 
         for control_point_id, time in zip(cps_ids.values(), times):
             cursor.execute("""
@@ -123,7 +133,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
         with db_connection:
             cursor = db_connection.cursor()
             clean_table(cursor)
-            print('timing_points table emptied')
+            print('INFO: timing_points table emptied')
 
     folders = os.listdir(data_path)
     if skip:
@@ -145,17 +155,18 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
             # Iterate through CSV files in the folder
             for file in os.listdir(folder_path):
                 if file.endswith('.csv'):
-                    if skip and not any(file.endswith(f'{year}.csv') for year in years):
-                        continue
+                    if skip or update:
+                        if not any(file.endswith(f'{year}.csv') for year in years[folder]):
+                            continue
                     file_path = os.path.join(folder_path, file)
                     # Fetch race_id and event_id from races table
 
                     db_connection = connect_to_db(db.path)
                     with db_connection:
                         cursor = db_connection.cursor()
-                        race_event_ids = fetch_race_event_ids(cursor, f'data/{folder}/{file}')
+                        race_event_ids = fetch_race_event_ids(cursor, f'csv/{folder}/{file}')
                         if race_event_ids:
-                            race_id, event_id = race_event_ids
+                            race_id, event_id, departure_datetime = race_event_ids
                             print(f'Inserting data into {event_id}. {folder}, {race_id}')
                             # Read CSV file
                             csv_data = read_csv(file_path)
@@ -163,7 +174,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
                             try:
                                 if force_update:
                                     clean_race(cursor, event_id, race_id)
-                                insert_into_timing_points(cursor, race_id, event_id, csv_data)
+                                insert_into_timing_points(cursor, race_id, event_id, departure_datetime, csv_data)
                             except sqlite3.IntegrityError:
                                 pass
                             except ValueError:
