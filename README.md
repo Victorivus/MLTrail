@@ -117,7 +117,8 @@ streamlit run front/MLTrail.py
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
-- [ ] BUG: When loading data, need to recheck category rankings.
+- [X] BUG: When loading data, need to recheck category rankings.
+- [ ] BUG: When loading data into timing points they are shifted by one having time for point0 and missing finish time.
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
 - [X] Add partial passing times (timing_points)
 - [X] Add control points to DB
