@@ -226,13 +226,14 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
             # Iterate through CSV files in the folder
             for file in os.listdir(folder_path):
                 if file.endswith('.csv'):
-                    if skip and not any(file.endswith(f'{year}.csv') for year in years):
-                        continue
+                    if skip or update:
+                        if not any(file.endswith(f'{year}.csv') for year in years[folder]):
+                            continue
                     file_path = os.path.join(folder_path, file)
                     db_connection = connect_to_db(db.path)
                     with db_connection:
                         cursor = db_connection.cursor()
-                        race_event_ids = fetch_race_event_ids(cursor, f'data/{folder}/{file}')
+                        race_event_ids = fetch_race_event_ids(cursor, f'csv/{folder}/{file}')
                         if race_event_ids:
                             race_id, event_id = race_event_ids
                             print(f'Inserting data into {event_id}. {folder}, {race_id}')

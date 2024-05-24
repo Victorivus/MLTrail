@@ -197,7 +197,7 @@ def main(path=None, data_path=None, clean=False, update=False):
                         scraper.set_race(race)
                         folder_path = os.path.join(data_path, event)
                         filepath = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
-                        results_filepath = filepath if os.path.exists(os.path.join('../../', filepath)) else None
+                        results_filepath = filepath if os.path.exists(os.path.join(data_path, filepath)) else None
                         race_info = scraper.get_race_info(bib_n=rr[year][race]) if rr[year][race] is not None else {'date': None, 'hd': None}
                         control_points = cps[race]
                         race_data = races_data[race]
