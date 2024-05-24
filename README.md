@@ -109,7 +109,7 @@ streamlit run front/MLTrail.py
 ### Scraping
 - [X] BUG: for some races, control point code is not unique since it gets revisited in different laps (e.g. event 'tapalpa23', 2023, 'enigma')
 - [X] Scraped timestamps are different (there is no day added and it gets back to 00:00:00 after 24h in race)
-- [ ] There is a bug where if a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now.
+- [ ] BUG: If a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now. FOUND a case: 84th in 646. trailnloue 2019 - 76km2j, before last control point.
 - [X] Get the name of the checkpoints from the website.
 - [X] Set objective directly by time and not by position.
 - [X] Get a list of available races in LiveTrail.
@@ -162,6 +162,13 @@ streamlit run front/MLTrail.py
 
 ### BackEnd
 - [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. 410. mut 2023)
+- [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. 646. trailnloue 2019 - 76km2j)
+- [ ] BUGs: Results class. Still need definition, but exceptions raised if CSV is parsed into Results class with an example race:
+
+    > 44\. cavallsdelvent, relleus --> list index out of range
+    > 137\. templiers, kd --> strptime() argument 1 must be str, not None
+    > 158\. grp, TDG --> single positional indexer is out-of-bounds
+
 - [ ] Add printing version of times
 - [ ] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
