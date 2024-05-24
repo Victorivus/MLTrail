@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "MLTrail"
+name = "mltrail"
 version = "0.1.0"
 description = ""
 authors = ["Victor Nacher"]
@@ -9,7 +9,7 @@ packages = [
     {include = "results", from="src"},
     {include = "scraper", from="src"},
     {include = "database", from="src"},
-    {include = "src"}
+    {include = "mltrail", from="src"}
     ]
 
 include = [
