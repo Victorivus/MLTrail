@@ -11,7 +11,7 @@ from database.database import Event, Race
 from database.loader_LiveTrail import CSV_to_DB_results, CSV_to_DB_timing_points
 import warnings
 from bs4 import GuessedAtParserWarning
-
+import config
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
@@ -116,8 +116,13 @@ def generate_code_year_txt(db_path, output_file: str = None) -> dict:
     return parsed_years
 
 
-def main(path='../data/parsed_data.db', clean=False, update=False):
+def main(path=None, data_path=None, clean=False, update=False):
     '''Script used to parse LiveTrail and insert all available data into DB.'''
+    if not path:
+        path = os.path.join(os.environ["DATA_DIR_PATH"], 'events.db')
+    if not data_path:
+        data_path = os.path.join(os.environ["DATA_DIR_PATH"], 'csv')
+
     db: Database = Database.create_database(path=path)
 
     if clean:
@@ -172,8 +177,8 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                 if not cps:
                     continue
                 races = scraper.get_races()
-                rr = scraper.get_random_runner_bib()
-                scraper.download_data()
+                rr = scraper.get_random_runner_bib(data_path=data_path)
+                scraper.download_data(data_path=data_path)
                 races_data = scraper.get_races_physical_details()
                 if event not in races:
                     print(f'INFO: No data available for {events[event]} {year}.')
@@ -190,7 +195,7 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
                         elif name.lower() == 'course des partenaires':
                             continue
                         scraper.set_race(race)
-                        folder_path = f'data/{event}'
+                        folder_path = os.path.join(data_path, event)
                         filepath = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
                         results_filepath = filepath if os.path.exists(os.path.join('../../', filepath)) else None
                         race_info = scraper.get_race_info(bib_n=rr[year][race]) if rr[year][race] is not None else {'date': None, 'hd': None}
@@ -224,23 +229,25 @@ def main(path='../data/parsed_data.db', clean=False, update=False):
         actual_path = os.getcwd()  # os.path.split(os.path.realpath(__file__))
         if update:
             script.main(path=os.path.join(actual_path, path), clean=clean,
-                        skip=os.path.join(actual_path, "update.txt"))
+                        skip=os.path.join(actual_path, "update.txt"),
+                        force_update=True)
         else:
-            script.main(path=os.path.join(actual_path, path), clean=clean, years=years)
+            script.main(path=os.path.join(actual_path, path), clean=clean, update=years)
     print("INFO: Updated events:")
     print(open('updated_events_years.txt', encoding='utf-8').read())
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Data loader from LiveTrail website into DB.')
-    parser.add_argument('-p', '--path', default='../data/parsed_data.db', help='DB path.')
-    parser.add_argument('-d', '--data-path', default='../../data/', help='CSV files path.')
+    parser.add_argument('-p', '--path', default=None, help='DB path.')
+    parser.add_argument('-d', '--data-path', default=None, help='CSV files path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
     parser.add_argument('-u', '--update', action='store_true', help='Download only events and reces not already present in DB.')
 
     args = parser.parse_args()
     path = args.path
+    data_path = args.data_path
     clean = args.clean
     update = args.update
 
-    main(path=path, clean=clean, update=update)
+    main(path=path, data_path=data_path, clean=clean, update=update)

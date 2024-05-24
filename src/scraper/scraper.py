@@ -5,7 +5,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from bs4 import GuessedAtParserWarning
-
+import config
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 class LiveTrailScraper:
     base_url: str = "https://livetrail.net/histo/{event}_{year}"
     base_url2: str = "https://livetrail.net/histo/{event}{year}"
+    data_path = os.environ["DATA_DIR_PATH"]
 
     def __init__(self, events: list[str] = [], years: list[str] = [],
                  race: str = 'all') -> None:
@@ -158,9 +159,11 @@ class LiveTrailScraper:
 
         return result_dict
 
-    def get_random_runner_bib(self):
+    def get_random_runner_bib(self, data_path=None):
         if len(self.events) > 1 or len(self.years) > 1:
             raise ValueError("This method is only available if there is only one event and year in LiveTrailScraper.events ant LiveTrailScraper.year")
+        if not data_path:
+            data_path = os.path.join(self.data_path, 'csv')
         rr = {}
         races = self.get_races()
         for event in self.events:
@@ -168,7 +171,7 @@ class LiveTrailScraper:
                 if year in races[event]:
                     rr[year] = {}
                     for race in races[event][year]:
-                        df = self.get_data(race)
+                        df = self.get_data(race, data_path=data_path)
                         if df is not None:
                             rr[year][race] = df.sort_index().iloc[0]['doss'] if not df.empty else None
                         else:
@@ -222,7 +225,9 @@ class LiveTrailScraper:
                     print(e)
         return full_races
 
-    def download_data(self, force_download=False) -> int:
+    def download_data(self, data_path=None, force_download=False) -> int:
+        if not data_path:
+            data_path = os.path.join(self.data_path, 'csv')
         count = 0
         for event in self.events:
             for year in self.years:
@@ -248,7 +253,7 @@ class LiveTrailScraper:
                                     'to': '1000000'  # To get all results
                                 }
                                 # Check if data already available or redownload:
-                                folder_path = f'../../data/{event}'
+                                folder_path = os.path.join(data_path, event)
                                 if not os.path.exists(folder_path):
                                     os.makedirs(folder_path)
                                 file_path = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
@@ -276,10 +281,12 @@ class LiveTrailScraper:
         # return number of errors
         return count
 
-    def get_data(self, race) -> pd.DataFrame:
+    def get_data(self, race, data_path=None) -> pd.DataFrame:
         try:
             if len(self.events) > 1 or len(self.years) > 1:
                 raise ValueError("This method is only available if there is only one event and year in LiveTrailScraper.events and LiveTrailScraper.year")
+            if not data_path:
+                data_path = os.path.join(self.data_path, 'csv')
             event = self.events[0]
             year = self.years[0]
 
@@ -293,7 +300,7 @@ class LiveTrailScraper:
                 'to': '1000000'  # To get all results
             }
             # Check if data already available or redownload:
-            folder_path = f'../../data/{event}'
+            folder_path = os.path.join(data_path, event)
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
             file_path = os.path.join(folder_path, f'{event}_{race}_{year}.csv')

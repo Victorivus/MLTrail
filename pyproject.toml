@@ -1,14 +1,15 @@
 [tool.poetry]
-name = "MLTrail"
+name = "mltrail"
 version = "0.1.0"
 description = ""
 authors = ["Victor Nacher"]
 readme = "README.md"
+
 packages = [
     {include = "results", from="src"},
     {include = "scraper", from="src"},
     {include = "database", from="src"},
-    {include = "src"}
+    {include = "config", from="src"}
     ]
 
 [tool.poetry.dependencies]

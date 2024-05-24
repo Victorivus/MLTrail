@@ -26,12 +26,14 @@ Execute the following command:
 poetry install
 ```
 
-# Download data from LiveTrail locally 
+# Download data from LiveTrail locally
 Launch the following command:
 
 ```
-python src/database/loader_LiveTrail/db_LiveTrail_loader.py -p data/events.db -d ../data
+python src/database/loader_LiveTrail/db_LiveTrail_loader.py
 ```
+
+If nothing is modified, default folder is `.data/`, inside we will find the DB (`events.db`) and a folder `csv/` containing all the downloaded results.
 
 usage: db_LiveTrail_loader.py [-h] [-p PATH] [-d DATA_PATH] [-c] [-u]
 
@@ -40,9 +42,6 @@ Data loader from LiveTrail website into DB.
 ```bash
 options:
   -h, --help            show this help message and exit
-  -p PATH, --path PATH  DB path.
-  -d DATA_PATH, --data-path DATA_PATH
-                        CSV files path.
   -c, --clean           Remove all data from tables before execution.
   -u, --update          Download only events and reces not already present in DB.
 ```
@@ -74,7 +73,6 @@ To recompute the `Results` table, the script `src/database/loader_LiveTrail/CSV_
 ```bash
 options:
   -h, --help            show this help message and exit
-  -p PATH, --path PATH  DB path.
   -c, --clean           Remove all data from table before execution.
   -f, --force-update    Remove all data from specified tables in "years" before execution.
   -s PATH, --skip PATH
@@ -85,6 +83,9 @@ options:
 NOTE: --update and --skip options cannot be used together.
 ```
 
+Same syntax and options apply to To recompute the `Timing_points` table and script `src/database/loader_LiveTrail/CSV_to_DB_timing_points.py` can be used:
+
+> :warning: **Warning:** Changing paths in scripts through the `-p` or `data-path` options is discouraged. Advanced users only.
 
 # Launch web app
 Launch the following command:

@@ -1,11 +1,13 @@
 '''
 Test module for the LiveTrailScraper class
 '''
+import os
 import unittest
 import pytest
 from scraper.scraper import LiveTrailScraper
 import pandas as pd
 from tests.tools import get_untested_functions
+import config
 
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
@@ -150,7 +152,8 @@ class TestLiveTrailScraper(unittest.TestCase):
     def test_download_data(self):
         scraper = LiveTrailScraper(events=["transgrancanaria"], years=["2023"])
         scraper.download_data()
-        results_raw = pd.read_csv('data/transgrancanaria/transgrancanaria_classic_2023.csv', sep=',')
+        results_path = os.path.join(os.environ["DATA_DIR_PATH"], 'csv', 'transgrancanaria', 'transgrancanaria_classic_2023.csv')
+        results_raw = pd.read_csv(results_path, sep=',')
         data = {
             'n': 4,
             'doss': 18,
