@@ -49,50 +49,31 @@ jobs:
       #----------------------------------------------
       - name: Install project
         run: poetry install --no-interaction
-      # #----------------------------------------------
-      # #              run test suite
-      # #----------------------------------------------
-      # - name: Run tests
-      #   run: |
-      #     poetry run pytest tests/test_database/test_database_c*
-      # #----------------------------------------------
-      # #              run test suite
-      # #----------------------------------------------
-      # - name: Run tests
-      #   run: |
-      #     poetry run pytest tests/test_database/test_database_ra*
-      # #----------------------------------------------
-      # #              run test suite
-      # #----------------------------------------------
-      # - name: Run tests
-      #   run: |
-      #     poetry run pytest tests/test_database/test_database_re*
-      # #----------------------------------------------
-      # #              run test suite
-      # #----------------------------------------------
-      # - name: Run tests
-      #   run: |
-      #     poetry run pytest tests/test_database/test_database_e*
-      # #----------------------------------------------
-      #              DEBUG
       #----------------------------------------------
-      - name: Debug pipeline
+      #              run test suite
+      #----------------------------------------------
+      - name: Run tests
         run: |
-          poetry show --latest
+          poetry run pytest tests/test_database/test_database_c*
       #----------------------------------------------
-      # #----------------------------------------------
-      #              DEBUG
+      #              run test suite
       #----------------------------------------------
-      - name: Debug pipeline
+      - name: Run tests
         run: |
-          python -v -c 'import mltrail'
-      # #----------------------------------------------
-      #              DEBUG
+          poetry run pytest tests/test_database/test_database_ra*
       #----------------------------------------------
-      - name: Debug pipeline
+      #              run test suite
+      #----------------------------------------------
+      - name: Run tests
         run: |
-          python -v -c 'import mltrail.config as config'
+          poetry run pytest tests/test_database/test_database_re*
       #----------------------------------------------
+      #              run test suite
+      #----------------------------------------------
+      - name: Run tests
+        run: |
+          poetry run pytest tests/test_database/test_database_e*
+      ----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Run tests

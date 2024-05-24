@@ -9,12 +9,8 @@ packages = [
     {include = "results", from="src"},
     {include = "scraper", from="src"},
     {include = "database", from="src"},
-    {include = "mltrail", from="src"}
+    {include = "config", from="src"}
     ]
-
-include = [
-    {path="src/config.py"},
-]
 
 [tool.poetry.dependencies]
 python = "^3.10"
