@@ -4,13 +4,17 @@ version = "0.1.0"
 description = ""
 authors = ["Victor Nacher"]
 readme = "README.md"
+
 packages = [
     {include = "results", from="src"},
     {include = "scraper", from="src"},
     {include = "database", from="src"},
-    {include = "config", from="src"},
     {include = "src"}
     ]
+
+include = [
+    {path="src/config.py"},
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"

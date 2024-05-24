@@ -6,6 +6,7 @@
 !.github/workflows/*
 !README.md
 !src/
+!src/__init__.py
 !src/*/
 !src/*/*
 !src/*/*/*
