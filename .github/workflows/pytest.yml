@@ -74,6 +74,12 @@ jobs:
         run: |
           poetry run pytest tests/test_database/test_database_e*
       #----------------------------------------------
+      #              debug import problem
+      #----------------------------------------------
+      - name: Debug import problem
+        run: |
+          python -v -c 'import config'
+      #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Run tests
