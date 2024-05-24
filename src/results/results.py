@@ -4,6 +4,7 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
+
 class Results:
     def __init__(self, control_points: dict, times: pd.DataFrame, objective=0, offset=0,
                  clean_days=False, start_day=7, waves=False) -> None:
@@ -32,7 +33,7 @@ class Results:
         adjusted_row = [row.iloc[0]]
         for time in row[1:]:
             if self.get_seconds(time) < self.get_seconds(previous_time):
-                time = self.get_time(self.get_seconds(time) + 24*60*60)
+                time = self.get_time(self.get_seconds(time) + 24 * 60 * 60)
             adjusted_row.append(time)
             previous_time = time
         return pd.Series(adjusted_row, index=row.index)
@@ -41,11 +42,14 @@ class Results:
         # Not tested
         times = times.apply(lambda x: x.map(lambda y: y[:9] if '\n' in y and len(y) > 9 else y))
         for i, day in enumerate(days):
-            if (i+1) == 1:
+            if (i + 1) == 1:
                 times = times.apply(lambda x: x.map(lambda y: y[4:9] if f'\n{day}' in y else y))\
-                     .apply(lambda x: x.map(lambda y: np.NaN if y == '.' or '.\n.' in y else y.replace(f'{day} ', '')+':00'))
+                             .apply(lambda x: x.map(lambda y: np.NaN if y == '.' or '.\n.' in y else
+                                                            y.replace(f'{day} ', '') + ':00'))
             else:
-                times = times.apply(lambda x: x.map(lambda y: self.format_time_over24h(self.get_time(self.get_seconds(y.replace(f'{day} ', ''), offset=False)+i*24*3600) if str(y).startswith(f'{day}') else y)))
+                times = times.apply(lambda x: x.map(lambda y: self.format_time_over24h(
+                    self.get_time(self.get_seconds(y.replace(f'{day} ', ''),
+                                  offset=False) + i * 24 * 3600) if str(y).startswith(f'{day}') else y)))
         return times
 
     def clean_times(self, interpolate='previous') -> pd.DataFrame:
@@ -121,7 +125,7 @@ class Results:
         return self.get_time(self.get_seconds(seconds, offset=offset) / distance)
 
     def get_allure_norm(self, seconds, distance, D, offset=False):
-        return self.get_allure(seconds, distance + D/100, offset=offset)
+        return self.get_allure(seconds, distance + D / 100, offset=offset)
 
     def total_time_to_delta(self, point_2, point_1):
         return self.get_time(self.get_seconds(point_2) - self.get_seconds(point_1))
@@ -136,7 +140,7 @@ class Results:
 
     @staticmethod
     def fix_format(df: pd.DataFrame) -> pd.DataFrame:
-        return df.map(lambda x: str(x)+':00')
+        return df.map(lambda x: str(x) + ':00')
 
     def plot_control_points(self, df, show_hours=False, xrotate=False, inverty=False, save_path=None):
         if show_hours:
@@ -210,11 +214,13 @@ class Results:
         for point in self.control_points.keys():
             if prev_point == '':
                 if self.control_points[point][0] > 0.0:
-                    times_paces['__all__'+point] = times_paces[point].map(lambda x: self.get_allure(x, self.control_points[point][0], offset=True))
+                    times_paces['__all__' + point] = times_paces[point].map(lambda x: self.get_allure(x, self.control_points[point][0], offset=True))
                 else:
-                    times_paces['__all__'+point] = times_paces[point].map(lambda x: None)
+                    times_paces['__all__' + point] = times_paces[point].map(lambda x: None)
             else:
-                times_paces['__all__'+point] = times_paces.apply(lambda x: self.get_allure(self.total_time_to_delta(x[point], x[prev_point]), self.control_points[point][0]-self.control_points[prev_point][0]), axis=1)
+                times_paces['__all__' + point] = times_paces.apply(lambda x: self.get_allure(
+                    self.total_time_to_delta(x[point], x[prev_point]),
+                    self.control_points[point][0] - self.control_points[prev_point][0]), axis=1)
             prev_point = point
         paces = times_paces[[col for col in times_paces.columns if col.startswith('__all__')]]
         paces.columns = [col.replace('__all__', '') for col in paces.columns]
@@ -223,20 +229,20 @@ class Results:
     def get_paces_norm(self):
         times_paces = self.times[(self.times[self.times.columns] != ':00')].copy()
         times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
-        
+
         prev_point = ''
         for point in self.control_points.keys():
             if prev_point == '':
                 if self.control_points[point][0] > 0.0:
-                    times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: self.get_allure_norm(x, self.control_points[point][0], self.control_points[point][1], offset=True))
+                    times_paces['__allNorm__' + point] = times_paces[point].map(lambda x: self.get_allure_norm(x, self.control_points[point][0], self.control_points[point][1], offset=True))
                 else:
-                    times_paces['__allNorm__'+point] = times_paces[point].map(lambda x: None)
+                    times_paces['__allNorm__' + point] = times_paces[point].map(lambda x: None)
             else:
-                times_paces['__allNorm__'+point] = times_paces.apply(lambda x: self.get_allure_norm(self.total_time_to_delta(x[point], x[prev_point]),
-                                                                                        self.control_points[point][0]-self.control_points[prev_point][0],
-                                                                                        self.control_points[point][1]-self.control_points[prev_point][1]
+                times_paces['__allNorm__' + point] = times_paces.apply(lambda x: self.get_allure_norm(self.total_time_to_delta(x[point], x[prev_point]),
+                                                                                        self.control_points[point][0] - self.control_points[prev_point][0],
+                                                                                        self.control_points[point][1] - self.control_points[prev_point][1]
                                                                                         # + self.control_points[point][2]-self.control_points[prev_point][2]
-                                                                                                    ), axis=1)
+                                                                                                      ), axis=1)
             prev_point = point
 
         paces_norm = times_paces[[col for col in times_paces.columns if col.startswith('__allNorm__')]]
@@ -276,11 +282,11 @@ class Results:
         return pd.DataFrame(self.paces_norm.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T 
 
     def get_objective_mean_paces(self, n=5, paces=None):
-        n = n-1  # objective is already one of the n to compute mean on
+        n = n - 1  # objective is already one of the n to compute mean on
         if paces is None:
             paces = self.paces
         # note: if n is impair, n-n/2 before objective and n/2 after it
-        return pd.DataFrame(paces.iloc[self.objective-(n-n//2):self.objective+n//2]
+        return pd.DataFrame(paces.iloc[self.objective - (n - n // 2):self.objective + n // 2]
                             .apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
 
     def get_objective_mean_times(self, n=5):
