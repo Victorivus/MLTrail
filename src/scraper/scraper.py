@@ -5,7 +5,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from bs4 import GuessedAtParserWarning
-
+import config
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 class LiveTrailScraper:
     base_url: str = "https://livetrail.net/histo/{event}_{year}"
     base_url2: str = "https://livetrail.net/histo/{event}{year}"
+    data_path = os.environ["DATA_DIR_PATH"]
 
     def __init__(self, events: list[str] = [], years: list[str] = [],
                  race: str = 'all') -> None:
@@ -158,9 +159,11 @@ class LiveTrailScraper:
 
         return result_dict
 
-    def get_random_runner_bib(self, data_path='../../data/csv'):
+    def get_random_runner_bib(self, data_path=None):
         if len(self.events) > 1 or len(self.years) > 1:
             raise ValueError("This method is only available if there is only one event and year in LiveTrailScraper.events ant LiveTrailScraper.year")
+        if not data_path:
+            data_path = os.path.join(self.data_path, 'csv')
         rr = {}
         races = self.get_races()
         for event in self.events:
@@ -222,7 +225,9 @@ class LiveTrailScraper:
                     print(e)
         return full_races
 
-    def download_data(self, data_path='../../data/csv', force_download=False) -> int:
+    def download_data(self, data_path=None, force_download=False) -> int:
+        if not data_path:
+            data_path = os.path.join(self.data_path, 'csv')
         count = 0
         for event in self.events:
             for year in self.years:
@@ -276,10 +281,12 @@ class LiveTrailScraper:
         # return number of errors
         return count
 
-    def get_data(self, race, data_path='../../data/csv') -> pd.DataFrame:
+    def get_data(self, race, data_path=None) -> pd.DataFrame:
         try:
             if len(self.events) > 1 or len(self.years) > 1:
                 raise ValueError("This method is only available if there is only one event and year in LiveTrailScraper.events and LiveTrailScraper.year")
+            if not data_path:
+                data_path = os.path.join(self.data_path, 'csv')
             event = self.events[0]
             year = self.years[0]
 
