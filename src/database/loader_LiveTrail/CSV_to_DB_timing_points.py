@@ -95,6 +95,10 @@ def insert_into_timing_points(cursor, race_id, event_id, departure_datetime, dat
         # Solved
         print("FAILED ZeroDivisionError: ", race_id, event_id)
         raise ValueError
+    except IndexError as e:
+        if 'single positional indexer is out-of-bounds' in str(e):
+            print("FAILED CANCELLED RACE: ", race_id, event_id)
+        raise ValueError
     for bib, times in zip([v[0] for v in data],
                           [v[1] for v in rs.get_real_times().map(rs.format_time_over24h).iterrows()]):
         for control_point_id, time in zip(cps_ids.values(), times):
