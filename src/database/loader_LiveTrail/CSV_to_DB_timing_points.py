@@ -67,13 +67,26 @@ def fetch_control_points(cursor, race_id, event_id):
 # Function to insert data into results table
 def insert_into_timing_points(cursor, race_id, event_id, departure_datetime, data):
     cps, cps_names, cps_ids = fetch_control_points(cursor, race_id, event_id)
+
+    if all(all(elem == '' for elem in sublist[1]) for sublist in data):
+        # all rows are empty
+        print("FAILED CANCELLED RACE: ", race_id, event_id)
+        raise ValueError
+
     times_first_row = data[0][1]
-    departure_datetime_obj = datetime.strptime(departure_datetime, '%Y-%m-%d %H:%M:%S')
-    departure = departure_datetime_obj.strftime('%H:%M:%S')
-    # Get the day of the week as a number, adjusting for Monday as 1 and Sunday as 7
-    weekday = (departure_datetime_obj.weekday() + 1) % 7
-    weekday = 7 if weekday == 0 else weekday
-    waves = True # some races have different departure times
+    if departure_datetime:
+        if len(departure_datetime) == 8:
+            departure_datetime_obj = datetime.strptime(departure_datetime, '%H:%M:%S')
+        else:
+            departure_datetime_obj = datetime.strptime(departure_datetime, '%Y-%m-%d %H:%M:%S')
+        departure = departure_datetime_obj.strftime('%H:%M:%S')
+        # Get the day of the week as a number, adjusting for Monday as 1 and Sunday as 7
+        weekday = (departure_datetime_obj.weekday() + 1) % 7
+        weekday = 7 if weekday == 0 else weekday
+    else:
+        departure = None
+        weekday = None
+    waves = True  # some races have different departure times
     if len(cps_ids) == len(times_first_row) + 1:
         # This means there is no time for the starting control point
         # Let's delete it in a "safe" way, smallest distance in dict and below 1
@@ -87,18 +100,23 @@ def insert_into_timing_points(cursor, race_id, event_id, departure_datetime, dat
     try:
         rs = Results(control_points=cps, times=pd.DataFrame([v[1] for v in data], columns=list(cps.keys())), offset=departure,
                  clean_days=False, start_day=weekday, waves=waves)
-    except TypeError:  # 410 mut active; 814. uta UTA22; 100. ecotrail, 80km
-        # TODO
-        print("FAILED TypeError: ", race_id, event_id)
-        raise ValueError
-    except ZeroDivisionError:
+    except TypeError as e:
+        if "argument of type 'NAType' is not iterable" in str(e):
+            print("FAILED RACE (Interpolating times failed): ", race_id, event_id)
+        elif "object of type 'NoneType' has no len()" in str(e):
+            print("FAILED CANCELLED RACE: ", race_id, event_id)
+        print("FAILED TypeError: ", race_id, event_id, e)
+        raise ValueError from e
+    except ZeroDivisionError as e:
         # Solved
         print("FAILED ZeroDivisionError: ", race_id, event_id)
-        raise ValueError
+        raise ValueError from e
     except IndexError as e:
         if 'single positional indexer is out-of-bounds' in str(e):
             print("FAILED CANCELLED RACE: ", race_id, event_id)
-        raise ValueError
+        elif 'list index out of range' in str(e):
+            print("FAILED RACE (1 single participant): ", race_id, event_id)
+        raise ValueError from e
     for bib, times in zip([v[0] for v in data],
                           [v[1] for v in rs.get_real_times().map(rs.format_time_over24h).iterrows()]):
         for control_point_id, time in zip(cps_ids.values(), times):

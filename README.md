@@ -163,12 +163,7 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 ### BackEnd
 - [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. 410. mut 2023)
 - [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. 646. trailnloue 2019 - 76km2j)
-- [ ] BUGs: Results class. Still need definition, but exceptions raised if CSV is parsed into Results class with an example race:
-
-> 44\. cavallsdelvent, relleus --> list index out of range
-> 137\. templiers, kd --> strptime() argument 1 must be str, not None
-> 158\. grp, TDG --> single positional indexer is out-of-bounds
-
+- [X] BUGs: Results class. Mostly cancelled races.
 - [ ] BUG: If a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now. FOUND a case: 84th in 646. trailnloue 2019 - 76km2j, before last control point.
 - [ ] Add printing version of times
 - [X] Create a DB to scrape and store all results and information
@@ -179,6 +174,7 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 - [X] Add this kind of races to tests (e.g. 'mbm' 2023 '42km')
 - [X] BUG: Races with different start time per participant (e.g. 'Marathon du Mont-Blanc', '2014' , 'kmv', 402, 'KM Vertical').
 - [ ] Aberrant times/paces management (mainly for plots and analysis)
+- [ ] Maybe add a '*' to interpolated times to prevent they're not real?
 
 ### CI/CD
 - [X] Create a CI

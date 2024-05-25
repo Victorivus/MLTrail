@@ -197,13 +197,18 @@ def main(path=None, data_path=None, clean=False, update=False):
                         scraper.set_race(race)
                         folder_path = os.path.join(data_path, event)
                         filepath = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
-                        results_filepath = filepath if os.path.exists(os.path.join(data_path, filepath)) else None
+                        results_filepath = filepath.split('../data/', maxsplit=1)[-1] if os.path.exists(os.path.join(data_path, filepath)) else None
                         race_info = scraper.get_race_info(bib_n=rr[year][race]) if rr[year][race] is not None else {'date': None, 'hd': None}
                         control_points = cps[race]
                         race_data = races_data[race]
                         if race_info:  # some races are empty but have empty rows in data (e.g. 'templiers', 'Templi', 2019)
                             # the .split('.')[0] is needed since few races sometime contain a dot at the end or '000' for milliseconds
-                            departure_datetime = ' '.join([race_info['date'], race_info['hd']]).split('.', maxsplit=1)[0] if race_info['date'] else None
+                            if race_info['date'] and race_info['hd']:
+                                departure_datetime = ' '.join([race_info['date'], race_info['hd']]).split('.', maxsplit=1)[0] if race_info['hd'] else None
+                            elif race_info['hd']:
+                                departure_datetime = race_info['hd']
+                            else:
+                                departure_datetime = None
                         else:
                             departure_datetime = None
                         r = Race(race_id=race, event_id=event_id, race_name=name, distance=race_data['distance'],
