@@ -182,6 +182,15 @@ def clean_race(cursor, event_id, race_id):
     ''', (event_id, race_id,))
 
 
+def update_DNFs(cursor):
+    # Set category
+    cursor.execute("""
+                    UPDATE results
+                    SET position = NULL, time = 'DNF'
+                    WHERE time IS NULL OR time = '';
+                    """
+                   )
+
 # Main function
 def main(path: str = None, data_path: str = None, clean: bool = False,
          skip: str = None, update: dict = None, force_update: bool = False):
@@ -266,6 +275,10 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
                     compute_category_rankings(cursor, event_id)
             else:
                 compute_category_rankings(cursor, event_id)
+
+    with db_connection:
+        cursor = db_connection.cursor()
+        update_DNFs(cursor)
 
 
 if __name__ == "__main__":
