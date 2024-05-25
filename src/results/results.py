@@ -16,8 +16,8 @@ class Results:
             days = ['Lu.', 'Ma.', 'Me.', 'Je.', 'Ve.', 'Sa.', 'Di.']  # Weekdays abreviations in French
             days = [days[(start_day - 1 + j) % len(days)] for j in range(len(days))]
             self.times = self.clean_days(times, days)
-        self.times = self.clean_times()
         self.set_offset(offset)
+        self.times = self.clean_times()
         self.times = self.times.apply(self._correct_times24h, axis=1)
         self.real_times = self.times
         self.waves = waves
@@ -57,25 +57,27 @@ class Results:
         self.times = self.times.replace('', pd.NA)  # Some races instead of NaN, place an empty string
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
 
+        # prevent failing for df with only one row
+        axis = 'rows' if len(self.times) > 1 else 'columns'
+        interpolate = 'mean' if len(self.times) == 1 else interpolate
+
         if interpolate == 'previous':
-            self.times = self.times.ffill(axis='rows')
+            self.times = self.times.ffill(axis=axis)
             # First row may stillcontain NaN
             if self.times.iloc[0].isnull().any():
-                self.times = self.times.bfill(axis='rows')
+                self.times = self.times.bfill(axis=axis)
         elif interpolate == 'next':
-            self.times = self.times.bfill(axis='rows')
+            self.times = self.times.bfill(axis=axis)
             # Last row may stillcontain NaN
             if self.times.iloc[-1].isnull().any():
-                self.times = self.times.ffill(axis='rows')
+                self.times = self.times.ffill(axis=axis)
         elif interpolate == 'mean':
-            # Not tested
-            df_ffilled = self.times.ffill(axis='rows')
-            df_ffilled = df_ffilled.applymap(self.get_seconds)
-            df_bfilled = self.times.bfill(axis ='rows')
-            df_bfilled = df_bfilled.applymap(self.get_seconds)
+            df_ffilled = self.times.ffill(axis=axis)
+            df_ffilled = df_ffilled.map(self.get_seconds)
+            df_bfilled = self.times.bfill(axis=axis)
+            df_bfilled = df_bfilled.map(self.get_seconds)
             self.times = (df_ffilled + df_bfilled) / 2
-            self.times = self.times.applymap(self.get_time)
-            # raise NotImplementedError("This feature is not implemented yet.")
+            self.times = self.times.map(self.get_time)
         return self.times
 
     def compute_real_times(self):
