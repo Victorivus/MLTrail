@@ -26,6 +26,13 @@ Execute the following command:
 poetry install
 ```
 
+# Launch web app
+Launch the following command:
+
+```
+streamlit run front/MLTrail.py
+```
+
 # Download data from LiveTrail locally
 Launch the following command:
 
@@ -65,10 +72,10 @@ lut 2016
 # oxfamtrailwalkerhk 2021 -> Password protected
 oxfamtrailwalkerhk 2021
 ```
-To recompute the `Results` table, the script `src/database/loader_LiveTrail/CSV_to_DB_results.py` can be used:
+In order to recompute the `Results` table, the script `src/database/loader_LiveTrail/CSV_to_DB_results.py` can be used:
 
-`CSV_to_DB_results.py -c -p data/events.db` Will recompute the full table from the data folder.
-`CSV_to_DB_results.py  -y races.txt -p data/events.db -f` Will force the computation and loading of the races events and years specified in `races.txt` from the data folder.
+`CSV_to_DB_results.py -c` Will reload the full table from the data folder, emptying it first.
+`CSV_to_DB_results.py -u races.txt -f` Will force the computation and loading of the races events and years specified in `races.txt` from the data folder.
 
 ```bash
 options:
@@ -85,14 +92,8 @@ NOTE: --update and --skip options cannot be used together.
 
 Same syntax and options apply to To recompute the `Timing_points` table and script `src/database/loader_LiveTrail/CSV_to_DB_timing_points.py` can be used:
 
+
 > :warning: **Warning:** Changing paths in scripts through the `-p` or `data-path` options is discouraged. Advanced users only.
-
-# Launch web app
-Launch the following command:
-
-```
-streamlit run front/MLTrail.py
-```
 
 # Collaborating
 
@@ -109,7 +110,6 @@ streamlit run front/MLTrail.py
 ### Scraping
 - [X] BUG: for some races, control point code is not unique since it gets revisited in different laps (e.g. event 'tapalpa23', 2023, 'enigma')
 - [X] Scraped timestamps are different (there is no day added and it gets back to 00:00:00 after 24h in race)
-- [ ] BUG: If a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now. FOUND a case: 84th in 646. trailnloue 2019 - 76km2j, before last control point.
 - [X] Get the name of the checkpoints from the website.
 - [X] Set objective directly by time and not by position.
 - [X] Get a list of available races in LiveTrail.
@@ -122,7 +122,7 @@ streamlit run front/MLTrail.py
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
 - [X] Add partial passing times (timing_points)
 - [X] Add control points to DB
-- [ ] Races with CSV results but no control points : create default ones with numbers
+- [ ] Races with CSV results but no control points : create default ones with numbers --> Does this happen? example of race ?
 - [ ] *Tablelize* countries, categories.
 - [X] Add tests.
 - [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
@@ -135,7 +135,7 @@ streamlit run front/MLTrail.py
 - [X] Load results to DB
 - [X] Compute category results in DB
 - [X] Design a way of having passing times in DB and not only final times
-- [ ] Fix path for data and plots (env variable)
+- [ ] Fix path for data and plots (env variable) --> data done, TODO: plots
 - [X] Not sure: Departure time doesn't seem always correct, will have to figure out another way of parsing it
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [X] add results download + load to DB to lib instead of notebook + script
@@ -165,18 +165,20 @@ streamlit run front/MLTrail.py
 - [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. 646. trailnloue 2019 - 76km2j)
 - [ ] BUGs: Results class. Still need definition, but exceptions raised if CSV is parsed into Results class with an example race:
 
-    > 44\. cavallsdelvent, relleus --> list index out of range
-    > 137\. templiers, kd --> strptime() argument 1 must be str, not None
-    > 158\. grp, TDG --> single positional indexer is out-of-bounds
+> 44\. cavallsdelvent, relleus --> list index out of range
+> 137\. templiers, kd --> strptime() argument 1 must be str, not None
+> 158\. grp, TDG --> single positional indexer is out-of-bounds
 
+- [ ] BUG: If a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now. FOUND a case: 84th in 646. trailnloue 2019 - 76km2j, before last control point.
 - [ ] Add printing version of times
-- [ ] Create a DB to scrape and store all results and information
+- [X] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)
 - [X] Fix imports
 - [X] Change camelCase style to snake_case style naming (Results)
 - [X] Fix: Add support for front bug races having departuire in timing_points (Results)
 - [X] Add this kind of races to tests (e.g. 'mbm' 2023 '42km')
 - [X] BUG: Races with different start time per participant (e.g. 'Marathon du Mont-Blanc', '2014' , 'kmv', 402, 'KM Vertical').
+- [ ] Aberrant times/paces management (mainly for plots and analysis)
 
 ### CI/CD
 - [X] Create a CI
