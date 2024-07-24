@@ -1,3 +1,6 @@
+'''
+    Test module for Database
+'''
 import unittest
 import os
 import sqlite3
@@ -22,12 +25,16 @@ class TestDatabase(unittest.TestCase):
 
     @classmethod
     def tearDownClass(self):
-        # Remove the test.db file if it exists
+        '''
+            Remove the test.db file if it exists
+        '''
         if os.path.exists(self.db_path):
             os.remove(self.db_path)
 
     def test_create_database(self):
-        # Ensure that the database is created successfully
+        '''
+            Ensure that the database is created successfully
+        '''
         self.assertFalse(os.path.exists(self.db_path))
         Database.create_database(self.db_path)
         self.assertTrue(os.path.exists(self.db_path))
@@ -47,7 +54,9 @@ class TestDatabase(unittest.TestCase):
         conn.close()
 
     def test_empty_all_tables(self):
-        # Create a database and populate it with some data
+        '''
+            Create a database and populate it with some data
+        '''
         Database.create_database(self.db_path)
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -82,6 +91,9 @@ class TestDatabase(unittest.TestCase):
         conn.close()
 
     def test_implemented_tests(self):
+        '''
+            Check that all functions are tested
+        '''
         unused_functions = get_untested_functions(Database, TestDatabase)
         print(unused_functions)
         assert len(unused_functions) == 0, "Database is not tested enough. pytest -s for details."

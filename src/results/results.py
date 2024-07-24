@@ -6,6 +6,9 @@ import matplotlib.dates as mdates
 
 
 class Results:
+    '''
+    Results class
+    '''
     def __init__(self, control_points: dict, times: pd.DataFrame, objective=0, offset=0,
                  clean_days=False, start_day=7, waves=False) -> None:
         self.control_points = control_points
@@ -147,7 +150,7 @@ class Results:
         minutes, seconds = divmod(remainder, 60)
         if ts is None or pd.isna(ts):
             return str(np.nan)
-        return ('{}:{:02d}:{:02d}').format(int(hours), int(minutes), int(seconds)) 
+        return ('{}:{:02d}:{:02d}').format(int(hours), int(minutes), int(seconds))
 
     @staticmethod
     def fix_format(df: pd.DataFrame) -> pd.DataFrame:
@@ -265,7 +268,7 @@ class Results:
             paces = self.paces
         mean_n1 = pd.DataFrame(paces.head(n1).apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
         mean_n2 = pd.DataFrame(paces.head(n2).apply(lambda x: pd.to_timedelta(x)).mean().map(self.td_to_string)).T
-        first = pd.DataFrame(paces.head(1).apply(lambda x: pd.to_timedelta(x)).min().map(self.td_to_string)).T 
+        first = pd.DataFrame(paces.head(1).apply(lambda x: pd.to_timedelta(x)).min().map(self.td_to_string)).T
         mins = pd.DataFrame(paces.apply(lambda x: pd.to_timedelta(x)).min().map(self.td_to_string)).T
 
         index = ['mins', 'first', f'mean_{n1}', f'mean_{n2}']
@@ -284,13 +287,13 @@ class Results:
         return
 
     def get_objective_times(self):
-        return pd.DataFrame(self.times.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T 
+        return pd.DataFrame(self.times.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T
 
     def get_objective_paces(self):
-        return pd.DataFrame(self.paces.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T 
+        return pd.DataFrame(self.paces.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T
 
     def get_objective_paces_norm(self):
-        return pd.DataFrame(self.paces_norm.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T 
+        return pd.DataFrame(self.paces_norm.iloc[self.objective].apply(lambda x: pd.to_timedelta(x)).map(self.td_to_string)).T
 
     def get_objective_mean_paces(self, n=5, paces=None):
         n = n - 1  # objective is already one of the n to compute mean on

@@ -5,13 +5,15 @@ import os
 import sqlite3
 import streamlit as st
 import pandas as pd
-import config
 
 DATA_DIR_PATH = os.environ["DATA_DIR_PATH"]
 DB_PATH = os.path.join(DATA_DIR_PATH, 'events.db')
 
-# Function to fetch distinct surnames and names from the database
+
 def fetch_distinct_names():
+    '''
+    Function to fetch distinct surnames and names from the database
+    '''
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT DISTINCT surname, name FROM results")
@@ -20,8 +22,10 @@ def fetch_distinct_names():
     return names
 
 
-# Function to execute query and fetch results
 def fetch_results(surname, first_name=None):
+    '''
+    Function to execute query and fetch results
+    '''
     # Connect to SQLite database
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -64,7 +68,11 @@ def fetch_results(surname, first_name=None):
 
     return results
 
+
 def main():
+    '''
+    main function for the Streamlit page
+    '''
     st.set_page_config(layout="wide")
     st.title("Trail Race Results Lookup")
     st.markdown("*Scraped from LiveTrail up to 01/05/2024.*")
