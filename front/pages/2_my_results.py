@@ -68,7 +68,8 @@ def main():
     st.set_page_config(layout="wide")
     st.title("Trail Race Results Lookup")
     st.markdown("*Scraped from LiveTrail up to 01/05/2024.*")
-
+    if 'result_button_clicked' not in st.session_state:
+        st.session_state.result_button_clicked = False
     # Fetch distinct surnames and names from the database
     # Too long, it lags.
     # names = fetch_distinct_names()
@@ -91,10 +92,15 @@ def main():
                                                                         "Name", "Sex Category",
                                                                         "Full Category", "Time"])
                 st.write(results)
+                st.session_state.result_button_clicked = True
             else:
                 st.error("No results found for the provided surname.")
         else:
             st.warning("Please enter your surname.")
+
+    if st.session_state.result_button_clicked:
+        if st.button("Convert to model input"):
+            st.error("Not implemented yet.")
 
     # name = st.selectbox("Select Name", options=names, index=0, format_func=lambda x: x.lower())
     # # Button to fetch results
