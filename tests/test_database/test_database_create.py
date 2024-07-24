@@ -43,6 +43,7 @@ class TestDatabase(unittest.TestCase):
         self.assertIn('results', table_names)
         self.assertIn('control_points', table_names)
         self.assertIn('timing_points', table_names)
+        self.assertIn('features', table_names)
         conn.close()
 
     def test_empty_all_tables(self):
