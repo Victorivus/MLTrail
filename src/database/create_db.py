@@ -114,22 +114,23 @@ class Database:
         # Create model_input table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS features (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 race_id TEXT,
                 event_id INTEGER,
                 bib TEXT,
                 dist_total REAL,
-                D_pos_total INTEGER,
-                d_neg_total INTEGER,
+                elevation_pos_total INTEGER,
+                elevation_neg_total INTEGER,
                 dist_segment REAL,
                 dist_cumul REAL,
-                D_pos_segment INTEGER,
-                D_pos_cumul INTEGER,
-                d_neg_segment INTEGER,
-                d_neg_cumul INTEGER,
+                elevation_pos_segment INTEGER,
+                elevation_pos_cumul INTEGER,
+                elevation_neg_segment INTEGER,
+                elevation_neg_cumul INTEGER,
                 time TEXT,
-                PRIMARY KEY (race_id, event_id, bib),
                 FOREIGN KEY (race_id) REFERENCES races(race_id),
-                FOREIGN KEY (event_id) REFERENCES events(event_id)
+                FOREIGN KEY (event_id) REFERENCES events(event_id),
+                FOREIGN KEY (bib) REFERENCES results(bib)
             )
         ''')
 
