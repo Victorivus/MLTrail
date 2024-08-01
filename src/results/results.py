@@ -17,7 +17,7 @@ class Results:
             days = [days[(start_day - 1 + j) % len(days)] for j in range(len(days))]
             self.times = self.clean_days(times, days)
         self.set_offset(offset)
-        self.times = self.clean_times()
+        self.times = self.clean_times(interpolate='mean', axis='columns')
         self.times = self.times.apply(self._correct_times24h, axis=1)
         self.real_times = self.times
         self.waves = waves
@@ -31,19 +31,13 @@ class Results:
     def _correct_times24h(self, row) -> pd.Series:
         previous_time = row.iloc[0]
         adjusted_row = [row.iloc[0]]
-        repeat = True
-        # races that cross midnight more than once
-        while repeat:
-            adjusted_row = [row.iloc[0]]
-            for i, time in enumerate(row[1:]):
-                if (self.get_seconds(time, offset=False)) < self.get_seconds(previous_time, offset=False):
-                    row[i+1:] = [self.get_time(self.get_seconds(t, offset=False) + 24 * 60 * 60) for t in row[i+1:]]
-                    time = row[i+1]
-                    repeat = True
-                else:
-                    repeat = False
-                adjusted_row.append(time)
-                previous_time = time
+        adjusted_row = [row.iloc[0]]
+        for i, time in enumerate(row[1:]):            
+            if (self.get_seconds(time) ) < self.get_seconds(previous_time):
+                row.iloc[i+1:] = [self.get_time(self.get_seconds(t, offset=False) + 24 * 60 * 60) for t in row.iloc[i+1:]]
+                time = row.iloc[i+1]
+            adjusted_row.append(time)
+            previous_time = time
         return pd.Series(adjusted_row, index=row.index)
 
     def clean_days(self, times: pd.DataFrame, days: list[str]) -> pd.DataFrame:
@@ -60,13 +54,14 @@ class Results:
                                   offset=False) + i * 24 * 3600) if str(y).startswith(f'{day}') else y)))
         return times
 
-    def clean_times(self, interpolate='previous') -> pd.DataFrame:
+    def clean_times(self, interpolate='previous', axis='rows') -> pd.DataFrame:
         # Filter out DNFs (last column is NaN)
         self.times = self.times.replace('', pd.NA)  # Some races instead of NaN, place an empty string
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
+        self.times = self.times.replace('nan', None)  # so ffill works
 
         # prevent failing for df with only one row
-        axis = 'rows' if len(self.times) > 1 else 'columns'
+        axis = 'columns' if len(self.times) == 1 else axis
         interpolate = 'mean' if len(self.times) == 1 else interpolate
 
         if interpolate == 'previous':
@@ -85,7 +80,7 @@ class Results:
             df_bfilled = self.times.bfill(axis=axis)
             df_bfilled = df_bfilled.map(self.get_seconds)
             self.times = (df_ffilled + df_bfilled) / 2
-            self.times = self.times.map(self.get_time)
+            self.times = self.times.map(lambda x: self.get_time(self.offset + x))
         return self.times
 
     def compute_real_times(self):
@@ -96,7 +91,7 @@ class Results:
         self.real_times = real_times.map(self.get_time)
         return True
 
-    def get_seconds(self, time: str, offset=True):
+    def get_d_h_m_s(self, time: str):
         d = 0  # days
         if 'day' in time:
             days, time = time.split(", ")
@@ -104,6 +99,10 @@ class Results:
         if len(time.split(':')) == 2:
             time += ':00'
         h, m, s = map(int, time.split(':'))
+        return d, h, m, s
+
+    def get_seconds(self, time: str, offset=True):
+        d, h, m, s = self.get_d_h_m_s(time)
         if not offset:
             return d * 24 * 3600 + h * 3600 + m * 60 + s
         return d * 24 * 3600 + h * 3600 + m * 60 + s - self.offset
@@ -339,3 +338,17 @@ class Results:
         hours, remainder = divmod(total_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+
+    def format_hourtime_over24h(self, td) -> str:
+        '''
+        Function to format timedelta to string in hour of the day
+        indicating if days have passed with (+1)
+        '''
+        d, h, m, s = self.get_d_h_m_s(td)
+        total_seconds = self.get_seconds(td, offset=False) % (24 * 3600)
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        if d > 0:
+            return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02} (+{d})"
+        return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+
