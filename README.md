@@ -90,7 +90,9 @@ options:
 NOTE: --update and --skip options cannot be used together.
 ```
 
-Same syntax and options apply to To recompute the `Timing_points` table and script `src/database/loader_LiveTrail/CSV_to_DB_timing_points.py` can be used:
+Same syntax and options apply to To recompute the `Timing_points` table and script `src/database/loader_LiveTrail/CSV_to_DB_timing_points.py` can be used.
+
+More details and visual example in the notebook `examples/parse_LiveTrail_to_DB.ipynb`
 
 
 > :warning: **Warning:** Changing paths in scripts through the `-p` or `data-path` options is discouraged. Advanced users only.
@@ -117,6 +119,7 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
+- [ ] BUG (minor): set order when renamig double control points. E.g. UTMB 2023: Courmayer and 2-Courmayeur or Vallorcine and 2-Vallorcine, times are inverted
 - [X] BUG: When loading data, need to recheck category rankings.
 - [X] BUG: When loading data into timing points they are shifted by one having time for point0 and missing finish time.
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
