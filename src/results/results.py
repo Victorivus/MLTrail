@@ -31,11 +31,19 @@ class Results:
     def _correct_times24h(self, row) -> pd.Series:
         previous_time = row.iloc[0]
         adjusted_row = [row.iloc[0]]
-        for time in row[1:]:
-            if self.get_seconds(time) < self.get_seconds(previous_time):
-                time = self.get_time(self.get_seconds(time) + 24 * 60 * 60)
-            adjusted_row.append(time)
-            previous_time = time
+        repeat = True
+        # races that cross midnight more than once
+        while repeat:
+            adjusted_row = [row.iloc[0]]
+            for i, time in enumerate(row[1:]):
+                if (self.get_seconds(time, offset=False)) < self.get_seconds(previous_time, offset=False):
+                    row[i+1:] = [self.get_time(self.get_seconds(t, offset=False) + 24 * 60 * 60) for t in row[i+1:]]
+                    time = row[i+1]
+                    repeat = True
+                else:
+                    repeat = False
+                adjusted_row.append(time)
+                previous_time = time
         return pd.Series(adjusted_row, index=row.index)
 
     def clean_days(self, times: pd.DataFrame, days: list[str]) -> pd.DataFrame:
