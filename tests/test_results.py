@@ -386,7 +386,13 @@ class TestResults():
 
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397
+        assert sample_results.get_seconds('3 days, 1:30:00') == 264597
+        assert sample_results.get_seconds('3 days, 1:30:00', offset=False) == 264600
         assert sample_results.get_seconds('1:30:00', offset=False) == 5400
+
+    def test_get_d_h_m_s(self, sample_results):
+        assert sample_results.get_d_h_m_s('1:30:00') == (0, 1, 30, 0)
+        assert sample_results.get_d_h_m_s('3 days, 1:30:00') == (3, 1, 30, 0)
 
     def test_total_time_to_delta(self, sample_results):
         assert sample_results.total_time_to_delta('2:37:23', '1:00:00') == '1:37:23'
@@ -441,6 +447,17 @@ class TestResults():
         expected_result_more_than_24h = "63:45:20"
         assert sample_results.format_time_over24h(td_more_than_24h) == expected_result_more_than_24h
 
+    def test_format_hourtime_over24h(self, sample_results):
+        # Test case with timedelta less than 24 hours
+        td_less_than_24h = str(timedelta(hours=10, minutes=30, seconds=45))
+        expected_result_less_than_24h = "10:30:45"
+        assert sample_results.format_hourtime_over24h(td_less_than_24h) == expected_result_less_than_24h
+
+        # Test case with timedelta more than 24 hours
+        td_more_than_24h = str(timedelta(days=2, hours=15, minutes=45, seconds=20))
+        expected_result_more_than_24h = "15:45:20 (+2)"
+        assert sample_results.format_hourtime_over24h(td_more_than_24h) == expected_result_more_than_24h
+
     def test_get_time(self, sample_results):
         # Test case with seconds less than one hour
         seconds_less_than_hour = 3600  # 1 hour
@@ -469,11 +486,11 @@ class TestResults():
 
     def test_get_hours(self, sample_results_bis):
         data = {
-            'Place du t': ['07:30:01', '07:30:01', '07:00:01', '07:30:01', '07:30:01'],
-            'Argenti': ['08:07:42', '08:07:43', '07:41:25', '08:07:57', '08:08:06'],
-            'Col des po': ['09:04:17', '09:06:04', '08:47:39', '09:08:00', '09:08:37'],
-            'Vallo': ['09:21:19', '09:23:13', '09:07:21', '09:26:24', '09:25:50'],
-            'Bois plagn': ['10:05:02', '10:08:24', '09:57:12', '10:12:42', '10:11:21'],
+            'Place du t': ['7:30:01', '7:30:01', '7:00:01', '7:30:01', '7:30:01'],
+            'Argenti': ['8:07:42', '8:07:43', '7:41:25', '8:07:57', '8:08:06'],
+            'Col des po': ['9:04:17', '9:06:04', '8:47:39', '9:08:00', '9:08:37'],
+            'Vallo': ['9:21:19', '9:23:13', '9:07:21', '9:26:24', '9:25:50'],
+            'Bois plagn': ['10:05:02', '10:08:24', '9:57:12', '10:12:42', '10:11:21'],
             'Flégère ra': ['10:27:36', '10:33:59', '10:27:10', '10:39:21', '10:39:29'],
             'Arrivée': ['11:05:05', '11:10:51', '11:12:40', '11:16:45', '11:18:32']
         }
@@ -555,6 +572,8 @@ class TestResults():
         sample_results.plot_control_points(sample_results.get_stats(), show_hours=False, xrotate=False, inverty=True, save_path=plot_path)
         assert os.path.exists(plot_path)
         os.remove(plot_path)
+        
+    
 
 ##########################################################################################
 #
