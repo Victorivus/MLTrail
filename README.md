@@ -117,6 +117,7 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
+- [ ] BUG : Time is not properly computed (see UMTB 2023) --> regression. Almost fixede, just last 4 getting +1 day
 - [X] BUG: When loading data, need to recheck category rankings.
 - [X] BUG: When loading data into timing points they are shifted by one having time for point0 and missing finish time.
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
