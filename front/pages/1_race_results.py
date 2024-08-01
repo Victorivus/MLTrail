@@ -123,8 +123,8 @@ def main():
                 raw_results, control_points, rs, race_info, waves = get_results(event, year, race)
                 rs.plot_control_points(rs.get_stats(), xrotate=True, inverty=True, save_path=file_path)
                 data = {
-                    'times': rs.get_times().map(rs.format_time_over24h),
-                    'hours': rs.get_hours().map(rs.format_time_over24h),
+                    'times': rs.get_hours().map(rs.format_time_over24h),
+                    'hours': rs.get_hours().map(rs.format_hourtime_over24h),
                     'real_times': rs.get_real_times().map(rs.format_time_over24h),
                     'paces': rs.paces,
                     # 'plot_image_tag': file_path,
@@ -139,13 +139,11 @@ def main():
                 st.write('Hours:')
                 st.write(data['hours'].sort_index())
 
+                st.write('Official Times:')
+                st.write(data['real_times'].sort_index())
                 if waves:
-                    st.write('REAL Times:')
+                    st.write('Real Times:')
                     st.write(data['real_times'].sort_index())
-
-                else:
-                    st.write('Times:')
-                    st.write(data['times'].sort_index())
 
                 st.write('Paces:')
                 st.write(data['paces'].sort_index())
