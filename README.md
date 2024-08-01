@@ -119,7 +119,7 @@ More details and visual example in the notebook `examples/parse_LiveTrail_to_DB.
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
-- [ ] BUG (minor): set order when renamig double control points. E.g. UTMB 2023: Courmayer and 2-Courmayeur or Vallorcine and 2-Vallorcine, times are inverted
+- [X] BUG (minor): set order when renamig double control points. E.g. UTMB 2023: Courmayer and 2-Courmayeur or Vallorcine and 2-Vallorcine, times are inverted
 - [X] BUG: When loading data, need to recheck category rankings.
 - [X] BUG: When loading data into timing points they are shifted by one having time for point0 and missing finish time.
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised

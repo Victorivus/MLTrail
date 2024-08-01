@@ -51,7 +51,7 @@ def fetch_control_points(cursor, race_id, event_id):
     cursor.execute('''
         SELECT code, name, distance, elevation_pos, elevation_neg, control_point_id
         FROM control_points WHERE race_id = ? AND event_id = ?
-        ORDER BY distance
+        ORDER BY control_point_id
     ''', (race_id, event_id,))
     rows = cursor.fetchall()
     control_points = {}
