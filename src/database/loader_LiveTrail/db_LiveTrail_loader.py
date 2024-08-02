@@ -247,7 +247,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--path', default=None, help='DB path.')
     parser.add_argument('-d', '--data-path', default=None, help='CSV files path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
-    parser.add_argument('-u', '--update', action='store_true', help='Download only events and reces not already present in DB.')
+    parser.add_argument('-u', '--update', action='store_true', help='Download only events and races not already present in DB.')
 
     args = parser.parse_args()
     path = args.path
