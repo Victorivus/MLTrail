@@ -181,7 +181,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
         if skip:
             _, db_years = Event.get_events_years(db)
             parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(skip)
-            print(f"INFO: Updating {len(db_years)-len(parsed_data)} events")
+            print(f"INFO: Updating {len(db_years) - len(parsed_data) + 1} events")
             _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
             folders = list(years.keys())
             db_LiveTrail_loader.save_years_to_txt('updated_events_years.txt', years)
