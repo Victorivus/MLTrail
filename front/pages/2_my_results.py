@@ -76,7 +76,7 @@ def main():
     '''
     st.set_page_config(layout="wide")
     st.title("Trail Race Results Lookup")
-    st.markdown("*Scraped from LiveTrail up to 01/05/2024.*")
+    st.markdown("*Scraped from LiveTrail up to 01/08/2024.*")
     if 'result_button_clicked' not in st.session_state:
         st.session_state.result_button_clicked = False
     # Fetch distinct surnames and names from the database
@@ -115,13 +115,12 @@ def main():
     if st.session_state.result_button_clicked:
         if st.button("Convert to model input"):
             if 'metadata_features' in st.session_state:
-                st.write("Retreiving data for....")
                 metadata_features = st.session_state['metadata_features']
                 feat = Features(metadata_features, DB_PATH)
                 st.write(feat.fetch_features_table())
             else:
                 st.write("Results data not found in session state.")
-            st.error("Not implemented yet.")
+            st.warning("Not implemented yet. Feature copming soon...")
 
     # name = st.selectbox("Select Name", options=names, index=0, format_func=lambda x: x.lower())
     # # Button to fetch results
