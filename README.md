@@ -164,6 +164,7 @@ More details and visual example in the notebook `examples/parse_LiveTrail_to_DB.
 
 
 ### BackEnd
+- [ ] BUG: (minor) Results class, if there are more than 1 NaN in a row, the interpolated time is the same for all of them when performing the mean (e.g. 456. mim 2022: iloc[616] has 2 NaN in a row)
 - [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. 410. mut 2023)
 - [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. 646. trailnloue 2019 - 76km2j)
 - [X] BUGs: Results class. Mostly cancelled races.
