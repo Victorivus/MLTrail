@@ -69,16 +69,30 @@ class Results:
 
         if interpolate == 'previous':
             self.times = self.times.ffill(axis=axis)
-            # First row may stillcontain NaN
-            if self.times.iloc[0].isnull().any():
-                self.times = self.times.bfill(axis=axis)
+            if axis == 'rows':
+                # First row may still contain NaN
+                if self.times.iloc[0].isnull().any():
+                    self.times = self.times.bfill(axis=axis)
+            else:
+                if self.times.iloc[:, 0].isnull().any():
+                    # First column may still contain NaN
+                    self.times = self.times.bfill(axis=axis)
         elif interpolate == 'next':
             self.times = self.times.bfill(axis=axis)
-            # Last row may stillcontain NaN
-            if self.times.iloc[-1].isnull().any():
-                self.times = self.times.ffill(axis=axis)
+            if axis == 'rows':
+                # Last row may still contain NaN (last column cannot be NaN)
+                if self.times.iloc[-1].isnull().any():
+                    self.times = self.times.ffill(axis=axis)
         elif interpolate == 'mean':
             df_ffilled = self.times.ffill(axis=axis)
+            if axis == 'rows':  # not tested
+                # First row may still contain NaN
+                if df_ffilled.iloc[0].isnull().any():
+                    df_ffilled = df_ffilled.bfill(axis=axis)
+            else:
+                if df_ffilled.iloc[:, 0].isnull().any():
+                    # First column may still contain NaN
+                    df_ffilled = df_ffilled.bfill(axis=axis)
             df_ffilled = df_ffilled.map(self.get_seconds)
             df_bfilled = self.times.bfill(axis=axis)
             df_bfilled = df_bfilled.map(self.get_seconds)
