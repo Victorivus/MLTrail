@@ -5,6 +5,7 @@ import os
 import sqlite3
 import streamlit as st
 import pandas as pd
+from ai.features import Features
 
 DATA_DIR_PATH = os.environ["DATA_DIR_PATH"]
 DB_PATH = os.path.join(DATA_DIR_PATH, 'events.db')
@@ -33,7 +34,7 @@ def fetch_results(surname, first_name=None):
     if first_name is None and ',' not in surname:
         # Execute query to retrieve results
         query = """
-            SELECT events.name, events.year, results.race_id, results.position, results.cat_position,
+            SELECT results.event_id, results.race_id, results.bib, events.name, events.year, results.race_id, results.position, results.cat_position,
                     results.full_cat_position, results.surname, results.name,
                     results.sex_category, results.full_category, results.time
             FROM results
@@ -47,7 +48,7 @@ def fetch_results(surname, first_name=None):
             surname, first_name = [part.strip() for part in surname.split(",")]
         # Execute query to retrieve results
         query = """
-            SELECT events.name, events.year, races.race_name, results.position, results.cat_position,
+            SELECT results.event_id, results.race_id, results.bib, events.name, events.year, races.race_name, results.position, results.cat_position,
                     results.full_cat_position, results.surname, results.name,
                     results.sex_category, results.full_category, results.time
             FROM results
@@ -94,11 +95,16 @@ def main():
 
             # Display results in table
             if results:
-                results = pd.DataFrame(fetch_results(surname), columns=["Event", "Year", "Race",
+                results = pd.DataFrame(fetch_results(surname), columns=["event_id", "race_id", "bib", "Event", "Year", "Race",
                                                                         "Position", "Sex Position",
                                                                         "Category Position", "Surname",
                                                                         "Name", "Sex Category",
                                                                         "Full Category", "Time"])
+                
+                metadata = results[["event_id", "race_id", "bib"]]
+                metadata = list(metadata.itertuples(index=False, name=None))
+                results = results.drop(columns=["event_id", "race_id", "bib"])
+                st.session_state['metadata_features'] = metadata
                 st.write(results)
                 st.session_state.result_button_clicked = True
             else:
@@ -108,6 +114,13 @@ def main():
 
     if st.session_state.result_button_clicked:
         if st.button("Convert to model input"):
+            if 'metadata_features' in st.session_state:
+                st.write("Retreiving data for....")
+                metadata_features = st.session_state['metadata_features']
+                feat = Features(metadata_features, DB_PATH)
+                st.write(feat.fetch_features_table())
+            else:
+                st.write("Results data not found in session state.")
             st.error("Not implemented yet.")
 
     # name = st.selectbox("Select Name", options=names, index=0, format_func=lambda x: x.lower())
