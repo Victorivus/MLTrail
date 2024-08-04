@@ -50,6 +50,15 @@ jobs:
       - name: Install project
         run: poetry install --no-interaction
       #----------------------------------------------
+      # Create env file
+      #----------------------------------------------
+      - name: 'Create env file'
+        run: |
+          touch .env
+          echo PACKAGE_DIR_PATH="." >> .env
+          echo DATA_DIR_PATH="./data" >> .env
+          cat .env
+      #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Run tests
