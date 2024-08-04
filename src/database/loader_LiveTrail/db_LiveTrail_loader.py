@@ -9,6 +9,7 @@ from scraper.scraper import LiveTrailScraper
 from database.create_db import Database
 from database.models import Event, Race
 from database.loader_LiveTrail import CSV_to_DB_results, CSV_to_DB_timing_points
+from database.load_features import load_features
 import warnings
 from bs4 import GuessedAtParserWarning
 import config
@@ -239,6 +240,9 @@ def main(path=None, data_path=None, clean=False, update=False):
         else:
             script.main(path=os.path.join(actual_path, path), clean=clean,
                         data_path=data_path, update=years)
+            
+    print("INFO: Creating table for enabling AI")
+    load_features(db_path=db.path, clean=clean)
     print("INFO: Updated events:")
     print(open('updated_events_years.txt', encoding='utf-8').read())
 
