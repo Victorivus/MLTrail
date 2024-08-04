@@ -50,9 +50,24 @@ def fetch_departure_date_time(cursor, race_id, event_id) -> datetime | None:
     cursor.execute("SELECT departure_datetime FROM races WHERE race_id = ? AND event_id = ?", (race_id, event_id))
     row = cursor.fetchone()
     if row:
-        if row[0] is not None:
-            departure_time = datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
-            return departure_time
+        try:
+            # Try to parse the string with both date and time
+            return datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            # If it fails, try parsing it with just the time
+            try:
+                time_only = datetime.strptime(row[0], '%H:%M:%S').time()
+                # Combine the time with a default date, 1st jan from race's year
+                cursor.execute("SELECT year FROM events WHERE event_id = ?", (event_id,))
+                row_year = cursor.fetchone()[0]
+                default_date = datetime(int(row_year), 1, 1)
+                return datetime.combine(default_date, time_only)
+            except ValueError:
+                # If it still fails, return None or handle the error as needed
+                return None
+        except TypeError:
+            # departure_datetime is None
+            return None
     return None
 
 
