@@ -3,7 +3,7 @@ import unittest
 import sqlite3
 import pytest
 from database.create_db import Database
-from database.database import Race
+from database.models import Race
 
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 

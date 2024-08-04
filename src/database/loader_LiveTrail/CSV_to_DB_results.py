@@ -5,7 +5,7 @@ import argparse
 import json
 from datetime import datetime, timedelta
 import config
-from database.database import Event
+from database.models import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
 

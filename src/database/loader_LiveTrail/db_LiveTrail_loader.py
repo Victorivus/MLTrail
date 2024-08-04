@@ -7,7 +7,7 @@ import argparse
 import sqlite3
 from scraper.scraper import LiveTrailScraper
 from database.create_db import Database
-from database.database import Event, Race
+from database.models import Event, Race
 from database.loader_LiveTrail import CSV_to_DB_results, CSV_to_DB_timing_points
 import warnings
 from bs4 import GuessedAtParserWarning

@@ -5,7 +5,7 @@ import sqlite3
 import argparse
 import pandas as pd
 import config
-from database.database import Event
+from database.models import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
 from datetime import datetime
@@ -175,6 +175,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
             with db_connection:
                 cursor = db_connection.cursor()
                 clean_table(cursor)
+                db_connection.commit()
                 print('INFO: timing_points table emptied')
 
         folders = os.listdir(data_path)

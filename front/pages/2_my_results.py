@@ -76,7 +76,7 @@ def main():
     '''
     st.set_page_config(layout="wide")
     st.title("Trail Race Results Lookup")
-    st.markdown("*Scraped from LiveTrail up to 01/08/2024.*")
+    st.markdown("*Scraped from LiveTrail up to 04/08/2024.*")
     if 'result_button_clicked' not in st.session_state:
         st.session_state.result_button_clicked = False
     # Fetch distinct surnames and names from the database
