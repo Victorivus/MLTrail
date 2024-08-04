@@ -25,6 +25,29 @@ def empty_features(db_path):
     finally:
         conn.close()
 
+def clean_spurious(db_path):
+    '''
+    Function to Remove the spourious segments from the table features,
+    If the first CP is departure, there is this record added, so we clean them.
+    '''
+    db: Database = Database.create_database(path=db_path)
+    conn = sqlite3.connect(db.path)
+    try:
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                DELETE FROM features
+                WHERE
+                    time = '00:00:00' AND
+                    elevation_pos_segment = 0 AND
+                    elevation_pos_cumul = 0 AND
+                    elevation_neg_segment = 0 AND
+                    elevation_neg_cumul = 0
+            ''')
+            conn.commit()
+    finally:
+        conn.close()
+
 
 def load_features(db_path: str, clean: bool = False, update: dict = None):
     '''
@@ -173,6 +196,8 @@ def load_features(db_path: str, clean: bool = False, update: dict = None):
             conn.commit()
     finally:
         conn.close()
+
+    clean_spurious(db.path)
 
 
 if __name__ == "__main__":
