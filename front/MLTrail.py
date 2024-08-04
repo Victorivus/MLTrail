@@ -1,11 +1,12 @@
 '''
 Viz test module for the Results class
 '''
+import os
 import streamlit as st
 from dotenv import load_dotenv
 
 # Load variables from .env file
-load_dotenv()
+load_dotenv(override=True)
 
 
 # Function to store session-like data using Streamlit's caching mechanism

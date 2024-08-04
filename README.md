@@ -90,12 +90,16 @@ options:
 NOTE: --update and --skip options cannot be used together.
 ```
 
-Same syntax and options apply to To recompute the `Timing_points` table and script `src/database/loader_LiveTrail/CSV_to_DB_timing_points.py` can be used:
+Same syntax and options apply to To recompute the `Timing_points` table and script `src/database/loader_LiveTrail/CSV_to_DB_timing_points.py` can be used.
+
+More details and visual example in the notebook `examples/parse_LiveTrail_to_DB.ipynb`
 
 
 > :warning: **Warning:** Changing paths in scripts through the `-p` or `data-path` options is discouraged. Advanced users only.
 
 # Collaborating
+
+Don't hesitate to get in contact or open an issue!
 
 ## TO-DO list
 - [X] Automatically parse LiveTrail data.
@@ -117,6 +121,7 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 - [X] Change camelCase style to snake_case style naming
 
 ### Relational DB
+- [X] BUG (minor): set order when renamig double control points. E.g. UTMB 2023: Courmayer and 2-Courmayeur or Vallorcine and 2-Vallorcine, times are inverted
 - [X] BUG: When loading data, need to recheck category rankings.
 - [X] BUG: When loading data into timing points they are shifted by one having time for point0 and missing finish time.
 - [ ] Change SQLite to Postgres ? --> when app will be dockerised
@@ -145,8 +150,9 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 ### ML/AI
 - [ ] Add inference points from models
 - [ ] Add modelling capabilities from own data, start simple (ensemble methods)
-- [ ] Generate training file with simple variables (dist_total, D_total, d_total, dist_segment, dist_cumul, D_segment, D_cumul, d_segment, d_cumul, time)
+- [X] Generate training file with simple variables (dist_total, D_total, d_total, dist_segment, dist_cumul, D_segment, D_cumul, d_segment, d_cumul, time)
 - [ ] Research constrained methods (total_estimation = sum(sections_estimation))
+- [ ] Test unsupervised clustering models to generate a performance index (such as ITRA performance index, UTMB index, Niveau Betrail, etc.)
 
 
 ### FrontEnd
@@ -161,10 +167,11 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 
 
 ### BackEnd
-- [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. 410. mut 2023)
-- [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. 646. trailnloue 2019 - 76km2j)
+- [ ] BUG: (minor) Results class, if there are more than 1 NaN in a row, the interpolated time is the same for all of them when performing the mean (e.g. penyagolosa 2022 'mim': iloc[616] has 2 NaN in a row)
+- [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. mut 2023)
+- [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. trailnloue 2019 - 76km2j)
 - [X] BUGs: Results class. Mostly cancelled races.
-- [ ] BUG: If a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now. FOUND a case: 84th in 646. trailnloue 2019 - 76km2j, before last control point.
+- [ ] BUG: If a time is missing and it is interpolated from previous (default) or next runner, it might be less than the previous checkpoint and we would then add 24h to this time --> It is highly improbable, we will leave it for now. FOUND a case: 84th in trailnloue 2019 - 76km2j, before last control point.
 - [ ] Add printing version of times
 - [X] Create a DB to scrape and store all results and information
 - [ ] Add robustness to objective computation. i.e. if faster than first, compute std of the 5 samples and maybe decide to take less if it is too high (times too far appart)

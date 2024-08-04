@@ -1,37 +1,30 @@
-'''
-    MLTrail Results Database creation
-'''
+import unittest
 import os
 import sqlite3
-from sqlite3 import Connection, Cursor
+import tempfile
+from unittest.mock import patch, MagicMock
+from database.create_db import Database
+from database.loader_LiveTrail import db_LiveTrail_loader
+from database.load_features import empty_features, load_features
 
+class TestFeaturesLoader(unittest.TestCase):
 
-class Database:
-    '''
-        SQLite3 Database for storing locally racing data.
-    '''
-    path: str = 'events.db'
+    def setUp(self):
+        # Create a temporary SQLite database file
+        self.temp_file = tempfile.NamedTemporaryFile(delete=False)
+        self.db_path = self.temp_file.name
+        self.temp_file.close()  # Close the file so SQLite can use it
 
-    @classmethod
-    def create_database(cls, path=None) -> Connection:
-        '''
-            Create app's SQLite database
-        '''
-        if path:
-            cls.path = path
+        # Connect to the SQLite database file
+        self.conn = sqlite3.connect(self.db_path)
+        self.cursor = self.conn.cursor()
 
-        # Check if the database file already exists
-        if os.path.exists(cls.path):
-            print(f"INFO: {cls.path}")
-            print("INFO: Database already exists.")
-            return cls
+        # Create tables required for testing
+        self._create_tables()
 
-        # Connect to SQLite database (creates if not exists)
-        conn: Connection = sqlite3.connect(cls.path)
-        cursor: Cursor = conn.cursor()
-
+    def _create_tables(self):
         # Create events table
-        cursor.execute('''
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS events (
                 event_id INTEGER PRIMARY KEY,
                 code TEXT,
@@ -42,7 +35,7 @@ class Database:
         ''')
 
         # Create races table
-        cursor.execute('''
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS races (
                 race_id TEXT,
                 event_id INTEGER,
@@ -58,7 +51,7 @@ class Database:
         ''')
 
         # Create results table
-        cursor.execute('''
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS results (
                 race_id TEXT,
                 event_id INTEGER,
@@ -78,7 +71,7 @@ class Database:
         ''')
 
         # Create control points table
-        cursor.execute('''
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS control_points (
                 control_point_id INTEGER PRIMARY KEY,
                 event_id INTEGER,
@@ -95,7 +88,7 @@ class Database:
         ''')
 
         # Create timing points table
-        cursor.execute('''
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS timing_points (
                 timing_point_id INTEGER PRIMARY KEY,
                 control_point_id INTEGER,
@@ -112,7 +105,7 @@ class Database:
         ''')
 
         # Create model_input table
-        cursor.execute('''
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS features (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 race_id TEXT,
@@ -133,39 +126,58 @@ class Database:
                 FOREIGN KEY (bib) REFERENCES results(bib)
             )
         ''')
+        self.conn.close()
 
-        # Commit changes and close connection
-        conn.commit()
-        conn.close()
+    def _insert_test_data(self):
+        # Insert data into the 'features' table
+        self.cursor.executemany('''
+            INSERT INTO features (
+                race_id,
+                event_id,
+                bib,
+                dist_total,
+                elevation_pos_total,
+                elevation_neg_total,
+                dist_segment,
+                dist_cumul,
+                elevation_pos_segment,
+                elevation_pos_cumul,
+                elevation_neg_segment,
+                elevation_neg_cumul,
+                time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [
+            ('mim', 456, 603, 60.35, 3325, -2120, 8.47, 8.47, 357, 357, -235, -235, '00:58:30'),
+            ('mim', 456, 603, 60.35, 3325, -2120, 14.60, 23.07, 693, 1050, -468, -703, '01:41:14')
+        ])
 
-        print("Database created successfully.")
+        self.conn.commit()
 
-        return cls
+    def tearDown(self):
+        # Close the database connection after each test
+        self.conn.close()
+        # Remove the temporary database file
+        os.remove(self.db_path)
 
-    @classmethod
-    def empty_all_tables(cls, path=None):
-        '''
-            Empty all database's tables
-        '''
-        if path:
-            cls.path = path
-        try:
-            # Connect to the database
-            conn = sqlite3.connect(path)
-            cursor = conn.cursor()
+    def test_empty_features(self):
+        self.conn = sqlite3.connect(self.db_path)
+        self.cursor = self.conn.cursor()
+        self._insert_test_data()
+        self.cursor.execute('SELECT COUNT(*) FROM features')
+        result = self.cursor.fetchone()[0]
+        self.assertEqual(result, 2)
+        self.conn.close()
 
-            # Get a list of all tables in the database
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-            tables = cursor.fetchall()
+        # Test the empty_features function
+        empty_features(self.db_path)  # Pass the file path
 
-            # Iterate over each table and delete all rows
-            for table in tables:
-                table_name = table[0]
-                cursor.execute(f"DELETE FROM {table_name};")
+        # Ensure the database is open before calling the function
+        # Ensure the features table is empty
+        self.conn = sqlite3.connect(self.db_path)
+        self.cursor = self.conn.cursor()
+        self.cursor.execute('SELECT COUNT(*) FROM features')
+        result = self.cursor.fetchone()[0]
+        self.assertEqual(result, 0)
 
-            # Commit changes and close connection
-            conn.commit()
-            conn.close()
-            print("INFO: All tables have been emptied successfully.")
-        except sqlite3.Error as e:
-            print("ERROR: ", e)
+if __name__ == '__main__':
+    unittest.main()

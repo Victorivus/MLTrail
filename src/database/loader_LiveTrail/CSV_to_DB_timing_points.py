@@ -5,7 +5,7 @@ import sqlite3
 import argparse
 import pandas as pd
 import config
-from database.database import Event
+from database.models import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
 from datetime import datetime
@@ -51,7 +51,7 @@ def fetch_control_points(cursor, race_id, event_id):
     cursor.execute('''
         SELECT code, name, distance, elevation_pos, elevation_neg, control_point_id
         FROM control_points WHERE race_id = ? AND event_id = ?
-        ORDER BY distance
+        ORDER BY control_point_id
     ''', (race_id, event_id,))
     rows = cursor.fetchall()
     control_points = {}
@@ -175,13 +175,14 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
             with db_connection:
                 cursor = db_connection.cursor()
                 clean_table(cursor)
+                db_connection.commit()
                 print('INFO: timing_points table emptied')
 
         folders = os.listdir(data_path)
         if skip:
             _, db_years = Event.get_events_years(db)
             parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(skip)
-            print(f"INFO: Updating {len(db_years)-len(parsed_data)} events")
+            print(f"INFO: Updating {len(db_years) - len(parsed_data) + 1} events")
             _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
             folders = list(years.keys())
             db_LiveTrail_loader.save_years_to_txt('updated_events_years.txt', years)

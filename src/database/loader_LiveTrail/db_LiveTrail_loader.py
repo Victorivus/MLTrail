@@ -7,8 +7,9 @@ import argparse
 import sqlite3
 from scraper.scraper import LiveTrailScraper
 from database.create_db import Database
-from database.database import Event, Race
+from database.models import Event, Race
 from database.loader_LiveTrail import CSV_to_DB_results, CSV_to_DB_timing_points
+from database.load_features import load_features
 import warnings
 from bs4 import GuessedAtParserWarning
 import config
@@ -197,7 +198,7 @@ def main(path=None, data_path=None, clean=False, update=False):
                         scraper.set_race(race)
                         folder_path = os.path.join(data_path, event)
                         filepath = os.path.join(folder_path, f'{event}_{race}_{year}.csv')
-                        results_filepath = filepath.split('../data/', maxsplit=1)[-1] if os.path.exists(os.path.join(data_path, filepath)) else None
+                        results_filepath = filepath.split('/data/', maxsplit=1)[-1] if os.path.exists(os.path.join(data_path, filepath)) else None
                         race_info = scraper.get_race_info(bib_n=rr[year][race]) if rr[year][race] is not None else {'date': None, 'hd': None}
                         control_points = cps[race]
                         race_data = races_data[race]
@@ -235,9 +236,13 @@ def main(path=None, data_path=None, clean=False, update=False):
         if update:
             script.main(path=os.path.join(actual_path, path), clean=clean,
                         skip=os.path.join(actual_path, "update.txt"),
-                        force_update=True)
+                        data_path=data_path, force_update=True)
         else:
-            script.main(path=os.path.join(actual_path, path), clean=clean, update=years)
+            script.main(path=os.path.join(actual_path, path), clean=clean,
+                        data_path=data_path, update=years)
+            
+    print("INFO: Creating table for enabling AI")
+    load_features(db_path=db.path, clean=clean)
     print("INFO: Updated events:")
     print(open('updated_events_years.txt', encoding='utf-8').read())
 
@@ -247,7 +252,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--path', default=None, help='DB path.')
     parser.add_argument('-d', '--data-path', default=None, help='CSV files path.')
     parser.add_argument('-c', '--clean', action='store_true', help='Remove all data from table before execution.')
-    parser.add_argument('-u', '--update', action='store_true', help='Download only events and reces not already present in DB.')
+    parser.add_argument('-u', '--update', action='store_true', help='Download only events and races not already present in DB.')
 
     args = parser.parse_args()
     path = args.path

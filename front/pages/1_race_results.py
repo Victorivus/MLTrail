@@ -10,9 +10,6 @@ from dotenv import load_dotenv
 from scraper.scraper import LiveTrailScraper
 from results.results import Results
 
-# Load variables from .env file
-load_dotenv()
-
 
 # Function to store session-like data using Streamlit's caching mechanism
 @st.cache_data(hash_funcs={dict: lambda _: None})

@@ -2,7 +2,7 @@ import os
 import unittest
 import pytest
 from database.create_db import Database
-from database.database import Results
+from database.models import Results
 
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 

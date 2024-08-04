@@ -4,7 +4,7 @@ import sqlite3
 import pytest
 from unittest.mock import patch
 from database.create_db import Database
-from database.database import Event
+from database.models import Event
 
 pytestmark = pytest.mark.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
 
