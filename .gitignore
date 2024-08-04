@@ -5,6 +5,7 @@
 !.github/workflows/
 !.github/workflows/*
 !README.md
+!.env.example
 !src/
 !src/__init__.py
 !src/*/
