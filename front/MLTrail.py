@@ -8,10 +8,6 @@ from dotenv import load_dotenv
 # Load variables from .env file
 load_dotenv(override=True)
 
-print(f"INFO: PACKAGE_DIR_PATH = {os.environ['PACKAGE_DIR_PATH']}")
-print(f"INFO: DATA_DIR_PATH = {os.environ['DATA_DIR_PATH']}")
-print('_____')
-
 
 # Function to store session-like data using Streamlit's caching mechanism
 @st.cache_data(hash_funcs={dict: lambda _: None})
