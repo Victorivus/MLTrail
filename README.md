@@ -12,6 +12,7 @@ Install Poetry:
 ```
 curl -sSL https://install.python-poetry.org | python3 -
 ```
+
 **Windows (Powershell)**
 ```
 (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
@@ -31,6 +32,15 @@ Launch the following command:
 
 ```
 streamlit run front/MLTrail.py
+```
+
+In some old macOS systems a special installation may be necessary to have streamlit working.
+> Run the following only if the above installation runs but the `streamlit run`command fails.
+```
+conda create -n mltrail -c conda-forge python=3.9 streamlit -y
+conda activate mltrail
+pip install pytest python-dotenv html5lib beautifulsoup4 lxml matplotlib numpy pandas
+poetry install --only-root
 ```
 
 # Download data from LiveTrail locally
