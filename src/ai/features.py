@@ -22,9 +22,8 @@ class Features:
         # self._event_id: int = event_id
         # self._bib: str = bib
         self._results_metadata = results_metadata
-        return
 
-    def fetch_features_table(self):
+    def fetch_features_table(self) -> pd.DataFrame:
         # Flatten list of tuples into a single list of parameters
         params = [item for sublist in self._results_metadata for item in sublist]
 
@@ -42,3 +41,8 @@ class Features:
         finally:
             conn.close()
         return df
+
+    @staticmethod
+    def get_seconds(time: str) -> int:
+        h, m, s = map(int, time.split(':'))
+        return h * 3600 + m * 60 + s
