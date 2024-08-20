@@ -155,6 +155,7 @@ Don't hesitate to get in contact or open an issue!
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [X] add results download + load to DB to lib instead of notebook + script
 - [X] make a proper way to import to DB so imports can be scheduled : compare scraper.get_events_years to Event.get_events_years and scapre only diff
+- [ ] Create profile simple table to save own results after search for model creation
 
 
 ### ML/AI
