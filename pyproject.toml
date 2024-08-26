@@ -31,3 +31,8 @@ xgboost = "^2.1.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::UserWarning:.*One or more of the test scores are non-finite.*"
+]

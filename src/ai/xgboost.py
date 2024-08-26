@@ -78,7 +78,7 @@ class XGBoostRegressorModel(MLModel):
     }
 
     def __init__(self, df: pd.DataFrame, target_column: str, only_partials: bool = True):
-        super().__init__(df, target_column, only_partials)
+        super().__init__(df=df, target_column=target_column, only_partials=only_partials)
         self.pipeline = None
         self.model = GradientBoostingRegressor(random_state=SEED)
     
