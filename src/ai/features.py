@@ -1,5 +1,6 @@
-import pandas as pd
 import sqlite3
+import pandas as pd
+import datetime as dt
 from database.create_db import Database
 
 
@@ -46,3 +47,7 @@ class Features:
     def get_seconds(time: str) -> int:
         h, m, s = map(int, time.split(':'))
         return h * 3600 + m * 60 + s
+
+    @staticmethod
+    def format_time(seconds: int) -> str:
+       return str(dt.timedelta(seconds=(seconds))).split('.')[0]
