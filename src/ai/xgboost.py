@@ -77,23 +77,23 @@ class XGBoostRegressorModel(MLModel):
         'r2': make_scorer(r2_score)
     }
 
-    def __init__(self, df: pd.DataFrame, target_column: str, only_partials: bool):
+    def __init__(self, df: pd.DataFrame, target_column: str, only_partials: bool = True):
         super().__init__(df, target_column, only_partials)
-        self.model = ('xgboost', GradientBoostingRegressor(random_state=SEED))
+        self.pipeline = None
+        self.model = GradientBoostingRegressor(random_state=SEED)
     
     def train(self):
         """
         Trains the model using the training data and prints the Mean Squared Error.
         """
+        super().train()
         X_train, X_test, y_train, y_test = self.split_data()
-        self.model = fit_cv(param=self.parameters, regressor=self.model, X_train=X_train,
+        self.model = fit_cv(param=self.parameters, regressor=('xgboost', self.model), X_train=X_train,
                             y_train=y_train, score=self.score, refit_score='explained_variance').best_estimator_
 
         y_pred = self.model.predict(X_test)
         for s, ss in self.score.items():
             print(f'{s}: {ss(self.model, X_test, y_test)}')
-        # mse = mean_squared_error(y_test, y_pred)
-        # print(f'Mean Squared Error: {mse}')
         return None # mse
     
     def predict(self, X, format='seconds'):
@@ -114,3 +114,18 @@ class XGBoostRegressorModel(MLModel):
             return pd.Series([self.format_time(x) for x in self.model.predict(X)],
                              name='PREDICTION')
         return self.model.predict(X)
+    
+    def set_params(self, params: dict):
+        std_scaler = 'passthrough'
+        setted_params = {}
+        for p, v in params.items():
+            if p.startswith('regression__'):
+                setted_params[p.split('regression__')[-1]] = v
+            elif p == 'std_scaler':
+                std_scaler = v
+        self.model.set_params(**setted_params)
+        self.pipeline = Pipeline([
+                ('std_scaler', std_scaler),
+                ('regression', self.model)
+            ])
+        self.model = self.pipeline

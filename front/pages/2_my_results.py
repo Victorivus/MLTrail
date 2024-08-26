@@ -3,6 +3,7 @@ Viz test module for Results from the database
 '''
 import os
 import sqlite3
+import joblib
 import streamlit as st
 import pandas as pd
 from ai.features import Features
@@ -74,10 +75,12 @@ def train_ai():
             rgs.train()  # Perform model training
         st.session_state['model_params'] = rgs.model.get_params()
         st.write("Model training completed.")
-        st.warning("Coming soon: Personalized time prediction in Race Lookup page.")
+        st.warning('Head to "race results" page to predict racing time with your own-data AI model.')
         st.session_state.search_button_clicked = True
+        return rgs
     else:
         st.write("Results data not found in session state.")
+        return None
 
 def main():
     '''
@@ -127,9 +130,10 @@ def main():
         st.write(st.session_state.results_df)
         if st.session_state.model_params is None:
             if st.button("Train AI model"):
-                train_ai()
+                rgs = train_ai()
                 st.session_state.ai_trained_button_clicked = True
                 st.session_state.reset_button_clicked = False
+                joblib.dump(rgs.model, os.path.join(DATA_DIR_PATH, 'model.pkl'))
 
     if st.session_state.model_params is not None and not st.session_state.reset_button_clicked:
         if not st.session_state.ai_trained_button_clicked:

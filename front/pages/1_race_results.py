@@ -4,9 +4,11 @@ Viz test module for the Results class
 import os
 import re
 import traceback
+import joblib
 import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
+from sklearn.pipeline import Pipeline
 from scraper.scraper import LiveTrailScraper
 from results.results import Results
 from ai.features import Features
@@ -180,23 +182,30 @@ def main():
                     st.error(f"An error occurred: {e}")
                     st.error(traceback.format_exc())
 
-            if st.button('Generate AI powered predictions'):
-                if 'model_params' in st.session_state:
-                    if st.session_state.model_params is not None:
-                        st.title('AI Time Predictions')
-
-                        event_id = Event.get_id_from_code_year(st.session_state.event, st.session_state.year, Database.create_database(DB_PATH))
-                        metadata_features = [(event_id, st.session_state.race, "")]
-                        feat = Features(metadata_features, DB_PATH)
-                        data = feat.fetch_features_table().drop(columns=['id', 'race_id', 'event_id'])
-                        with st.spinner('Loading the personalised AI model...'):
-                            rgs = XGBoostRegressorModel(df=data, target_column=None, only_partials=False)
-                        rgs.model.set_params(**st.session_state['model_params'])
-                        prediction = rgs.predict(data, format='time')
-                        results_cum = pd.concat([prediction,pd.Series([Features.get_seconds(x) for x in prediction['PREDICTION']],name='PRED CUMUL')],axis=1)
-                        total_time = Features.format_time(float(results_cum.iloc[:-1]['PRED CUMUL'].values.sum()))
-                        prediction[prediction['dist_segment']==prediction['dist_total']] = total_time
-                        st.write(prediction)
+            st.title('AI Time Predictions')
+            if 'model_params' in st.session_state:
+                if st.button('Generate AI powered predictions'):
+                    if st.session_state.model_params is not None:        
+                        with st.spinner('Loading race data...'):
+                            event_id = Event.get_id_from_code_year(st.session_state.event, st.session_state.year, Database.create_database(DB_PATH))
+                            metadata_features = [(event_id, st.session_state.race, "")]
+                            feat = Features(metadata_features, DB_PATH)
+                            data = feat.fetch_anonymous_features_table().drop(columns=['race_id', 'event_id'])
+                        if len(data) == 0:
+                            st.error("No data available for this race. Please choose another one.")
+                        else:
+                            with st.spinner('Loading the personalised AI model...'):
+                                rgs = XGBoostRegressorModel(df=data, target_column=None, only_partials=False)
+                                rgs.set_params(st.session_state['model_params'])
+                                rgs.model = joblib.load(os.path.join(DATA_DIR_PATH, 'model.pkl'))
+                                prediction = rgs.predict(data, format='time')
+                                data['Prediction'] = prediction
+                                results_cum = pd.concat([prediction,pd.Series([Features.get_seconds(x) for x in prediction.values],name='PRED CUMUL')],axis=1)
+                                total_time = Features.format_time(float(results_cum.iloc[:-1]['PRED CUMUL'].values.sum()))
+                                data.loc[data['dist_total'] == data['dist_segment'], 'Prediction'] = total_time
+                            st.write(data.drop(columns=['dist_total', 'elevation_pos_total', 'elevation_neg_total']))
+            else:
+                st.write('Head to "my results" page to train an AI model on your data.')
 
 
 if __name__ == '__main__':
