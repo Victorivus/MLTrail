@@ -74,7 +74,7 @@ class Event:
         # Update event_id after setting it in db
         self._set_event_id(self.get_event_id_from_database())
 
-    def get_event_id_from_database(self) -> int | None:
+    def get_event_id_from_database(self) -> Union[int, None]:
         conn = sqlite3.connect(self._db.path)
         with conn:
             cursor = conn.cursor()
