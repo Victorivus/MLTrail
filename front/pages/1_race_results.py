@@ -9,15 +9,14 @@ import streamlit as st
 from dotenv import load_dotenv
 from scraper.scraper import LiveTrailScraper
 from results.results import Results
+from ai.features import Features
+from ai.xgboost import XGBoostRegressorModel
+from database.models import Event
+from database.create_db import Database
 
 
-# Function to store session-like data using Streamlit's caching mechanism
-@st.cache_data(hash_funcs={dict: lambda _: None})
-def get_session_data():
-    '''
-        Get session data function
-    '''
-    return {}
+DATA_DIR_PATH = os.environ["DATA_DIR_PATH"]
+DB_PATH = os.path.join(DATA_DIR_PATH, 'events.db')
 
 
 # Initialize a LiveTrailScraper instance
@@ -102,12 +101,9 @@ def main():
             race = st.selectbox('Select Race:', list(races.values()))
             race = next(key for key, value in races.items() if value == race)  # get key from value
 
-            # Retrieve or initialize session-like data
-            session_data = get_session_data()
-
-            session_data['event'] = event
-            session_data['year'] = year
-            session_data['race'] = race
+            st.session_state.event = event
+            st.session_state.year = year
+            st.session_state.race = race
 
             st.title('Race Analysis')
 
@@ -129,7 +125,7 @@ def main():
                     'year': year,
                     'race': race
                 }
-                session_data['race_info'] = race_info
+                st.session_state.race_info = race_info
                 # Display data
                 # TODO: Add button to toggle view between hours and time (apply or not rs.format_time_over24h)
                 st.write(f"Departure time: {race_info['hd']}")
@@ -154,9 +150,9 @@ def main():
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 try:
-                    event = session_data['event']
-                    year = session_data['year']
-                    race = session_data['race']
+                    event = st.session_state.event
+                    year = st.session_state.year
+                    race = st.session_state.race
 
                     raw_results, control_points, rs, race_info, waves = get_results(event, year, race)
                     objective_position = rs.get_closest_time_to_objective(input_time)
@@ -183,6 +179,24 @@ def main():
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
                     st.error(traceback.format_exc())
+
+            if st.button('Generate AI powered predictions'):
+                if 'model_params' in st.session_state:
+                    if st.session_state.model_params is not None:
+                        st.title('AI Time Predictions')
+
+                        event_id = Event.get_id_from_code_year(st.session_state.event, st.session_state.year, Database.create_database(DB_PATH))
+                        metadata_features = [(event_id, st.session_state.race, "")]
+                        feat = Features(metadata_features, DB_PATH)
+                        data = feat.fetch_features_table().drop(columns=['id', 'race_id', 'event_id'])
+                        with st.spinner('Loading the personalised AI model...'):
+                            rgs = XGBoostRegressorModel(df=data, target_column=None, only_partials=False)
+                        rgs.model.set_params(**st.session_state['model_params'])
+                        prediction = rgs.predict(data, format='time')
+                        results_cum = pd.concat([prediction,pd.Series([Features.get_seconds(x) for x in prediction['PREDICTION']],name='PRED CUMUL')],axis=1)
+                        total_time = Features.format_time(float(results_cum.iloc[:-1]['PRED CUMUL'].values.sum()))
+                        prediction[prediction['dist_segment']==prediction['dist_total']] = total_time
+                        st.write(prediction)
 
 
 if __name__ == '__main__':
