@@ -4,6 +4,11 @@ from sklearn.model_selection import train_test_split
 from ai.features import Features
 import sqlite3
 
+class TargetNotSetError(Exception):
+    """Exception raised when a a target column is not set and training is caled."""
+    def __init__(self):
+        self.message = f"Target column is not set. Please set one before calling training method."
+        super().__init__(self.message)
 
 # Abstract Model Class
 class MLModel(ABC):
@@ -13,13 +18,18 @@ class MLModel(ABC):
             # as a sum of all the partials (races below 30km are more similar to partials)
             df = df[(df['dist_segment']!=df['dist_total']) & (df['dist_segment']<30)]
         self.df = df.copy()
-        if pd.api.types.is_string_dtype(df[target_column]):
-            self.df[target_column] = self.df[target_column].apply(lambda x: Features.get_seconds(x))
-        self.target_column = target_column
+        if target_column not in self.df.columns:
+            self.target_column = None
+        else:
+            if pd.api.types.is_string_dtype(df[target_column]):
+                self.df[target_column] = self.df[target_column].apply(lambda x: Features.get_seconds(x))
+            self.target_column = target_column
         self.model = None
 
     @abstractmethod
     def train(self):
+        if self.target_column is None:
+            raise TargetNotSetError()
         pass
 
     @abstractmethod
