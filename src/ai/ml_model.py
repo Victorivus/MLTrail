@@ -7,7 +7,11 @@ import sqlite3
 
 # Abstract Model Class
 class MLModel(ABC):
-    def __init__(self, df: pd.DataFrame, target_column: str = 'time'):
+    def __init__(self, df: pd.DataFrame, target_column: str = 'time', only_partials=True):
+        if only_partials:
+            # This improves accuracy and performance of models. The total may be computed
+            # as a sum of all the partials (races below 30km are more similar to partials)
+            df = df[(df['dist_segment']!=df['dist_total']) & (df['dist_segment']<30)]
         self.df = df.copy()
         if pd.api.types.is_string_dtype(df[target_column]):
             self.df[target_column] = self.df[target_column].apply(lambda x: Features.get_seconds(x))

@@ -7,7 +7,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.exceptions import DataConversionWarning
-from imblearn.pipeline import Pipeline as ImbPipeline
+#from imblearn.pipeline import Pipeline as ImbPipeline
+from sklearn.pipeline import Pipeline
 from ai.ml_model import MLModel
 
 # Suppress warnings
@@ -28,7 +29,7 @@ def fit_cv(param, regressor, X_train, y_train, score=None, refit_score='mean_squ
         score = {'r2': make_scorer(r2_score)}
 
     print(f"Working on {regressor[0]}...")
-    best_model = imb_pipeline(regressor[1], X_train, y_train, param, score, refit_score)
+    best_model = pipeline(regressor[1], X_train, y_train, param, score, refit_score)
 
     print(f"Best parameter for {regressor[0]} is {best_model.best_params_}")
     print(f"Best score for {regressor[0]} is {best_model.best_score_}")
@@ -37,15 +38,15 @@ def fit_cv(param, regressor, X_train, y_train, score=None, refit_score='mean_squ
 
     return best_model
 
-def imb_pipeline(model, X, y, params, score=None, refit_score='accuracy_score', cv=CV_FOLDS):
+def pipeline(model, X, y, params, score=None, refit_score='accuracy_score', cv=CV_FOLDS):
     """
     Sets up a pipeline with scaling and regression, and performs grid search cross-validation.
     """
     if score is None:
         score = {"accuracy_score": "accuracy"}
 
-    pipeline = ImbPipeline([
-        ('minmax_scaler', MinMaxScaler()), # Use one scaler at a time, selected in params grid
+    pipeline = Pipeline([
+        #('minmax_scaler', MinMaxScaler()), # Use one scaler at a time, selected in params grid
         ('std_scaler', StandardScaler()),
         ('regression', model)
     ])
@@ -60,8 +61,8 @@ class XGBoostRegressorModel(MLModel):
     parameters = {
         "std_scaler": ["passthrough"],  # skip this step
         "regression__min_samples_split": [2, 3, 4],
-        "regression__min_samples_leaf": [2, 5, 8],
-        "regression__max_depth": [2, 6],
+        "regression__min_samples_leaf": [2, 4, 6],
+        "regression__max_depth": [2, 4, 6],
         "regression__criterion": ["friedman_mse"],  # Default value of ‘friedman_mse’ is generally the best
         "regression__subsample": [0.8, 1.0],
         "regression__n_estimators": [150, 300]
@@ -71,6 +72,7 @@ class XGBoostRegressorModel(MLModel):
         'explained_variance': make_scorer(explained_variance_score), 
         'max_error': make_scorer(max_error),
         'mean_absolute_error': make_scorer(mean_absolute_error), 
+        'mean_squared_error': make_scorer(mean_squared_error),
         'mean_squared_error': make_scorer(mean_squared_error),
         'r2': make_scorer(r2_score)
     }
@@ -85,12 +87,14 @@ class XGBoostRegressorModel(MLModel):
         """
         X_train, X_test, y_train, y_test = self.split_data()
         self.model = fit_cv(param=self.parameters, regressor=self.model, X_train=X_train,
-                            y_train=y_train, score=self.score).best_estimator_
+                            y_train=y_train, score=self.score, refit_score='explained_variance').best_estimator_
 
         y_pred = self.model.predict(X_test)
-        mse = mean_squared_error(y_test, y_pred)
-        print(f'Mean Squared Error: {mse}')
-        return mse
+        for s, ss in self.score.items():
+            print(f'{s}: {ss(self.model, X_test, y_test)}')
+        # mse = mean_squared_error(y_test, y_pred)
+        # print(f'Mean Squared Error: {mse}')
+        return None # mse
     
     def predict(self, X, format='seconds'):
         """
