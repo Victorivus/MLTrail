@@ -39,7 +39,7 @@ In some old macOS systems a special installation may be necessary to have stream
 ```
 conda create -n mltrail -c conda-forge python=3.9 streamlit -y
 conda activate mltrail
-pip install pytest python-dotenv html5lib beautifulsoup4 lxml matplotlib numpy pandas
+pip install pytest python-dotenv html5lib beautifulsoup4 lxml matplotlib numpy pandas pyarrow=="1.15.0"
 poetry install --only-root
 ```
 
