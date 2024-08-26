@@ -66,9 +66,10 @@ def fetch_results(surname, first_name=None):
 def train_ai():
     if 'metadata_features' in st.session_state:
         metadata_features = st.session_state['metadata_features']
-        with st.spinner('Training the model... This might take a while.'):
+        with st.spinner('Converting table into model input...'):
             feat = Features(metadata_features, DB_PATH)
             data = feat.fetch_features_table().drop(columns=['id', 'race_id', 'event_id', 'bib'])
+        with st.spinner('Training the model... This might take a while.'):
             rgs = XGBoostRegressorModel(df=data, target_column='time')
             rgs.train()  # Perform model training
         st.session_state['model_params'] = rgs.model.get_params()
