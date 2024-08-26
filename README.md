@@ -39,7 +39,7 @@ In some old macOS systems a special installation may be necessary to have stream
 ```
 conda create -n mltrail -c conda-forge python=3.9 streamlit -y
 conda activate mltrail
-pip install pytest python-dotenv html5lib beautifulsoup4 lxml matplotlib numpy pandas
+pip install pytest python-dotenv html5lib beautifulsoup4 lxml matplotlib numpy pandas pyarrow=="1.15.0"
 poetry install --only-root
 ```
 
@@ -117,7 +117,7 @@ Don't hesitate to get in contact or open an issue!
 - [X] Start a simple Front-End
 - [ ] Add templates for manual (csv, json) results and control points
 - [ ] Improve Front-End
-- [ ] Integrate ML/AI predictors
+- [X] Integrate ML/AI predictors
 - [X] Before 2014 link is different (e.g. https://livetrail.net/histo/ecotrail2013/ instead of https://livetrail.net/histo/ecotrail_2013/)
 
 
@@ -155,11 +155,13 @@ Don't hesitate to get in contact or open an issue!
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [X] add results download + load to DB to lib instead of notebook + script
 - [X] make a proper way to import to DB so imports can be scheduled : compare scraper.get_events_years to Event.get_events_years and scapre only diff
+- [ ] Create profile simple table to save own results after search for model creation
+- [ ] Create personal features table so we cun unselect some races for model training
 
 
 ### ML/AI
-- [ ] Add inference points from models
-- [ ] Add modelling capabilities from own data, start simple (ensemble methods)
+- [X] Add inference points from models
+- [X] Add modelling capabilities from own data, start simple (ensemble methods)
 - [X] Generate training file with simple variables (dist_total, D_total, d_total, dist_segment, dist_cumul, D_segment, D_cumul, d_segment, d_cumul, time)
 - [ ] Research constrained methods (total_estimation = sum(sections_estimation))
 - [ ] Test unsupervised clustering models to generate a performance index (such as ITRA performance index, UTMB index, Niveau Betrail, etc.)

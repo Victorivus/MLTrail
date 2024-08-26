@@ -14,7 +14,7 @@ packages = [
     ]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.9,<3.9.7 || >3.9.7"
 matplotlib = "^3.8.2"
 numpy = "^1.26.4"
 pandas = "^2.2.0"
@@ -23,9 +23,16 @@ html5lib = "^1.1"
 beautifulsoup4 = "^4.12.3"
 pytest = "^8.0.0"
 python-dotenv = "^1.0.1"
-streamlit = "^1.33.0"
+streamlit = ">= 1.33.0"
+scikit-learn = "^1.5.1"
+xgboost = "^2.1.1"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::UserWarning:.*One or more of the test scores are non-finite.*"
+]
