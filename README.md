@@ -165,6 +165,7 @@ Don't hesitate to get in contact or open an issue!
 - [X] Generate training file with simple variables (dist_total, D_total, d_total, dist_segment, dist_cumul, D_segment, D_cumul, d_segment, d_cumul, time)
 - [ ] Research constrained methods (total_estimation = sum(sections_estimation))
 - [ ] Test unsupervised clustering models to generate a performance index (such as ITRA performance index, UTMB index, Niveau Betrail, etc.)
+- [ ] Choose different models in function of # of training samples 
 
 
 ### FrontEnd
@@ -176,6 +177,7 @@ Don't hesitate to get in contact or open an issue!
 - [ ] Show race profile from distance, D+ and D- data? Maybe too aproximative and need real gps data
 - [ ] Objective graph is only paces, show times / normalised pace?
 - [X] Bug when races include departure time in timing_points file
+- [ ] Add Warinings about prediction methods not being accurate, and that more data usually shows better results.
 
 
 ### BackEnd
