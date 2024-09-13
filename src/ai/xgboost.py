@@ -73,7 +73,6 @@ class XGBoostRegressorModel(MLModel):
         'max_error': make_scorer(max_error),
         'mean_absolute_error': make_scorer(mean_absolute_error), 
         'mean_squared_error': make_scorer(mean_squared_error),
-        'mean_squared_error': make_scorer(mean_squared_error),
         'r2': make_scorer(r2_score)
     }
 
