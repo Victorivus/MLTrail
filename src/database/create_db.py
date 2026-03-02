@@ -192,14 +192,16 @@ class Database:
             logger.error("Error emptying tables: %s", e)
 
     @classmethod
-    def create_user(cls, username, plain_password, path=None):
+    def create_user(cls, username, plain_password, email=None, path=None):
         if path:
             cls.path = path
+        if email is None:
+            email = f"{username}@mltrail.local"
         try:
             conn = sqlite3.connect(cls.path)
             cursor = conn.cursor()
             hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed_password))
+            cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", (username, email, hashed_password))
             conn.commit()
             conn.close()
         except sqlite3.Error as e:
