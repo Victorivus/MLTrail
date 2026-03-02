@@ -155,7 +155,7 @@ def main(path=None, data_path=None, clean=False, update=False):
     events = dict(sorted(events.items(), key=lambda item: item[1]))
 
     if os.path.exists('parsed_races.txt'):
-        logger.info("Skipping events and years defined in output_parsing.txt")
+        logger.info("Skipping events and years defined in parsed_races.txt")
         skip_races = parse_events_years_txt_file('parsed_races.txt')
         events, years = get_years_only_in_v1(events, years, skip_races)
         logger.info("Events: %s", events)
