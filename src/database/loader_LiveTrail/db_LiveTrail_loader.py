@@ -3,6 +3,7 @@
 
 import os
 import re
+import logging
 import argparse
 import sqlite3
 from scraper.scraper import LiveTrailScraper
@@ -12,7 +13,9 @@ from database.loader_LiveTrail import CSV_to_DB_results, CSV_to_DB_timing_points
 from database.load_features import load_features
 import warnings
 from bs4 import GuessedAtParserWarning
-import config
+from config import get_config
+
+logger = logging.getLogger(__name__)
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
@@ -119,10 +122,11 @@ def generate_code_year_txt(db_path, output_file: str = None) -> dict:
 
 def main(path=None, data_path=None, clean=False, update=False):
     '''Script used to parse LiveTrail and insert all available data into DB.'''
+    cfg = get_config()
     if not path:
-        path = os.path.join(os.environ["DATA_DIR_PATH"], 'events.db')
+        path = cfg.db_path
     if not data_path:
-        data_path = os.path.join(os.environ["DATA_DIR_PATH"], 'csv')
+        data_path = os.path.join(cfg.data_dir_path, 'csv')
 
     db: Database = Database.create_database(path=path)
 
@@ -151,11 +155,11 @@ def main(path=None, data_path=None, clean=False, update=False):
     events = dict(sorted(events.items(), key=lambda item: item[1]))
 
     if os.path.exists('parsed_races.txt'):
-        print("INFO: Skipping events and years defined in output_parsing.txt")
+        logger.info("Skipping events and years defined in output_parsing.txt")
         skip_races = parse_events_years_txt_file('parsed_races.txt')
         events, years = get_years_only_in_v1(events, years, skip_races)
-        print(events)
-        print(years)
+        logger.info("Events: %s", events)
+        logger.info("Years: %s", years)
 
     for code, name in events.items():
         if code in years:
@@ -170,7 +174,7 @@ def main(path=None, data_path=None, clean=False, update=False):
     for event, name in events.items():
         if event in years:
             for year in years[event]:
-                print(event, year)
+                logger.info("Processing %s %s", event, year)
                 scraper.set_events([event])
                 scraper.set_years([year])
                 cps, cpns = scraper.get_control_points()
@@ -182,9 +186,9 @@ def main(path=None, data_path=None, clean=False, update=False):
                 scraper.download_data(data_path=data_path)
                 races_data = scraper.get_races_physical_details()
                 if event not in races:
-                    print(f'INFO: No data available for {events[event]} {year}.')
+                    logger.info('No data available for %s %s.', events[event], year)
                 elif year not in races[event]:
-                    print(f'INFO: No data available for {events[event]} {year}.')
+                    logger.info('No data available for %s %s.', events[event], year)
                 else:
                     races = races[event][year]
                     for race, name in races.items():
@@ -241,10 +245,11 @@ def main(path=None, data_path=None, clean=False, update=False):
             script.main(path=os.path.join(actual_path, path), clean=clean,
                         data_path=data_path, update=years)
             
-    print("INFO: Creating table for enabling AI")
+    logger.info("Creating table for enabling AI")
     load_features(db_path=db.path, clean=clean)
-    print("INFO: Updated events:")
-    print(open('updated_events_years.txt', encoding='utf-8').read())
+    logger.info("Updated events:")
+    if os.path.exists('updated_events_years.txt'):
+        logger.info(open('updated_events_years.txt', encoding='utf-8').read())
 
 
 if __name__ == "__main__":

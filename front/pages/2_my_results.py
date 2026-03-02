@@ -1,26 +1,22 @@
-'''
-Viz test module for Results from the database
-'''
-import os
+"""Personal Results and AI Model Training page."""
+import time
+import logging
 import sqlite3
-import joblib
 import streamlit as st
 import pandas as pd
-from ai.features import Features
-from ai.xgboost import XGBoostRegressorModel
+from config import get_config
+from auth import require_auth
+from ai.training_service import TrainingState, TrainingStatus, start_background_training
 
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
+logger = logging.getLogger(__name__)
 
-if not st.session_state['logged_in']:
-    login_page()
-else:
-    st.sidebar.button("Logout", on_click=lambda: st.session_state.update({'logged_in': False}))
-    st.write(f"Hello, {st.session_state['username']}! Welcome back.")
-    st.write("Your app's main content goes here.")
+cfg = get_config()
+DATA_DIR_PATH = cfg.data_dir_path
+DB_PATH = cfg.db_path
 
-DATA_DIR_PATH = os.environ["DATA_DIR_PATH"]
-DB_PATH = os.path.join(DATA_DIR_PATH, 'events.db')
+if not require_auth(DB_PATH):
+    st.stop()
+
 
 def fetch_distinct_names():
     '''
@@ -74,23 +70,6 @@ def fetch_results(surname, first_name=None):
     conn.close()
     return results
 
-def train_ai():
-    if 'metadata_features' in st.session_state:
-        metadata_features = st.session_state['metadata_features']
-        with st.spinner('Converting table into model input...'):
-            feat = Features(metadata_features, DB_PATH)
-            data = feat.fetch_features_table().drop(columns=['id', 'race_id', 'event_id', 'bib'])
-        with st.spinner('Training the model... This might take a while.'):
-            rgs = XGBoostRegressorModel(df=data, target_column='time')
-            rgs.train()  # Perform model training
-        st.session_state['model_params'] = rgs.model.get_params()
-        st.write("Model training completed.")
-        st.warning('Head to "race results" page to predict racing time with your own-data AI model.')
-        st.session_state.search_button_clicked = True
-        return rgs
-    else:
-        st.write("Results data not found in session state.")
-        return None
 
 def main():
     '''
@@ -111,13 +90,15 @@ def main():
         st.session_state.ai_trained_button_clicked = False
     if 'reset_button_clicked' not in st.session_state:
         st.session_state.reset_button_clicked = False
+    if 'training_state' not in st.session_state:
+        st.session_state.training_state = TrainingState()
 
     # User input for surname
     surname = st.text_input("Enter your `surname` or `surname, name`:")
 
     # Button to fetch results
     if st.button("Search"):
-        with st.spinner('Searching...'):    
+        with st.spinner('Searching...'):
             if surname:
                 results = fetch_results(surname)
                 if results:
@@ -134,25 +115,53 @@ def main():
             else:
                 st.warning("Please enter your surname.")
 
-    # Don't know why, but we need to press twice the Reset button...
     # Check if the results are available in session state
     if st.session_state.results_df is not None or st.session_state.reset_button_clicked:
         st.write(st.session_state.results_df)
+
+        training_state = st.session_state.training_state
+
         if st.session_state.model_params is None:
-            if st.button("Train AI model"):
-                rgs = train_ai()
+            # Handle background training states
+            if training_state.is_running:
+                st.info(f"**{training_state.progress_message}**")
+                elapsed = training_state.elapsed_seconds
+                st.progress(min(elapsed / 120.0, 0.99),
+                           text=f"Elapsed: {elapsed:.0f}s")
+                time.sleep(2)
+                st.rerun()
+            elif training_state.status == TrainingStatus.COMPLETED:
+                st.success(training_state.progress_message)
+                st.session_state.model_params = training_state.model_params
                 st.session_state.ai_trained_button_clicked = True
-                st.session_state.reset_button_clicked = False
-                joblib.dump(rgs.model, os.path.join(DATA_DIR_PATH, 'model.pkl'))
+                st.session_state.training_state = TrainingState()  # reset
+                st.rerun()
+            elif training_state.status == TrainingStatus.FAILED:
+                st.error(f"Training failed: {training_state.error_message}")
+                st.session_state.training_state = TrainingState()  # reset for retry
+            else:
+                if st.button("Train AI model"):
+                    if 'metadata_features' in st.session_state:
+                        start_background_training(
+                            state=training_state,
+                            metadata_features=st.session_state['metadata_features'],
+                            db_path=DB_PATH,
+                            model_save_path=cfg.model_path,
+                        )
+                        st.rerun()
+                    else:
+                        st.write("Results data not found in session state.")
 
     if st.session_state.model_params is not None and not st.session_state.reset_button_clicked:
         if not st.session_state.ai_trained_button_clicked:
             st.write("Model has already been trained. Parameters have been saved.")
+        st.success("Model trained! Head to **Race Results** page to predict racing time with your AI model.")
         if st.button("Reset Model"):
             st.session_state.search_button_clicked = False
             st.session_state.reset_button_clicked = True
             st.session_state.model_params = None
             st.session_state.ai_trained_button_clicked = False
+            st.session_state.training_state = TrainingState()
             st.write("Model has been reset. You can now train a new model.")
 
 if __name__ == "__main__":

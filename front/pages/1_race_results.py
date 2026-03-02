@@ -1,13 +1,11 @@
-'''
-Viz test module for the Results class
-'''
+"""Race Results analysis page."""
 import os
 import re
+import logging
 import traceback
 import joblib
 import pandas as pd
 import streamlit as st
-from dotenv import load_dotenv
 from sklearn.pipeline import Pipeline
 from scraper.scraper import LiveTrailScraper
 from results.results import Results
@@ -15,20 +13,17 @@ from ai.features import Features
 from ai.xgboost import XGBoostRegressorModel
 from database.models import Event
 from database.create_db import Database
+from config import get_config
+from auth import require_auth
 
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
+logger = logging.getLogger(__name__)
 
-if not st.session_state['logged_in']:
-    login_page()
-else:
-    st.sidebar.button("Logout", on_click=lambda: st.session_state.update({'logged_in': False}))
-    st.write(f"Hello, {st.session_state['username']}! Welcome back.")
-    st.write("Your app's main content goes here.")
+cfg = get_config()
+DATA_DIR_PATH = cfg.data_dir_path
+DB_PATH = cfg.db_path
 
-DATA_DIR_PATH = os.environ["DATA_DIR_PATH"]
-DB_PATH = os.path.join(DATA_DIR_PATH, 'events.db')
-
+if not require_auth(DB_PATH):
+    st.stop()
 
 # Initialize a LiveTrailScraper instance
 scraper = LiveTrailScraper()
@@ -120,7 +115,7 @@ def main():
 
             # Display analysis results
             if st.button('Generate Analysis'):
-                folder_path = f'../data/plots/{event}'
+                folder_path = os.path.join(DATA_DIR_PATH, 'plots', event)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 file_path = os.path.join(folder_path, f'{event}_{race}_{year}.png')
@@ -131,14 +126,12 @@ def main():
                     'hours': rs.get_hours().map(rs.format_hourtime_over24h),
                     'real_times': rs.get_real_times().map(rs.format_time_over24h),
                     'paces': rs.paces,
-                    # 'plot_image_tag': file_path,
                     'event': event,
                     'year': year,
                     'race': race
                 }
                 st.session_state.race_info = race_info
                 # Display data
-                # TODO: Add button to toggle view between hours and time (apply or not rs.format_time_over24h)
                 st.write(f"Departure time: {race_info['hd']}")
                 st.write('Hours:')
                 st.write(data['hours'].sort_index())
@@ -157,7 +150,7 @@ def main():
             input_time = st.text_input('Enter Objective Time (HH:MM:SS):')
 
             if st.button('Set Objective'):
-                folder_path = f'../data/plots/{event}'
+                folder_path = os.path.join(DATA_DIR_PATH, 'plots', event)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 try:
@@ -188,13 +181,13 @@ def main():
                     st.image(obj_file_path)
 
                 except Exception as e:
+                    logger.exception("Error setting objective")
                     st.error(f"An error occurred: {e}")
-                    st.error(traceback.format_exc())
 
             st.title('AI Time Predictions')
             if 'model_params' in st.session_state:
                 if st.button('Generate AI powered predictions'):
-                    if st.session_state.model_params is not None:        
+                    if st.session_state.model_params is not None:
                         with st.spinner('Loading race data...'):
                             event_id = Event.get_id_from_code_year(st.session_state.event, st.session_state.year, Database.create_database(DB_PATH))
                             metadata_features = [(event_id, st.session_state.race, "")]
@@ -206,7 +199,7 @@ def main():
                             with st.spinner('Loading the personalised AI model...'):
                                 rgs = XGBoostRegressorModel(df=data, target_column=None, only_partials=False)
                                 rgs.set_params(st.session_state['model_params'])
-                                rgs.model = joblib.load(os.path.join(DATA_DIR_PATH, 'model.pkl'))
+                                rgs.model = joblib.load(cfg.model_path)
                                 prediction = rgs.predict(data, format='time')
                                 data['Prediction'] = prediction
                                 results_cum = pd.concat([prediction,pd.Series([Features.get_seconds(x) for x in prediction.values],name='PRED CUMUL')],axis=1)

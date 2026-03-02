@@ -1,0 +1,33 @@
+services:
+  mltrail:
+    build: .
+    container_name: mltrail
+    ports:
+      - "8501:8501"
+    volumes:
+      # Persist the database and trained models outside the container
+      - ./data:/app/data
+    environment:
+      - PACKAGE_DIR_PATH=/app
+      - DATA_DIR_PATH=/app/data
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+
+  # Run tests inside Docker (optional, use: docker compose run test)
+  test:
+    build: .
+    volumes:
+      - ./tests:/app/tests
+      - ./data:/app/data
+    environment:
+      - PACKAGE_DIR_PATH=/app
+      - DATA_DIR_PATH=/app/data
+    command: >
+      python -m pytest
+        tests/test_database/
+        tests/test_ai_xgboost.py
+        tests/test_results.py
+        tests/test_db_LiveTrail_loader.py
+        -v
+    profiles:
+      - test

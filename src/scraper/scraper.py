@@ -1,11 +1,14 @@
 import os
 import json
+import logging
 import warnings
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from bs4 import GuessedAtParserWarning
-import config
+from config import get_config
+
+logger = logging.getLogger(__name__)
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
@@ -17,7 +20,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 class LiveTrailScraper:
     base_url: str = "https://livetrail.net/histo/{event}_{year}"
     base_url2: str = "https://livetrail.net/histo/{event}{year}"
-    data_path = os.environ["DATA_DIR_PATH"]
+    data_path = get_config().data_dir_path
 
     def __init__(self, events: list[str] = [], years: list[str] = [],
                  race: str = 'all') -> None:
@@ -72,9 +75,9 @@ class LiveTrailScraper:
                             break
                         else:
                             race_info = {}
-                            print("Failed to retrieve race info. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve race info. Status code: %s", response.status_code)
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
         return race_info
 
     def get_races_physical_details(self) -> dict:
@@ -220,9 +223,9 @@ class LiveTrailScraper:
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
-                            print("Failed to retrieve races' names. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve races' names. Status code: %s", response.status_code)
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
         return full_races
 
     def download_data(self, data_path=None, force_download=False) -> int:
@@ -267,16 +270,16 @@ class LiveTrailScraper:
                                         df = self._parse_table(results_response.text)
                                         df.to_csv(os.path.join(folder_path, f'{event}_{race}_{year}.csv'), index=False)
                                     else:
-                                        print(f"Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                                              results_response.status_code)
+                                        logger.warning("Failed to retrieve HTML table for event: %s %s, race: %s. Status code: %s",
+                                                       event, year, race, results_response.status_code)
                                         count += 1
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
-                            print("Failed to retrieve races' names. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve races' names. Status code: %s", response.status_code)
                             count += 1
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
                     count += 1
         # return number of errors
         return count
@@ -384,8 +387,8 @@ class LiveTrailScraper:
         if response.status_code == 200:
             events_dict = self._parse_event_list(response.text)
         else:
-            print("Failed to retrieve Live Trail's event list. Status code:",
-                  response.status_code)
+            logger.warning("Failed to retrieve Live Trail's event list. Status code: %s",
+                         response.status_code)
         return events_dict
 
     def get_events_years(self) -> dict:
@@ -401,8 +404,8 @@ class LiveTrailScraper:
         if response.status_code == 200:
             events_dict = self._parse_past_event_list(response.text)
         else:
-            print("Failed to retrieve Live Trail's event list. Status code:",
-                  response.status_code)
+            logger.warning("Failed to retrieve Live Trail's event list. Status code: %s",
+                         response.status_code)
         return events_dict
 
     def get_control_points(self) -> dict:
@@ -426,10 +429,11 @@ class LiveTrailScraper:
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
-                            print(f"Failed to retrieve races' control points for {event} {year}. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve races' control points for %s %s. Status code: %s",
+                                         event, year, response.status_code)
                             count += 1
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
                     count += 1
         # return number of errors
         return control_points, control_points_names

@@ -2,9 +2,17 @@
     MLTrail Results Database creation
 '''
 import os
+import logging
 import sqlite3
 import bcrypt
 from sqlite3 import Connection, Cursor
+
+logger = logging.getLogger(__name__)
+
+VALID_TABLES = frozenset({
+    'users', 'events', 'races', 'results',
+    'control_points', 'timing_points', 'features'
+})
 
 
 class Database:
@@ -14,7 +22,7 @@ class Database:
     path: str = 'events.db'
 
     @classmethod
-    def create_database(cls, path=None) -> Connection:
+    def create_database(cls, path=None) -> 'Database':
         '''
             Create app's SQLite database
         '''
@@ -23,8 +31,7 @@ class Database:
 
         # Check if the database file already exists
         if os.path.exists(cls.path):
-            print(f"INFO: {cls.path}")
-            print("INFO: Database already exists.")
+            logger.info("Database already exists at %s", cls.path)
             return cls
 
         # Connect to SQLite database (creates if not exists)
@@ -151,7 +158,7 @@ class Database:
         conn.commit()
         conn.close()
 
-        print("Database created successfully.")
+        logger.info("Database created successfully at %s", cls.path)
 
         return cls
 
@@ -163,8 +170,7 @@ class Database:
         if path:
             cls.path = path
         try:
-            # Connect to the database
-            conn = sqlite3.connect(path)
+            conn = sqlite3.connect(cls.path)
             cursor = conn.cursor()
 
             # Get a list of all tables in the database
@@ -174,27 +180,27 @@ class Database:
             # Iterate over each table and delete all rows
             for table in tables:
                 table_name = table[0]
-                cursor.execute(f"DELETE FROM {table_name};")
+                if table_name in VALID_TABLES:
+                    cursor.execute(f"DELETE FROM {table_name};")
+                else:
+                    logger.warning("Skipping unknown table: %s", table_name)
 
-            # Commit changes and close connection
             conn.commit()
             conn.close()
-            print("INFO: All tables have been emptied successfully.")
+            logger.info("All tables have been emptied successfully.")
         except sqlite3.Error as e:
-            print("ERROR: ", e)
-    
+            logger.error("Error emptying tables: %s", e)
+
     @classmethod
-    def create_user(cls, username, plain_password):
+    def create_user(cls, username, plain_password, path=None):
         if path:
             cls.path = path
         try:
-            # Connect to the database
-            conn = sqlite3.connect(path)
+            conn = sqlite3.connect(cls.path)
             cursor = conn.cursor()
             hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+            cursor.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hashed_password))
             conn.commit()
             conn.close()
         except sqlite3.Error as e:
-            print("ERROR: ", e)
-
+            logger.error("Error creating user: %s", e)

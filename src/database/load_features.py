@@ -219,6 +219,7 @@ if __name__ == "__main__":
         #     update = db_LiveTrail_loader.parse_events_years_txt_file(os.path.join(os.getcwd(), args.update))
 
     if not path:
-        path = os.path.join(os.environ["DATA_DIR_PATH"], 'events.db')
+        from config import get_config
+        path = get_config().db_path
 
     load_features(db_path=path, clean=clean)
