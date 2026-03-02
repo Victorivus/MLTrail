@@ -9,6 +9,16 @@ import pandas as pd
 from ai.features import Features
 from ai.xgboost import XGBoostRegressorModel
 
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+
+if not st.session_state['logged_in']:
+    login_page()
+else:
+    st.sidebar.button("Logout", on_click=lambda: st.session_state.update({'logged_in': False}))
+    st.write(f"Hello, {st.session_state['username']}! Welcome back.")
+    st.write("Your app's main content goes here.")
+
 DATA_DIR_PATH = os.environ["DATA_DIR_PATH"]
 DB_PATH = os.path.join(DATA_DIR_PATH, 'events.db')
 

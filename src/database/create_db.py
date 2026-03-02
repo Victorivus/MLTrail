@@ -3,6 +3,7 @@
 '''
 import os
 import sqlite3
+import bcrypt
 from sqlite3 import Connection, Cursor
 
 
@@ -29,6 +30,18 @@ class Database:
         # Connect to SQLite database (creates if not exists)
         conn: Connection = sqlite3.connect(cls.path)
         cursor: Cursor = conn.cursor()
+
+        # Create users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                last_login TEXT
+            )
+        ''')
 
         # Create events table
         cursor.execute('''
@@ -169,3 +182,19 @@ class Database:
             print("INFO: All tables have been emptied successfully.")
         except sqlite3.Error as e:
             print("ERROR: ", e)
+    
+    @classmethod
+    def create_user(cls, username, plain_password):
+        if path:
+            cls.path = path
+        try:
+            # Connect to the database
+            conn = sqlite3.connect(path)
+            cursor = conn.cursor()
+            hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            print("ERROR: ", e)
+
