@@ -47,9 +47,25 @@ jobs:
           echo DATA_DIR_PATH="./data" >> .env
           cat .env
 
-      - name: Run database tests
+      - name: Run database creation tests
         run: |
-          poetry run pytest tests/test_database/ -v
+          poetry run pytest tests/test_database/test_database_c* -v
+
+      - name: Run database race tests
+        run: |
+          poetry run pytest tests/test_database/test_database_ra* -v
+
+      - name: Run database results tests
+        run: |
+          poetry run pytest tests/test_database/test_database_re* -v
+
+      - name: Run database event tests
+        run: |
+          poetry run pytest tests/test_database/test_database_e* -v
+
+      - name: Run database features tests
+        run: |
+          poetry run pytest tests/test_database/test_load_features.py -v
 
       - name: Run unit tests
         run: |
