@@ -26,8 +26,8 @@ RUN poetry config virtualenvs.create false \
 COPY src/ ./src/
 COPY front/ ./front/
 
-# Copy sample data (CSV files needed for the app)
-COPY data/csv/ ./data/csv/
+# Create data directory (actual data comes from volume mount)
+RUN mkdir -p ./data
 
 # Set Python path so imports work
 ENV PYTHONPATH=/app/src

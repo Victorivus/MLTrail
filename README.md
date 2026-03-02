@@ -43,7 +43,17 @@ pip install pytest python-dotenv html5lib beautifulsoup4 lxml matplotlib numpy p
 poetry install --only-root
 ```
 
+
 # Download data from LiveTrail locally
+Create the local DB:
+
+```bash
+python -c "from database.create_db import Database; Database.create_database('data/events.db')"
+
+python -c "from database.create_db import Database; Database.create_user('user', 'pass', path='data/events.db')"
+```
+
+
 Launch the following command:
 
 ```

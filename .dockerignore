@@ -8,6 +8,7 @@ __pycache__/
 .env.local
 *.db
 *.pkl
+data/
 tests/
 examples/
 *.ipynb
