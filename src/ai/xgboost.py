@@ -1,15 +1,16 @@
+import logging
 import warnings
 import pandas as pd
-from xgboost import XGBRegressor
-from sklearn.metrics import (explained_variance_score, max_error, mean_absolute_error, 
+from sklearn.metrics import (explained_variance_score, max_error, mean_absolute_error,
                              mean_squared_error, r2_score, make_scorer)
 from sklearn.model_selection import GridSearchCV
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.exceptions import DataConversionWarning
-#from imblearn.pipeline import Pipeline as ImbPipeline
 from sklearn.pipeline import Pipeline
 from ai.ml_model import MLModel
+
+logger = logging.getLogger(__name__)
 
 # Suppress warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -28,13 +29,11 @@ def fit_cv(param, regressor, X_train, y_train, score=None, refit_score='mean_squ
     if score is None:
         score = {'r2': make_scorer(r2_score)}
 
-    print(f"Working on {regressor[0]}...")
+    logger.info("Working on %s...", regressor[0])
     best_model = pipeline(regressor[1], X_train, y_train, param, score, refit_score)
 
-    print(f"Best parameter for {regressor[0]} is {best_model.best_params_}")
-    print(f"Best score for {regressor[0]} is {best_model.best_score_}")
-    print('-' * 50)
-    print('\n')
+    logger.info("Best parameter for %s is %s", regressor[0], best_model.best_params_)
+    logger.info("Best score for %s is %s", regressor[0], best_model.best_score_)
 
     return best_model
 
@@ -92,7 +91,7 @@ class XGBoostRegressorModel(MLModel):
 
         y_pred = self.model.predict(X_test)
         for s, ss in self.score.items():
-            print(f'{s}: {ss(self.model, X_test, y_test)}')
+            logger.info('%s: %s', s, ss(self.model, X_test, y_test))
         return None # mse
     
     def predict(self, X, format='seconds'):
@@ -107,7 +106,7 @@ class XGBoostRegressorModel(MLModel):
             pandas.Series: Model's prediction from X.
         """
         if self.target_column in X.columns:
-            print(f'Dropping {self.target_column} from data...')
+            logger.debug('Dropping %s from data...', self.target_column)
             X = X.drop(self.target_column, axis='columns')
         if format == 'time':
             return pd.Series([self.format_time(x) for x in self.model.predict(X)],

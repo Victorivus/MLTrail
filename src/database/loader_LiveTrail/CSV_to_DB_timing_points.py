@@ -1,15 +1,18 @@
 import os
 import csv
 import json
+import logging
 import sqlite3
 import argparse
 import pandas as pd
-import config
+from config import get_config
 from database.models import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
 from datetime import datetime
 from results.results import Results
+
+logger = logging.getLogger(__name__)
 
 
 def generate_done_file(data, path):
@@ -70,7 +73,7 @@ def insert_into_timing_points(cursor, race_id, event_id, departure_datetime, dat
 
     if all(all(elem == '' for elem in sublist[1]) for sublist in data):
         # all rows are empty
-        print("FAILED CANCELLED RACE: ", race_id, event_id)
+        logger.warning("FAILED CANCELLED RACE: %s %s", race_id, event_id)
         raise ValueError
 
     times_first_row = data[0][1]
@@ -102,20 +105,20 @@ def insert_into_timing_points(cursor, race_id, event_id, departure_datetime, dat
                  clean_days=False, start_day=weekday, waves=waves)
     except TypeError as e:
         if "argument of type 'NAType' is not iterable" in str(e):
-            print("FAILED RACE (Interpolating times failed): ", race_id, event_id)
+            logger.warning("FAILED RACE (Interpolating times failed): %s %s", race_id, event_id)
         elif "object of type 'NoneType' has no len()" in str(e):
-            print("FAILED CANCELLED RACE: ", race_id, event_id)
-        print("FAILED TypeError: ", race_id, event_id, e)
+            logger.warning("FAILED CANCELLED RACE: %s %s", race_id, event_id)
+        logger.warning("FAILED TypeError: %s %s %s", race_id, event_id, e)
         raise ValueError from e
     except ZeroDivisionError as e:
         # Solved
-        print("FAILED ZeroDivisionError: ", race_id, event_id)
+        logger.warning("FAILED ZeroDivisionError: %s %s", race_id, event_id)
         raise ValueError from e
     except IndexError as e:
         if 'single positional indexer is out-of-bounds' in str(e):
-            print("FAILED CANCELLED RACE: ", race_id, event_id)
+            logger.warning("FAILED CANCELLED RACE: %s %s", race_id, event_id)
         elif 'list index out of range' in str(e):
-            print("FAILED RACE (1 single participant): ", race_id, event_id)
+            logger.warning("FAILED RACE (1 single participant): %s %s", race_id, event_id)
         raise ValueError from e
     for bib, times in zip([v[0] for v in data],
                           [v[1] for v in rs.get_real_times().map(rs.format_time_over24h).iterrows()]):
@@ -163,10 +166,11 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
         update (dict): If specified, dict containing the list of files to use.
     '''
     try:
+        cfg = get_config()
         if not path:
-            path = os.path.join(os.environ["DATA_DIR_PATH"], 'events.db')
+            path = cfg.db_path
         if not data_path:
-            data_path = os.path.join(os.environ["DATA_DIR_PATH"], 'csv')
+            data_path = os.path.join(cfg.data_dir_path, 'csv')
 
         db: Database = Database.create_database(path=path)
 
@@ -176,13 +180,13 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
                 cursor = db_connection.cursor()
                 clean_table(cursor)
                 db_connection.commit()
-                print('INFO: timing_points table emptied')
+                logger.info('timing_points table emptied')
 
         folders = os.listdir(data_path)
         if skip:
             _, db_years = Event.get_events_years(db)
             parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(skip)
-            print(f"INFO: Updating {len(db_years) - len(parsed_data) + 1} events")
+            logger.info("Updating %d events", len(db_years) - len(parsed_data) + 1)
             _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
             folders = list(years.keys())
             db_LiveTrail_loader.save_years_to_txt('updated_events_years.txt', years)
@@ -190,7 +194,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
             years = update
             folders = list(years.keys())
             db_LiveTrail_loader.save_years_to_txt('updated_events_years.txt', years)
-        print("INFO: Inserting data into Timing Points table.")
+        logger.info("Inserting data into Timing Points table.")
         # Iterate through folders
         parsed_data = {}
         for folder in folders:
@@ -212,7 +216,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
                             race_event_ids = fetch_race_event_ids(cursor, f'csv/{folder}/{file}')
                             if race_event_ids:
                                 race_id, event_id, departure_datetime = race_event_ids
-                                print(f'Inserting data into {event_id}. {folder}, {race_id}')
+                                logger.info('Inserting data into %s. %s, %s', event_id, folder, race_id)
                                 # Read CSV file
                                 csv_data = read_csv(file_path)
                                 # Insert data into timing_points table
@@ -222,7 +226,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
                                             clean_race(cursor, event_id, race_id)
                                         insert_into_timing_points(cursor, race_id, event_id, departure_datetime, csv_data)
                                     else:
-                                        print("FAILED Empty CSV: ", race_id, event_id)
+                                        logger.warning("FAILED Empty CSV: %s %s", race_id, event_id)
                                 except sqlite3.IntegrityError:
                                     pass
                                 except ValueError:
@@ -230,7 +234,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
                             db_connection.commit()
                         db_connection.close()
     except Exception as e:
-        print(e)
+        logger.exception("Error in timing points loader")
         # save progress to be able to use it with --skip option after
         generate_done_file(parsed_data, "done.txt")
 

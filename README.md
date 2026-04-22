@@ -43,7 +43,17 @@ pip install pytest python-dotenv html5lib beautifulsoup4 lxml matplotlib numpy p
 poetry install --only-root
 ```
 
+
 # Download data from LiveTrail locally
+Create the local DB:
+
+```bash
+python -c "from database.create_db import Database; Database.create_database('data/events.db')"
+
+python -c "from database.create_db import Database; Database.create_user('user', 'pass', path='data/events.db')"
+```
+
+
 Launch the following command:
 
 ```
@@ -155,8 +165,8 @@ Don't hesitate to get in contact or open an issue!
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [X] add results download + load to DB to lib instead of notebook + script
 - [X] make a proper way to import to DB so imports can be scheduled : compare scraper.get_events_years to Event.get_events_years and scapre only diff
-- [ ] Create profile simple table to save own results after search for model creation
-- [ ] Create personal features table so we cun unselect some races for model training
+- [X] Create profile simple table to save own results after search for model creation
+- [X] Create personal features table so we cun unselect some races for model training
 
 
 ### ML/AI
@@ -178,7 +188,7 @@ Don't hesitate to get in contact or open an issue!
 - [ ] Objective graph is only paces, show times / normalised pace?
 - [X] Bug when races include departure time in timing_points file
 - [ ] Add Warinings about prediction methods not being accurate, and that more data usually shows better results.
-
+- [ ] Migrate to a more powerful technology (Node?)
 
 ### BackEnd
 - [ ] BUG: (minor) Results class, if there are more than 1 NaN in a row, the interpolated time is the same for all of them when performing the mean (e.g. penyagolosa 2022 'mim': iloc[616] has 2 NaN in a row)
@@ -194,11 +204,12 @@ Don't hesitate to get in contact or open an issue!
 - [X] Fix: Add support for front bug races having departuire in timing_points (Results)
 - [X] Add this kind of races to tests (e.g. 'mbm' 2023 '42km')
 - [X] BUG: Races with different start time per participant (e.g. 'Marathon du Mont-Blanc', '2014' , 'kmv', 402, 'KM Vertical').
-- [ ] Aberrant times/paces management (mainly for plots and analysis)
+- [ ] Aberrant times/paces management (mainly for plots and analysis) (e.g. penyagolosa 2025 'mim' min paces in some sections)
 - [ ] Maybe add a '*' to interpolated times to prevent they're not real?
 
 ### CI/CD
 - [X] Create a CI
-- [ ] Contenarize
+- [X] Contenarize
 - [ ] Create a CD Pipeline once contenarized
 - [X] Add installation procedure
+- [ ] Contenarize better not all-in-one container

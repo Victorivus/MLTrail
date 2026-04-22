@@ -45,6 +45,7 @@ class TestDatabase(unittest.TestCase):
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = cursor.fetchall()
         table_names = [table[0] for table in tables]
+        self.assertIn('users', table_names)
         self.assertIn('events', table_names)
         self.assertIn('races', table_names)
         self.assertIn('results', table_names)

@@ -1,8 +1,11 @@
+import logging
 from abc import ABC, abstractmethod
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from ai.features import Features
 import sqlite3
+
+logger = logging.getLogger(__name__)
 
 class TargetNotSetError(Exception):
     """Exception raised when a a target column is not set and training is caled."""
@@ -78,7 +81,7 @@ class MLModel(ABC):
             conn.commit()
 
         except sqlite3.Error as e:
-            print(f"Error saving model parameters to database: {e}")
+            logger.error("Error saving model parameters to database: %s", e)
 
         finally:
             if conn:
@@ -105,10 +108,10 @@ class MLModel(ABC):
             for param_name, param_value in rows:
                 params[param_name] = param_value
 
-            print(f"Loaded parameters for {self.__class__.__name__}: {params}")
+            logger.info("Loaded parameters for %s: %s", self.__class__.__name__, params)
 
         except sqlite3.Error as e:
-            print(f"Error loading model parameters from database: {e}")
+            logger.error("Error loading model parameters from database: %s", e)
 
         finally:
             if conn:

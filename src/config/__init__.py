@@ -1,1 +1,1 @@
-from config import config
+from config.config import get_config, AppConfig

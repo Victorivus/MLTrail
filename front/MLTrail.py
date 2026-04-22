@@ -1,27 +1,18 @@
-'''
-Viz test module for the Results class
-'''
-import os
+"""MLTrail - Trail Race Analysis and ML Predictions"""
 import streamlit as st
-from dotenv import load_dotenv
+from config import get_config
+from auth import require_auth
 
-# Load variables from .env file
-load_dotenv(override=True)
-
-
-# Function to store session-like data using Streamlit's caching mechanism
-@st.cache_data(hash_funcs={dict: lambda _: None})
-def get_session_data():
-    '''
-        Get session data function
-    '''
-    return {}
-
+cfg = get_config()
+DB_PATH = cfg.db_path
 
 st.set_page_config(
     page_title="ML Trail",
     page_icon="🏃🏼🤖",
 )
+
+if not require_auth(DB_PATH):
+    st.stop()
 
 st.write("# Welcome to ML Trail! 🏃🏼🤖")
 

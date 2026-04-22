@@ -6,6 +6,9 @@
 !.github/workflows/*
 !README.md
 !.env.example
+!Dockerfile
+!docker-compose.yml
+!.dockerignore
 !src/
 !src/__init__.py
 !src/*/

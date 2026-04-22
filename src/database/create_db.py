@@ -2,8 +2,18 @@
     MLTrail Results Database creation
 '''
 import os
+import logging
 import sqlite3
+import bcrypt
 from sqlite3 import Connection, Cursor
+
+logger = logging.getLogger(__name__)
+
+VALID_TABLES = frozenset({
+    'users', 'events', 'races', 'results',
+    'control_points', 'timing_points', 'features',
+    'user_results'
+})
 
 
 class Database:
@@ -13,7 +23,7 @@ class Database:
     path: str = 'events.db'
 
     @classmethod
-    def create_database(cls, path=None) -> Connection:
+    def create_database(cls, path=None) -> 'Database':
         '''
             Create app's SQLite database
         '''
@@ -22,13 +32,24 @@ class Database:
 
         # Check if the database file already exists
         if os.path.exists(cls.path):
-            print(f"INFO: {cls.path}")
-            print("INFO: Database already exists.")
+            logger.info("Database already exists at %s", cls.path)
             return cls
 
         # Connect to SQLite database (creates if not exists)
         conn: Connection = sqlite3.connect(cls.path)
         cursor: Cursor = conn.cursor()
+
+        # Create users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                last_login TEXT
+            )
+        ''')
 
         # Create events table
         cursor.execute('''
@@ -111,6 +132,23 @@ class Database:
             )
         ''')
 
+        # Create user_results table: per-user set of results they've claimed as theirs.
+        # include_in_training toggles whether a row feeds the personal model (soft-delete).
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_results (
+                user_id INTEGER,
+                event_id INTEGER,
+                race_id TEXT,
+                bib TEXT,
+                include_in_training INTEGER NOT NULL DEFAULT 1,
+                added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, event_id, race_id, bib),
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (event_id) REFERENCES events(event_id),
+                FOREIGN KEY (race_id) REFERENCES races(race_id)
+            )
+        ''')
+
         # Create model_input table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS features (
@@ -138,9 +176,38 @@ class Database:
         conn.commit()
         conn.close()
 
-        print("Database created successfully.")
+        logger.info("Database created successfully at %s", cls.path)
 
         return cls
+
+    @classmethod
+    def ensure_user_results_table(cls, path=None) -> None:
+        '''
+            Idempotent migration for existing DBs that predate the user_results table.
+        '''
+        if path:
+            cls.path = path
+        try:
+            conn = sqlite3.connect(cls.path)
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS user_results (
+                    user_id INTEGER,
+                    event_id INTEGER,
+                    race_id TEXT,
+                    bib TEXT,
+                    include_in_training INTEGER NOT NULL DEFAULT 1,
+                    added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, event_id, race_id, bib),
+                    FOREIGN KEY (user_id) REFERENCES users(user_id),
+                    FOREIGN KEY (event_id) REFERENCES events(event_id),
+                    FOREIGN KEY (race_id) REFERENCES races(race_id)
+                )
+            ''')
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            logger.error("Error ensuring user_results table: %s", e)
 
     @classmethod
     def empty_all_tables(cls, path=None):
@@ -150,8 +217,7 @@ class Database:
         if path:
             cls.path = path
         try:
-            # Connect to the database
-            conn = sqlite3.connect(path)
+            conn = sqlite3.connect(cls.path)
             cursor = conn.cursor()
 
             # Get a list of all tables in the database
@@ -161,11 +227,29 @@ class Database:
             # Iterate over each table and delete all rows
             for table in tables:
                 table_name = table[0]
-                cursor.execute(f"DELETE FROM {table_name};")
+                if table_name in VALID_TABLES:
+                    cursor.execute(f"DELETE FROM {table_name};")
+                else:
+                    logger.warning("Skipping unknown table: %s", table_name)
 
-            # Commit changes and close connection
             conn.commit()
             conn.close()
-            print("INFO: All tables have been emptied successfully.")
+            logger.info("All tables have been emptied successfully.")
         except sqlite3.Error as e:
-            print("ERROR: ", e)
+            logger.error("Error emptying tables: %s", e)
+
+    @classmethod
+    def create_user(cls, username, plain_password, email=None, path=None):
+        if path:
+            cls.path = path
+        if email is None:
+            email = f"{username}@mltrail.local"
+        try:
+            conn = sqlite3.connect(cls.path)
+            cursor = conn.cursor()
+            hashed_password = bcrypt.hashpw(plain_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)", (username, email, hashed_password))
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            logger.error("Error creating user: %s", e)

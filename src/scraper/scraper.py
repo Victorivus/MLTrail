@@ -1,32 +1,75 @@
 import os
 import json
+import time
+import random
+import logging
 import warnings
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from bs4 import GuessedAtParserWarning
-import config
+from bs4 import XMLParsedAsHTMLWarning
+from config import get_config
+
+logger = logging.getLogger(__name__)
 
 # Suppress the XMLParsedAsHTMLWarning
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
 warnings.filterwarnings("ignore", message="XMLParsedAsHTMLWarning")
 warnings.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 
 class LiveTrailScraper:
     base_url: str = "https://livetrail.net/histo/{event}_{year}"
     base_url2: str = "https://livetrail.net/histo/{event}{year}"
-    data_path = os.environ["DATA_DIR_PATH"]
+    data_path = get_config().data_dir_path
+
+    _MAX_RETRIES = 3
+    _BASE_DELAY = 1.0   # min seconds between requests
+    _MAX_DELAY = 3.0     # max seconds between requests
+    _BACKOFF_BASE = 2.0  # exponential backoff base (2s, 4s, 8s)
 
     def __init__(self, events: list[str] = [], years: list[str] = [],
                  race: str = 'all') -> None:
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        })
         self.allEvents = self.get_events()
         self.eventsYears = self.get_events_years()
         self.events = events
         self.years = years
         self.race = race
-        # self.date, self.startingTime, self.day = self.get_race_info()
+
+    def _request(self, method, url, **kwargs):
+        kwargs.setdefault('timeout', 20)
+        for attempt in range(self._MAX_RETRIES + 1):
+            # Polite delay before each request
+            delay = random.uniform(self._BASE_DELAY, self._MAX_DELAY)
+            time.sleep(delay)
+            try:
+                response = self.session.request(method, url, **kwargs)
+                if response.status_code == 429 or response.status_code >= 500:
+                    if attempt < self._MAX_RETRIES:
+                        backoff = self._BACKOFF_BASE * (2 ** attempt) + random.uniform(0, 1)
+                        logger.warning("HTTP %s from %s — retrying in %.1fs (attempt %d/%d)",
+                                       response.status_code, url, backoff, attempt + 1, self._MAX_RETRIES)
+                        time.sleep(backoff)
+                        continue
+                return response
+            except (requests.ConnectionError, requests.Timeout) as e:
+                if attempt < self._MAX_RETRIES:
+                    backoff = self._BACKOFF_BASE * (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning("Connection error on %s — retrying in %.1fs (attempt %d/%d): %s",
+                                   url, backoff, attempt + 1, self._MAX_RETRIES, e)
+                    time.sleep(backoff)
+                else:
+                    logger.error("Request failed after %d retries: %s", self._MAX_RETRIES, url)
+                    raise
 
     def _check_event_year(self, e: str, y: str) -> None:
         if e not in list(self.allEvents.keys()) or y not in self.eventsYears[e]:
@@ -63,7 +106,7 @@ class LiveTrailScraper:
                         # URL of the website
                         # url = f"https://livetrail.net/histo/{event}_{year}/coureur.php?rech={bib_n}"
                         # Sending GET request to parse races' names
-                        response = requests.get(url, timeout=20)
+                        response = self._request('GET', url)
                         # Check if request was successful
                         if response.status_code == 200:
                             # 'race' is an id and 'name' a more human-readble version
@@ -72,9 +115,9 @@ class LiveTrailScraper:
                             break
                         else:
                             race_info = {}
-                            print("Failed to retrieve race info. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve race info. Status code: %s", response.status_code)
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
         return race_info
 
     def get_races_physical_details(self) -> dict:
@@ -199,6 +242,7 @@ class LiveTrailScraper:
                             }
                     }
             }
+
         '''
         full_races = {}
         for event in self.events:
@@ -211,7 +255,7 @@ class LiveTrailScraper:
                         # URL of the website
                         # url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
                         # Sending GET request to parse races' names
-                        response = requests.get(url, timeout=20)
+                        response = self._request('GET', url)
                         # Check if request was successful
                         if response.status_code == 200:
                             # 'race' is an id and 'name' a more human-readble version
@@ -220,9 +264,9 @@ class LiveTrailScraper:
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
-                            print("Failed to retrieve races' names. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve races' names. Status code: %s", response.status_code)
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
         return full_races
 
     def download_data(self, data_path=None, force_download=False) -> int:
@@ -239,7 +283,7 @@ class LiveTrailScraper:
                         # URL of the website
                         # url = f"https://livetrail.net/histo/{event}_{year}/passages.php"
                         # Sending GET request to parse races' names
-                        response = requests.get(url, timeout=20)
+                        response = self._request('GET', url)
                         # Check if request was successful
                         if response.status_code == 200:
                             races = self._parse_races(response.text)
@@ -261,22 +305,22 @@ class LiveTrailScraper:
                                     pass
                                 else:
                                     # Sending POST request
-                                    results_response = requests.post(url, data=data, timeout=20)
+                                    results_response = self._request('POST', url, data=data)
                                     # Check if request was successful
                                     if results_response.status_code == 200:
                                         df = self._parse_table(results_response.text)
                                         df.to_csv(os.path.join(folder_path, f'{event}_{race}_{year}.csv'), index=False)
                                     else:
-                                        print(f"Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                                              results_response.status_code)
+                                        logger.warning("Failed to retrieve HTML table for event: %s %s, race: %s. Status code: %s",
+                                                       event, year, race, results_response.status_code)
                                         count += 1
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
-                            print("Failed to retrieve races' names. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve races' names. Status code: %s", response.status_code)
                             count += 1
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
                     count += 1
         # return number of errors
         return count
@@ -312,17 +356,17 @@ class LiveTrailScraper:
                 url1 = self.base_url.replace("{event}", event).replace("{year}", year) + "/passages.php"
                 url2 = self.base_url2.replace("{event}", event).replace("{year}", year) + "/passages.php"
                 for url in [url1, url2]:
-                    results_response = requests.post(url, data=data, timeout=20)
+                    results_response = self._request('POST', url, data=data)
                     # Check if request was successful
                     if results_response.status_code == 200:
                         df = self._parse_table(results_response.text)
                         break
                     else:
-                        print(f"Failed to retrieve HTML table for event: {event} {year}, race: {race}. Status code:",
-                              results_response.status_code)
+                        logger.warning("Failed to retrieve HTML table for event: %s %s, race: %s. Status code: %s",
+                                       event, year, race, results_response.status_code)
             return df
         except ValueError as e:
-            print(e)
+            logger.warning("%s", e)
 
     def _parse_event_list(self, data) -> dict:
         data = json.loads(data)
@@ -379,13 +423,13 @@ class LiveTrailScraper:
             'type': 'livetrail.net'
         }
         # Sending POST request
-        response = requests.post(url, data=data, timeout=20)
+        response = self._request('POST', url, data=data)
         # Check if request was successful
         if response.status_code == 200:
             events_dict = self._parse_event_list(response.text)
         else:
-            print("Failed to retrieve Live Trail's event list. Status code:",
-                  response.status_code)
+            logger.warning("Failed to retrieve Live Trail's event list. Status code: %s",
+                         response.status_code)
         return events_dict
 
     def get_events_years(self) -> dict:
@@ -396,14 +440,63 @@ class LiveTrailScraper:
             'type': 'livetrail.net'
         }
         # Sending POST request
-        response = requests.post(url, data=data, timeout=20)
+        response = self._request('POST', url, data=data)
         # Check if request was successful
         if response.status_code == 200:
             events_dict = self._parse_past_event_list(response.text)
         else:
-            print("Failed to retrieve Live Trail's event list. Status code:",
-                  response.status_code)
+            logger.warning("Failed to retrieve Live Trail's event list. Status code: %s",
+                         response.status_code)
         return events_dict
+
+    def probe_current_year_events(self, year: str = None,
+                                   skip_events: set = None) -> list[str]:
+        '''
+            Discover events that have already raced in ``year`` but aren't yet in
+            LiveTrail's archived-years feed (``dispEventPass``).
+
+            For each event known to LiveTrail, issues a single GET to
+            ``passages.php`` for the target year. On a 200 response whose XML
+            body contains a ``<courses>`` tag, ``year`` is appended to
+            ``self.eventsYears[event]`` so that ``_check_event_year`` accepts
+            the pair and the ``--update`` diff picks it up.
+
+            ``skip_events`` is a set of event codes that should not be probed —
+            typically those already stored for ``year`` in the caller's DB. This
+            prevents re-probing (and re-downloading) events every run until
+            LiveTrail catches up on its archive feed.
+
+            Returns the list of event codes that were newly discovered.
+        '''
+        import datetime as _dt
+        if year is None:
+            year = str(_dt.date.today().year)
+        skip_events = skip_events or set()
+
+        discovered = []
+        for event in self.allEvents.keys():
+            if event in skip_events:
+                continue
+            if year in self.eventsYears.get(event, []):
+                continue
+            for template in (self.base_url, self.base_url2):
+                url = template.replace("{event}", event).replace("{year}", year) + "/passages.php"
+                try:
+                    response = self._request('GET', url)
+                except requests.RequestException:
+                    break
+                if response is None or response.status_code != 200:
+                    continue
+                # Any passages.php hit returns XML. Missing events still hit 200
+                # for the root LiveTrail 404 page, so confirm the <courses> tag.
+                if '<courses>' not in response.text:
+                    continue
+                self.eventsYears.setdefault(event, []).insert(0, year)
+                discovered.append(event)
+                logger.info("Discovered %s %s via current-year probe", event, year)
+                break
+        logger.info("Current-year probe for %s found %d new event(s)", year, len(discovered))
+        return discovered
 
     def get_control_points(self) -> dict:
         count = 0
@@ -419,17 +512,18 @@ class LiveTrailScraper:
                         # URL of the website
                         # url = f"https://livetrail.net/histo/{event}_{year}/parcours.php"
                         # Sending GET request to parse races' names
-                        response = requests.get(url, timeout=20)
+                        response = self._request('GET', url)
                         # Check if request was successful
                         if response.status_code == 200:
                             control_points, control_points_names = self._parse_control_points(response.text)
                             # if url1 fails, some old pages url is like in 2
                             break
                         else:
-                            print(f"Failed to retrieve races' control points for {event} {year}. Status code:", response.status_code)
+                            logger.warning("Failed to retrieve races' control points for %s %s. Status code: %s",
+                                         event, year, response.status_code)
                             count += 1
                 except ValueError as e:
-                    print(e)
+                    logger.warning("%s", e)
                     count += 1
         # return number of errors
         return control_points, control_points_names

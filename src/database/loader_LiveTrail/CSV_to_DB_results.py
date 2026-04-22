@@ -1,13 +1,16 @@
 import os
 import csv
+import logging
 import sqlite3
 import argparse
 import json
 from datetime import datetime, timedelta
-import config
+from config import get_config
 from database.models import Event
 from database.create_db import Database
 from database.loader_LiveTrail import db_LiveTrail_loader
+
+logger = logging.getLogger(__name__)
 
 
 # Function to connect to SQLite database
@@ -217,10 +220,11 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
         skip (str): If specified, path for the file containing the list of (event, year) to skip
         update (dict): If specified, dict containing the list of files to use.
     '''
+    cfg = get_config()
     if not path:
-        path = os.path.join(os.environ["DATA_DIR_PATH"], 'events.db')
+        path = cfg.db_path
     if not data_path:
-        data_path = os.path.join(os.environ["DATA_DIR_PATH"], 'csv')
+        data_path = os.path.join(cfg.data_dir_path, 'csv')
 
     db: Database = Database.create_database(path=path)
 
@@ -229,19 +233,19 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
         with db_connection:
             cursor = db_connection.cursor()
             clean_table(cursor)
-            print('Results table emptied')
+            logger.info('Results table emptied')
 
     folders = os.listdir(data_path)
     if skip:
         _, db_years = Event.get_events_years(db)
         parsed_data = db_LiveTrail_loader.parse_events_years_txt_file(skip)
-        print(f"INFO: Updating {len(db_years) - len(parsed_data) + 1} events")
+        logger.info("Updating %d events", len(db_years) - len(parsed_data) + 1)
         _, years = db_LiveTrail_loader.get_years_only_in_v1(db_years, db_years, parsed_data)
         folders = list(years.keys())
     elif update:
         years = update
         folders = list(years.keys())
-    print("INFO: Inserting data into Results table.")
+    logger.info("Inserting data into Results table.")
     # Iterate through folders
     for folder in folders:
         #  print(f"folder: {folder}")
@@ -260,7 +264,7 @@ def main(path: str = None, data_path: str = None, clean: bool = False,
                         race_event_ids = fetch_race_event_ids(cursor, f'csv/{folder}/{file}')
                         if race_event_ids:
                             race_id, event_id = race_event_ids
-                            print(f'Inserting data into {event_id}. {folder}, {race_id}')
+                            logger.info('Inserting data into %s. %s, %s', event_id, folder, race_id)
                             departure_time = fetch_departure_date_time(cursor, race_id, event_id)
                             # Read CSV file
                             csv_data = read_csv(file_path)
