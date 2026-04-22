@@ -14,6 +14,7 @@ class AppConfig:
     data_dir_path: str = ""
     db_filename: str = "events.db"
     model_filename: str = "model.pkl"
+    plots_dir: str = "plots"
     log_level: str = "INFO"
 
     @property
@@ -24,6 +25,12 @@ class AppConfig:
     def model_path(self) -> str:
         return os.path.join(self.data_dir_path, self.model_filename)
 
+    @property
+    def plots_dir_path(self) -> str:
+        # An absolute PLOTS_DIR lets users redirect plots outside DATA_DIR_PATH;
+        # a relative value keeps them co-located with the data.
+        return os.path.join(self.data_dir_path, self.plots_dir)
+
     @classmethod
     def from_env(cls) -> "AppConfig":
         load_dotenv(override=True)
@@ -32,6 +39,7 @@ class AppConfig:
             data_dir_path=os.environ.get("DATA_DIR_PATH", "./data"),
             db_filename=os.environ.get("DB_FILENAME", "events.db"),
             model_filename=os.environ.get("MODEL_FILENAME", "model.pkl"),
+            plots_dir=os.environ.get("PLOTS_DIR", "plots"),
             log_level=os.environ.get("LOG_LEVEL", "INFO"),
         )
         setup_logging(config.log_level)
