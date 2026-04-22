@@ -260,6 +260,11 @@ def _render_my_results_section(user_id):
 
 def _render_training_section(training_metadata):
     st.header("AI Model Training")
+    st.info(
+        "The model learns from the *Train*-checked rows above. Accuracy "
+        "improves with more races — and especially with races whose distance "
+        "and elevation profile resemble the races you want to predict."
+    )
     training_state = st.session_state.training_state
 
     # Already trained → show status + reset option.
