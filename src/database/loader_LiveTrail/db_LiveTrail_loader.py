@@ -134,12 +134,23 @@ def main(path=None, data_path=None, clean=False, update=False):
         Database.empty_all_tables(db.path)
 
     scraper = LiveTrailScraper()
-    events = scraper.get_events()
-    years = scraper.get_events_years()
+    events = scraper.allEvents
+    years = scraper.eventsYears
 
     _, db_years = Event.get_events_years(db)
 
     if update:
+        # Probe the current year so races already run this season — but not yet
+        # archived by LiveTrail's dispEventPass feed — are picked up by the diff.
+        # Skip events we already stored for the current year to keep re-runs cheap.
+        import datetime as _dt
+        current_year = str(_dt.date.today().year)
+        already_loaded = {
+            code for code, yrs in db_years.items() if current_year in yrs
+        }
+        scraper.probe_current_year_events(year=current_year, skip_events=already_loaded)
+        # scraper.eventsYears may now contain the current year for discovered events.
+        years = scraper.eventsYears
         generate_code_year_txt(db.path, output_file='update.txt')
         events, years = get_years_only_in_v1(events, years, db_years)
     # Get the list of events and years

@@ -449,6 +449,55 @@ class LiveTrailScraper:
                          response.status_code)
         return events_dict
 
+    def probe_current_year_events(self, year: str = None,
+                                   skip_events: set = None) -> list[str]:
+        '''
+            Discover events that have already raced in ``year`` but aren't yet in
+            LiveTrail's archived-years feed (``dispEventPass``).
+
+            For each event known to LiveTrail, issues a single GET to
+            ``passages.php`` for the target year. On a 200 response whose XML
+            body contains a ``<courses>`` tag, ``year`` is appended to
+            ``self.eventsYears[event]`` so that ``_check_event_year`` accepts
+            the pair and the ``--update`` diff picks it up.
+
+            ``skip_events`` is a set of event codes that should not be probed —
+            typically those already stored for ``year`` in the caller's DB. This
+            prevents re-probing (and re-downloading) events every run until
+            LiveTrail catches up on its archive feed.
+
+            Returns the list of event codes that were newly discovered.
+        '''
+        import datetime as _dt
+        if year is None:
+            year = str(_dt.date.today().year)
+        skip_events = skip_events or set()
+
+        discovered = []
+        for event in self.allEvents.keys():
+            if event in skip_events:
+                continue
+            if year in self.eventsYears.get(event, []):
+                continue
+            for template in (self.base_url, self.base_url2):
+                url = template.replace("{event}", event).replace("{year}", year) + "/passages.php"
+                try:
+                    response = self._request('GET', url)
+                except requests.RequestException:
+                    break
+                if response is None or response.status_code != 200:
+                    continue
+                # Any passages.php hit returns XML. Missing events still hit 200
+                # for the root LiveTrail 404 page, so confirm the <courses> tag.
+                if '<courses>' not in response.text:
+                    continue
+                self.eventsYears.setdefault(event, []).insert(0, year)
+                discovered.append(event)
+                logger.info("Discovered %s %s via current-year probe", event, year)
+                break
+        logger.info("Current-year probe for %s found %d new event(s)", year, len(discovered))
+        return discovered
+
     def get_control_points(self) -> dict:
         count = 0
         control_points = {}
