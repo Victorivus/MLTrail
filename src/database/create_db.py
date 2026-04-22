@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 
 VALID_TABLES = frozenset({
     'users', 'events', 'races', 'results',
-    'control_points', 'timing_points', 'features'
+    'control_points', 'timing_points', 'features',
+    'user_results'
 })
 
 
@@ -131,6 +132,23 @@ class Database:
             )
         ''')
 
+        # Create user_results table: per-user set of results they've claimed as theirs.
+        # include_in_training toggles whether a row feeds the personal model (soft-delete).
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_results (
+                user_id INTEGER,
+                event_id INTEGER,
+                race_id TEXT,
+                bib TEXT,
+                include_in_training INTEGER NOT NULL DEFAULT 1,
+                added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, event_id, race_id, bib),
+                FOREIGN KEY (user_id) REFERENCES users(user_id),
+                FOREIGN KEY (event_id) REFERENCES events(event_id),
+                FOREIGN KEY (race_id) REFERENCES races(race_id)
+            )
+        ''')
+
         # Create model_input table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS features (
@@ -161,6 +179,35 @@ class Database:
         logger.info("Database created successfully at %s", cls.path)
 
         return cls
+
+    @classmethod
+    def ensure_user_results_table(cls, path=None) -> None:
+        '''
+            Idempotent migration for existing DBs that predate the user_results table.
+        '''
+        if path:
+            cls.path = path
+        try:
+            conn = sqlite3.connect(cls.path)
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS user_results (
+                    user_id INTEGER,
+                    event_id INTEGER,
+                    race_id TEXT,
+                    bib TEXT,
+                    include_in_training INTEGER NOT NULL DEFAULT 1,
+                    added_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (user_id, event_id, race_id, bib),
+                    FOREIGN KEY (user_id) REFERENCES users(user_id),
+                    FOREIGN KEY (event_id) REFERENCES events(event_id),
+                    FOREIGN KEY (race_id) REFERENCES races(race_id)
+                )
+            ''')
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            logger.error("Error ensuring user_results table: %s", e)
 
     @classmethod
     def empty_all_tables(cls, path=None):
