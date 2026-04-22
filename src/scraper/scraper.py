@@ -8,6 +8,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from bs4 import GuessedAtParserWarning
+from bs4 import XMLParsedAsHTMLWarning
 from config import get_config
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 warnings.filterwarnings('ignore', category=GuessedAtParserWarning)
 warnings.filterwarnings("ignore", message="XMLParsedAsHTMLWarning")
 warnings.filterwarnings("ignore", message=".*XMLParsedAsHTMLWarning.*")
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module='bs4')
 
 
@@ -240,6 +242,7 @@ class LiveTrailScraper:
                             }
                     }
             }
+
         '''
         full_races = {}
         for event in self.events:
