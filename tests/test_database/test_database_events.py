@@ -112,6 +112,23 @@ class TestEvent(unittest.TestCase):
         self.assertEqual(event.get_year(), "2024-01-01")
         self.assertEqual(event.get_country(), "USA")
 
+    def test_records_d_get_id_from_code_year_happy_path(self):
+        event = Event(event_code="trailx", event_name="Trail X", year="2023",
+                      country="ESP", db=self.db)
+        event.save_to_database()
+        event_id = Event.get_id_from_code_year("trailx", "2023", db=self.db)
+        self.assertEqual(event_id, event.get_event_id())
+
+    def test_records_e_get_id_from_code_year_wrong_year(self):
+        # "trailx" was saved with year 2023 in the previous test; querying a
+        # different year must not return the 2023 event_id.
+        event_id = Event.get_id_from_code_year("trailx", "2022", db=self.db)
+        self.assertIsNone(event_id)
+
+    def test_records_f_get_id_from_code_year_missing_code(self):
+        event_id = Event.get_id_from_code_year("phantom", "2023", db=self.db)
+        self.assertIsNone(event_id)
+
 
 if __name__ == '__main__':
     unittest.main()
