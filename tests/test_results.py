@@ -384,6 +384,35 @@ class TestResults():
         ct.columns = list(sample_results.control_points.keys())
         assert all(ct == sample_results.clean_times())
 
+    def test_clean_times_drops_all_nan_column(self):
+        # Regression test: when an entire control-point column is NaN for
+        # every runner (e.g. mut 2023 where a checkpoint never fired),
+        # clean_times must drop the column from both `times` and
+        # `control_points` instead of inventing a synthetic time — otherwise
+        # downstream pace / distance computations use a fake checkpoint.
+        control_points = {
+            'CP0': (0.0, 0, 0),
+            'CP1': (5.0, 50, -20),
+            'DEAD': (10.0, 100, -40),  # no runner has a time here
+            'CP2': (15.0, 150, -60),
+            'CP3': (20.0, 200, -80),
+        }
+        data = {
+            'CP0': ['00:00:00', '00:00:00'],
+            'CP1': ['01:00:00', '01:10:00'],
+            'DEAD': [np.nan, np.nan],
+            'CP2': ['02:00:00', '02:15:00'],
+            'CP3': ['03:00:00', '03:30:00'],
+        }
+        times = pd.DataFrame(data, index=['1', '2'])
+        control_points.pop(next(iter(control_points)))
+        rs = Results(control_points, times[control_points.keys()],
+                     offset='00:00:00', clean_days=False, start_day='1')
+        assert 'DEAD' not in rs.times.columns
+        assert 'DEAD' not in rs.control_points
+        # Surrounding checkpoints must still be present and untouched.
+        assert set(rs.times.columns) == {'CP1', 'CP2', 'CP3'}
+
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397
         assert sample_results.get_seconds('3 days, 1:30:00') == 264597

@@ -63,6 +63,19 @@ class Results:
         self.times = self.times[(self.times.iloc[:, -1].isna() == False)]
         self.times = self.times.replace('nan', None)  # so ffill works
 
+        # Drop control points that have no timing data for any runner (e.g.
+        # mut 2023). Interpolating them would invent a synthetic timestamp
+        # and corrupt pace computation for every runner; the only safe move
+        # is to remove the column from both the times frame and the
+        # control_points dict so downstream distance/elevation logic stays
+        # aligned. Keep the last column since it gates DNF filtering above.
+        candidate_cols = list(self.times.columns[:-1])
+        empty_cols = [c for c in candidate_cols if self.times[c].isna().all()]
+        if empty_cols:
+            self.times = self.times.drop(columns=empty_cols)
+            for c in empty_cols:
+                self.control_points.pop(c, None)
+
         # prevent failing for df with only one row
         axis = 'columns' if len(self.times) == 1 else axis
         interpolate = 'mean' if len(self.times) == 1 else interpolate
