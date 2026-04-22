@@ -158,8 +158,12 @@ def main(path=None, data_path=None, clean=False, update=False):
         logger.info("Skipping events and years defined in parsed_races.txt")
         skip_races = parse_events_years_txt_file('parsed_races.txt')
         events, years = get_years_only_in_v1(events, years, skip_races)
-        logger.info("Events: %s", events)
-        logger.info("Years: %s", years)
+        # Force utf-8 encoding when printing potentially non-ascii characters
+        # logger.info("Events: %s", events)
+        # logger.info("Years: %s", years)
+        import json
+        logger.info("Events: %s", json.dumps(events, ensure_ascii=False))
+        logger.info("Years: %s", json.dumps(years, ensure_ascii=False))
 
     for code, name in events.items():
         if code in years:
