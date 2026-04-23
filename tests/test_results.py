@@ -452,6 +452,57 @@ class TestResults():
         assert cp2 == '2:00:00'
         assert cp3 == '3:00:00'
 
+    def test_get_interpolated_mask(self):
+        # Runner '1' has a NaN at CP2 that Results fills during clean_times;
+        # runner '2' has no missing values. The mask must reflect that.
+        control_points = {
+            'CP0': (0.0, 0, 0),
+            'CP1': (10.0, 100, -50),
+            'CP2': (20.0, 200, -100),
+            'CP3': (30.0, 300, -150),
+        }
+        data = {
+            'CP0': ['00:00:00', '00:00:00'],
+            'CP1': ['01:00:00', '01:00:00'],
+            'CP2': [np.nan,     '02:00:00'],
+            'CP3': ['03:00:00', '03:00:00'],
+        }
+        times = pd.DataFrame(data, index=['1', '2'])
+        control_points.pop(next(iter(control_points)))
+        rs = Results(control_points, times[control_points.keys()],
+                     offset='00:00:00', clean_days=False, start_day='1')
+
+        mask = rs.get_interpolated_mask()
+        assert bool(mask.loc['1', 'CP2']) is True
+        assert bool(mask.loc['2', 'CP2']) is False
+        for col in ('CP1', 'CP3'):
+            assert bool(mask.loc['1', col]) is False
+            assert bool(mask.loc['2', col]) is False
+
+    def test_get_times_with_markers(self):
+        control_points = {
+            'CP0': (0.0, 0, 0),
+            'CP1': (10.0, 100, -50),
+            'CP2': (20.0, 200, -100),
+            'CP3': (30.0, 300, -150),
+        }
+        data = {
+            'CP0': ['00:00:00', '00:00:00'],
+            'CP1': ['01:00:00', '01:00:00'],
+            'CP2': [np.nan,     '02:00:00'],
+            'CP3': ['03:00:00', '03:00:00'],
+        }
+        times = pd.DataFrame(data, index=['1', '2'])
+        control_points.pop(next(iter(control_points)))
+        rs = Results(control_points, times[control_points.keys()],
+                     offset='00:00:00', clean_days=False, start_day='1')
+
+        marked = rs.get_times_with_markers()
+        # Interpolated cell gets the marker; clean cells do not.
+        assert marked.loc['1', 'CP2'].endswith('*')
+        assert not marked.loc['1', 'CP1'].endswith('*')
+        assert not marked.loc['2', 'CP2'].endswith('*')
+
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397
         assert sample_results.get_seconds('3 days, 1:30:00') == 264597
