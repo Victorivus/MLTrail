@@ -98,6 +98,12 @@ class Results:
             for c in empty_cols:
                 self.control_points.pop(c, None)
 
+        # Capture which cells will be filled by interpolation so callers
+        # (the front-end rendering code) can flag these cells as not real.
+        # Snapshotting here, after the DNF filter and all-NaN column drop
+        # but before any fill, gives a mask aligned to the final frame.
+        self.interpolated = self.times.isna()
+
         # prevent failing for df with only one row
         axis = 'columns' if len(self.times) == 1 else axis
         interpolate = 'mean' if len(self.times) == 1 else interpolate
@@ -134,6 +140,34 @@ class Results:
                 else str(np.nan)
             )
         return self.times
+
+    def get_interpolated_mask(self) -> pd.DataFrame:
+        '''
+            DataFrame of booleans, same shape / index / columns as ``self.times``.
+            ``True`` means the value at that cell was originally missing and
+            has been filled by ``clean_times``; front-end code can use this
+            to flag cells visually (e.g. appending an asterisk).
+            Returns an empty DataFrame if called before ``clean_times`` ran.
+        '''
+        if not hasattr(self, 'interpolated') or self.interpolated is None:
+            return pd.DataFrame()
+        return self.interpolated
+
+    def get_times_with_markers(self, marker: str = '*') -> pd.DataFrame:
+        '''
+            ``self.times`` with ``marker`` appended to every interpolated cell.
+            Handy for one-line rendering in the Streamlit pages without
+            having to style a separate DataFrame.
+        '''
+        mask = self.get_interpolated_mask()
+        if mask.empty:
+            return self.times.copy()
+        marked = self.times.copy()
+        for col in marked.columns:
+            if col in mask.columns:
+                col_mask = mask[col].reindex(marked.index, fill_value=False)
+                marked.loc[col_mask, col] = marked.loc[col_mask, col].astype(str) + marker
+        return marked
 
     def compute_real_times(self):
         first_cp_key, first_cp_value = list(self.control_points.items())[0]
