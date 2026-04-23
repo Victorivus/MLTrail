@@ -84,20 +84,20 @@ class Results:
                 if self.times.iloc[-1].isnull().any():
                     self.times = self.times.ffill(axis=axis)
         elif interpolate == 'mean':
-            df_ffilled = self.times.ffill(axis=axis)
-            if axis == 'rows':  # not tested
-                # First row may still contain NaN
-                if df_ffilled.iloc[0].isnull().any():
-                    df_ffilled = df_ffilled.bfill(axis=axis)
-            else:
-                if df_ffilled.iloc[:, 0].isnull().any():
-                    # First column may still contain NaN
-                    df_ffilled = df_ffilled.bfill(axis=axis)
-            df_ffilled = df_ffilled.map(self.get_seconds)
-            df_bfilled = self.times.bfill(axis=axis)
-            df_bfilled = df_bfilled.map(self.get_seconds)
-            self.times = (df_ffilled + df_bfilled) / 2
-            self.times = self.times.map(lambda x: self.get_time(self.offset + x))
+            # Linear interpolation between the nearest valid neighbours spreads
+            # consecutive NaNs proportionally. The previous (ffill+bfill)/2
+            # approach gave the same midpoint to every NaN in a run, producing
+            # duplicate timestamps whenever a runner missed two or more
+            # consecutive checkpoints (penyagolosa 2022 'mim' iloc[616]).
+            seconds = self.times.map(
+                lambda x: self.get_seconds(x) if isinstance(x, str) else np.nan
+            )
+            seconds = seconds.interpolate(method='linear', axis=axis,
+                                          limit_direction='both')
+            self.times = seconds.map(
+                lambda x: self.get_time(self.offset + x) if pd.notna(x)
+                else str(np.nan)
+            )
         return self.times
 
     def compute_real_times(self):

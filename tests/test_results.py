@@ -384,6 +384,42 @@ class TestResults():
         ct.columns = list(sample_results.control_points.keys())
         assert all(ct == sample_results.clean_times())
 
+    def test_clean_times_multi_nan_run_spreads_linearly(self):
+        # Regression test: two consecutive NaNs on the same runner must be
+        # interpolated to distinct values (spread linearly between the
+        # bracketing valid times), not to the same midpoint. Pre-fix the
+        # 'mean' branch used (ffill+bfill)/2 which collapsed every NaN in a
+        # run onto the same value (penyagolosa 2022 'mim' iloc[616]).
+        control_points = {
+            'CP0': (0.0, 0, 0),
+            'CP1': (10.0, 100, -50),
+            'CP2': (20.0, 200, -100),
+            'CP3': (30.0, 300, -150),
+            'CP4': (40.0, 400, -200),
+        }
+        data = {
+            'CP0': ['00:00:00'],
+            'CP1': ['01:00:00'],
+            'CP2': [np.nan],
+            'CP3': [np.nan],
+            'CP4': ['04:00:00'],
+        }
+        times = pd.DataFrame(data, index=['1'])
+        control_points.pop(next(iter(control_points)))
+        rs = Results(control_points, times[control_points.keys()],
+                     offset='00:00:00', clean_days=False, start_day='1')
+        cp2 = rs.times.loc['1', 'CP2']
+        cp3 = rs.times.loc['1', 'CP3']
+        assert cp2 != cp3, (
+            f"Expected distinct interpolated values for consecutive NaNs, "
+            f"got CP2={cp2} CP3={cp3}"
+        )
+        # Between 01:00:00 (3600s) and 04:00:00 (14400s), linear interp at
+        # index positions 2 and 3 (between index 1 and 4) yields 7200 and
+        # 10800 → 02:00:00 and 03:00:00.
+        assert cp2 == '2:00:00'
+        assert cp3 == '3:00:00'
+
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397
         assert sample_results.get_seconds('3 days, 1:30:00') == 264597
