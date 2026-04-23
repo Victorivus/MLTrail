@@ -38,11 +38,14 @@ class Testdb_LiveTrail_loader(unittest.TestCase):
 
     def test_get_years_only_in_v1_cold_start(self):
         # With an empty DB side (v2), the --update diff must surface every year
-        # from the scraper.
+        # from the scraper. get_years_only_in_v1 derives years via set
+        # difference so list ordering is not preserved — compare as sets.
         events, only_in_v1 = db_LiveTrail_loader.get_years_only_in_v1(
             self.events, self.years_v1, {})
         self.assertEqual(events, self.events)
-        self.assertEqual(only_in_v1, self.years_v1)
+        self.assertEqual(only_in_v1.keys(), self.years_v1.keys())
+        for code, expected_years in self.years_v1.items():
+            self.assertEqual(set(only_in_v1[code]), set(expected_years))
 
     def test_get_years_only_in_v1_fully_synced(self):
         # When scraper and DB are in sync, --update must produce nothing.
