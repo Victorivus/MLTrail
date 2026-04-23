@@ -426,14 +426,17 @@ class TestResults():
             'CP3': (30.0, 300, -150),
             'CP4': (40.0, 400, -200),
         }
+        # Runner '1' has the consecutive NaNs under test; runner '2' has
+        # valid times everywhere so the all-NaN column guard (dropping
+        # checkpoints where every runner is NaN) doesn't strip CP2/CP3.
         data = {
-            'CP0': ['00:00:00'],
-            'CP1': ['01:00:00'],
-            'CP2': [np.nan],
-            'CP3': [np.nan],
-            'CP4': ['04:00:00'],
+            'CP0': ['00:00:00', '00:00:00'],
+            'CP1': ['01:00:00', '01:00:00'],
+            'CP2': [np.nan,     '02:00:00'],
+            'CP3': [np.nan,     '03:00:00'],
+            'CP4': ['04:00:00', '04:00:00'],
         }
-        times = pd.DataFrame(data, index=['1'])
+        times = pd.DataFrame(data, index=['1', '2'])
         control_points.pop(next(iter(control_points)))
         rs = Results(control_points, times[control_points.keys()],
                      offset='00:00:00', clean_days=False, start_day='1')
