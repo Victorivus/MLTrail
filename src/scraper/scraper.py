@@ -133,6 +133,35 @@ class LiveTrailScraper:
 
         return races_data
 
+    def get_runner_identity(self, event: str, year: str, bib: str) -> dict:
+        '''
+            Fetch the per-runner identity card from coureur.php for a given
+            (event, year, bib). Returns a dict with ``sx`` (H/F/...),
+            ``descat`` (e.g. "0-34", "35-39", "") and ``cat`` (may be "").
+            Returns ``None`` if the request fails or the identite tag is missing.
+        '''
+        for template in (self.base_url, self.base_url2):
+            url = (template.replace("{event}", event).replace("{year}", year)
+                   + f"/coureur.php?rech={bib}")
+            try:
+                response = self._request('GET', url)
+            except requests.RequestException:
+                continue
+            if response is None or response.status_code != 200:
+                continue
+            if '<identite' not in response.text:
+                continue
+            soup = BeautifulSoup(response.text, 'xml')
+            identite = soup.find('identite')
+            if identite is None:
+                continue
+            return {
+                'sx': identite.get('sx', '') or '',
+                'descat': identite.get('descat', '') or '',
+                'cat': identite.get('cat', '') or '',
+            }
+        return None
+
     def _parse_race_info(self, xml_content: str) -> dict:
         # Parse the XML content
         soup = BeautifulSoup(xml_content, 'xml')

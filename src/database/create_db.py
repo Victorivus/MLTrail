@@ -62,7 +62,9 @@ class Database:
             )
         ''')
 
-        # Create races table
+        # Create races table. cat_needs_backfill flags races whose category
+        # data is absent or partial in LiveTrail's bulk XML and must be
+        # recovered per-runner from coureur.php.
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS races (
                 race_id TEXT,
@@ -73,6 +75,7 @@ class Database:
                 elevation_neg INTEGER,
                 departure_datetime TEXT,
                 results_filepath TEXT,
+                cat_needs_backfill INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (race_id, event_id),
                 FOREIGN KEY (event_id) REFERENCES events(event_id)
             )
@@ -179,6 +182,32 @@ class Database:
         logger.info("Database created successfully at %s", cls.path)
 
         return cls
+
+    @classmethod
+    def ensure_cat_backfill_column(cls, path=None) -> None:
+        '''
+            Idempotent migration: add races.cat_needs_backfill if it is missing.
+
+            Older DBs predate the scraped-category-gap feature; SQLite does not
+            support `ADD COLUMN IF NOT EXISTS`, so inspect pragma first.
+        '''
+        if path:
+            cls.path = path
+        try:
+            conn = sqlite3.connect(cls.path)
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(races)")
+            existing = {row[1] for row in cursor.fetchall()}
+            if 'cat_needs_backfill' not in existing:
+                cursor.execute(
+                    "ALTER TABLE races ADD COLUMN "
+                    "cat_needs_backfill INTEGER NOT NULL DEFAULT 0"
+                )
+                conn.commit()
+                logger.info("Added races.cat_needs_backfill column")
+            conn.close()
+        except sqlite3.Error as e:
+            logger.error("Error ensuring cat_needs_backfill column: %s", e)
 
     @classmethod
     def ensure_user_results_table(cls, path=None) -> None:
