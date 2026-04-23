@@ -562,29 +562,32 @@ class TestResults():
 
     def test_clamp_aberrant_paces_per_runner_consistency(self, sample_results):
         # A pace that passes the 2:00/km absolute floor but is more than
-        # 2× faster than the runner's own median is still flagged (the
-        # penyagolosa 2025 mim bib 234 case: 2:24/km on an 8.7 km / +461 m
-        # segment where his other segments averaged ~7 min/km).
+        # ~3.3× faster than the runner's own median is still flagged (the
+        # penyagolosa 2025 mim bib 234 pattern: very fast segment against
+        # a much slower baseline — physically impossible given his other
+        # segments).
         df = pd.DataFrame({
-            'CP1': ['0:07:00', '0:03:30', '0:07:30'],
-            # Row 'a' has 2:24/km — above the absolute floor but less than
-            # half of that runner's ~7 min/km median. Must be dropped.
-            'CP2': ['0:02:24', '0:03:50', '0:07:00'],
-            'CP3': ['0:07:15', '0:03:40', '0:08:00'],
+            'CP1': ['0:10:00', '0:03:30', '0:10:30'],
+            # Row 'a' has 2:30/km on CP2. The runner's median sits around
+            # 10:00/km (600 s); the consistency floor is 0.3 × 600 = 180 s
+            # = 3:00/km, so 2:30 (150 s) falls below and must be dropped.
+            'CP2': ['0:02:30', '0:03:50', '0:10:00'],
+            'CP3': ['0:10:15', '0:03:40', '0:11:00'],
             # Row 'b' is an elite runner whose median sits around 3:40/km.
-            # Their 2:45 on CP4 is fast but still > 0.5× median, so it is
-            # self-consistent and must be preserved.
-            'CP4': ['0:06:45', '0:02:45', '0:07:30'],
+            # Their 2:45 on CP4 is fast but still above 0.3 × median = 66 s
+            # (the absolute floor of 120 s actually binds first here), so
+            # the cell is self-consistent and must be preserved.
+            'CP4': ['0:09:45', '0:02:45', '0:10:30'],
         }, index=['a', 'b', 'c'])
         clamped = sample_results._clamp_aberrant_paces(df)
         assert pd.isna(clamped.loc['a', 'CP2']), \
-            "Cell >2x faster than the runner's median should be dropped"
+            "Cell >3.3x faster than the runner's median should be dropped"
         # Runner 'b's own median is already fast, so their 2:45 is not
         # an outlier against themselves and must be preserved.
         assert clamped.loc['b', 'CP4'] == '0:02:45'
         # The other reference cells are untouched.
-        assert clamped.loc['a', 'CP1'] == '0:07:00'
-        assert clamped.loc['c', 'CP3'] == '0:08:00'
+        assert clamped.loc['a', 'CP1'] == '0:10:00'
+        assert clamped.loc['c', 'CP3'] == '0:11:00'
 
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397

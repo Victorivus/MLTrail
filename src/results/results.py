@@ -317,18 +317,18 @@ class Results:
     # A cell below this floor is always a data artefact; no conditional test
     # is needed.
     #
-    # _PACE_RUNNER_CONSISTENCY_FACTOR: per-runner consistency check.  A
+    # _PACE_RUNNER_CONSISTENCY_FACTOR: per-runner consistency check. A
     # runner's own median pace over their full race is a reliable anchor for
     # what "normal" looks like for that individual. A segment where the pace
-    # is more than 2× their overall speed (i.e. segment pace < median × 0.5)
-    # is almost certainly a timing glitch, even if the absolute value is
-    # "plausible" for an elite. This scales automatically: elites get elite
-    # baselines, slower runners get their own. Penyagolosa 2025 mim Bassa →
-    # Useres for bib 234 (2:24/km on a 8.70 km / +461 m segment) is the
-    # concrete case — impossible given his own other segments, even if
-    # 2:24/km isn't below the absolute floor.
+    # is more than ~3.3× their overall speed (i.e. segment pace <
+    # median × 0.3) is almost certainly a timing glitch. The 0.3 factor is
+    # deliberately conservative: it only flags egregious outliers and leaves
+    # normal intra-race speed variance (downhill sections, paced surges)
+    # untouched. Penyagolosa 2025 mim Bassa → Useres for bib 234 (2:24/km on
+    # an 8.70 km / +461 m segment) is the concrete case — impossible given
+    # his own other segments, even if 2:24/km isn't below the absolute floor.
     _PACE_ABSOLUTE_FLOOR_SECONDS_PER_KM = 120  # 2:00/km
-    _PACE_RUNNER_CONSISTENCY_FACTOR = 0.5  # segment pace ≥ this × runner median
+    _PACE_RUNNER_CONSISTENCY_FACTOR = 0.3  # segment pace ≥ this × runner median
 
     def _clamp_aberrant_paces(self, df: pd.DataFrame) -> pd.DataFrame:
         '''
