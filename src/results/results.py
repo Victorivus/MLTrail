@@ -310,6 +310,36 @@ class Results:
                               format or # seconds since midnight.")
         return True
 
+    # Realistic pace bounds for trail running (seconds per km). Paces below
+    # the minimum mean the segment time is implausibly small relative to its
+    # distance — almost always a data artefact (e.g. nearly-equal timestamps
+    # on a long segment, or a bad interpolation collapsing two checkpoints
+    # together). Penyagolosa 2025 'mim' had several sections with sub-minute
+    # paces that distort plots and pace stats. Anything below the threshold
+    # is replaced with NaN (and then ffill/bfill takes over from neighbours).
+    _PACE_MIN_SECONDS_PER_KM = 120  # 2:00/km — faster than 5K world record
+
+    def _clamp_aberrant_paces(self, df: pd.DataFrame) -> pd.DataFrame:
+        '''
+            Replace pace strings that decode to fewer seconds/km than
+            ``_PACE_MIN_SECONDS_PER_KM`` with NaN so downstream ffill/bfill
+            uses the surrounding plausible paces instead of the artefact.
+        '''
+        threshold = self._PACE_MIN_SECONDS_PER_KM
+
+        def _too_fast(pace) -> bool:
+            if pace is None or (isinstance(pace, float) and np.isnan(pace)):
+                return False
+            try:
+                return self.get_seconds(pace, offset=False) < threshold
+            except (ValueError, AttributeError, TypeError):
+                return False
+
+        mask = df.map(_too_fast)
+        if mask.values.any():
+            df = df.where(~mask, other=np.nan)
+        return df
+
     def get_paces(self):
         times_paces = self.times.copy()
         times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
@@ -328,6 +358,7 @@ class Results:
             prev_point = point
         paces = times_paces[[col for col in times_paces.columns if col.startswith('__all__')]]
         paces.columns = [col.replace('__all__', '') for col in paces.columns]
+        paces = self._clamp_aberrant_paces(paces)
         return paces.ffill(axis='columns').bfill(axis='columns')
 
     def get_paces_norm(self):
@@ -351,6 +382,7 @@ class Results:
 
         paces_norm = times_paces[[col for col in times_paces.columns if col.startswith('__allNorm__')]]
         paces_norm.columns = [col.replace('__allNorm__', '') for col in paces_norm.columns]
+        paces_norm = self._clamp_aberrant_paces(paces_norm)
         return paces_norm.ffill(axis='columns').bfill(axis='columns')
 
     def get_stats(self, n1=4, n2=20, paces=None):

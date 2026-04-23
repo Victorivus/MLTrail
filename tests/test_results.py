@@ -543,6 +543,23 @@ class TestResults():
         assert not marked.loc['1', 'CP1'].endswith('*')
         assert not marked.loc['2', 'CP2'].endswith('*')
 
+    def test_clamp_aberrant_paces(self, sample_results):
+        # The helper replaces too-fast paces (under 2:00/km) with NaN and
+        # leaves plausible ones alone. Used inside get_paces / get_paces_norm
+        # to suppress the data artefact reported on penyagolosa 2025 'mim'.
+        df = pd.DataFrame({
+            'CP1': ['0:05:30', '0:00:30', '0:08:15'],  # row 1 too fast
+            'CP2': ['0:01:45', '0:06:00', '0:07:30'],  # row 0 too fast
+        }, index=['a', 'b', 'c'])
+        clamped = sample_results._clamp_aberrant_paces(df)
+        assert pd.isna(clamped.loc['b', 'CP1'])
+        assert pd.isna(clamped.loc['a', 'CP2'])
+        # Plausible paces survive untouched.
+        assert clamped.loc['a', 'CP1'] == '0:05:30'
+        assert clamped.loc['c', 'CP1'] == '0:08:15'
+        assert clamped.loc['b', 'CP2'] == '0:06:00'
+        assert clamped.loc['c', 'CP2'] == '0:07:30'
+
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397
         assert sample_results.get_seconds('3 days, 1:30:00') == 264597
