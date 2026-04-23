@@ -151,8 +151,8 @@ Don't hesitate to get in contact or open an issue!
 - [ ] *Tablelize* countries, categories.
 - [X] Add tests.
 - [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
-- [ ] Add Events getid to tests
-- [ ] Add update race case into tests
+- [X] Add Events getid to tests
+- [X] Add update race case into tests
 - [X] Add Events to db
 - [X] Add Races to DB
 - [X] Need to reload races to DB due to identified bug (2696 from 3333 have a NULL departure_racetime)
@@ -160,7 +160,7 @@ Don't hesitate to get in contact or open an issue!
 - [X] Load results to DB
 - [X] Compute category results in DB
 - [X] Design a way of having passing times in DB and not only final times
-- [ ] Fix path for data and plots (env variable) --> data done, TODO: plots
+- [X] Fix path for data and plots (env variable)
 - [X] Not sure: Departure time doesn't seem always correct, will have to figure out another way of parsing it
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [X] add results download + load to DB to lib instead of notebook + script
@@ -187,11 +187,11 @@ Don't hesitate to get in contact or open an issue!
 - [ ] Show race profile from distance, D+ and D- data? Maybe too aproximative and need real gps data
 - [ ] Objective graph is only paces, show times / normalised pace?
 - [X] Bug when races include departure time in timing_points file
-- [ ] Add Warinings about prediction methods not being accurate, and that more data usually shows better results.
+- [X] Add Warinings about prediction methods not being accurate, and that more data usually shows better results.
 - [ ] Migrate to a more powerful technology (Node?)
 
 ### BackEnd
-- [ ] BUG: (minor) Results class, if there are more than 1 NaN in a row, the interpolated time is the same for all of them when performing the mean (e.g. penyagolosa 2022 'mim': iloc[616] has 2 NaN in a row)
+- [X] BUG: (minor) Results class, if there are more than 1 NaN in a row, the interpolated time is the same for all of them when performing the mean (e.g. penyagolosa 2022 'mim': iloc[616] has 2 NaN in a row)
 - [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. mut 2023)
 - [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. trailnloue 2019 - 76km2j)
 - [X] BUGs: Results class. Mostly cancelled races.
