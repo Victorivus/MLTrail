@@ -19,7 +19,7 @@ from auth import require_auth
 logger = logging.getLogger(__name__)
 
 cfg = get_config()
-DATA_DIR_PATH = cfg.data_dir_path
+PLOTS_DIR_PATH = cfg.plots_dir_path
 DB_PATH = cfg.db_path
 
 if not require_auth(DB_PATH):
@@ -115,7 +115,7 @@ def main():
 
             # Display analysis results
             if st.button('Generate Analysis'):
-                folder_path = os.path.join(DATA_DIR_PATH, 'plots', event)
+                folder_path = os.path.join(PLOTS_DIR_PATH, event)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 file_path = os.path.join(folder_path, f'{event}_{race}_{year}.png')
@@ -150,7 +150,7 @@ def main():
             input_time = st.text_input('Enter Objective Time (HH:MM:SS):')
 
             if st.button('Set Objective'):
-                folder_path = os.path.join(DATA_DIR_PATH, 'plots', event)
+                folder_path = os.path.join(PLOTS_DIR_PATH, event)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 try:
@@ -186,6 +186,13 @@ def main():
 
             st.title('AI Time Predictions')
             if 'model_params' in st.session_state:
+                st.info(
+                    "Predictions are approximations extrapolated from your "
+                    "training races. They tend to be most useful on races "
+                    "with similar distance and elevation to those you've run "
+                    "before — more training data, and more varied profiles, "
+                    "typically lead to better estimates."
+                )
                 if st.button('Generate AI powered predictions'):
                     if st.session_state.model_params is not None:
                         with st.spinner('Loading race data...'):
@@ -206,6 +213,12 @@ def main():
                                 total_time = Features.format_time(float(results_cum.iloc[:-1]['PRED CUMUL'].values.sum()))
                                 data.loc[data['dist_total'] == data['dist_segment'], 'Prediction'] = total_time
                             st.write(data.drop(columns=['dist_total', 'elevation_pos_total', 'elevation_neg_total']))
+                            st.caption(
+                                "These numbers are estimates. Race-day "
+                                "conditions, terrain familiarity, and changes "
+                                "in fitness since your training data was "
+                                "collected can shift the actual outcome."
+                            )
             else:
                 st.write('Head to "my results" page to train an AI model on your data.')
 

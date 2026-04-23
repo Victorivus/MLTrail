@@ -12,6 +12,7 @@ class AppConfig:
     """Application configuration loaded from environment variables."""
     package_dir_path: str = ""
     data_dir_path: str = ""
+    plots_dir_path: str = ""
     db_filename: str = "events.db"
     model_filename: str = "model.pkl"
     log_level: str = "INFO"
@@ -27,16 +28,22 @@ class AppConfig:
     @classmethod
     def from_env(cls) -> "AppConfig":
         load_dotenv(override=True)
+        data_dir_path = os.environ.get("DATA_DIR_PATH", "./data")
         config = cls(
             package_dir_path=os.environ.get("PACKAGE_DIR_PATH", "."),
-            data_dir_path=os.environ.get("DATA_DIR_PATH", "./data"),
+            data_dir_path=data_dir_path,
+            plots_dir_path=os.environ.get(
+                "PLOTS_DIR_PATH", os.path.join(data_dir_path, "plots")
+            ),
             db_filename=os.environ.get("DB_FILENAME", "events.db"),
             model_filename=os.environ.get("MODEL_FILENAME", "model.pkl"),
             log_level=os.environ.get("LOG_LEVEL", "INFO"),
         )
         setup_logging(config.log_level)
-        logger.info("Config loaded: PACKAGE_DIR_PATH=%s, DATA_DIR_PATH=%s",
-                     config.package_dir_path, config.data_dir_path)
+        logger.info(
+            "Config loaded: PACKAGE_DIR_PATH=%s, DATA_DIR_PATH=%s, PLOTS_DIR_PATH=%s",
+            config.package_dir_path, config.data_dir_path, config.plots_dir_path,
+        )
         return config
 
 
