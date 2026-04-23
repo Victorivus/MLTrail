@@ -35,7 +35,7 @@ SEARCH_COLUMNS = [
     "Position", "Sex Position", "Category Position",
     "Surname", "Name", "Sex Category", "Full Category", "Time",
 ]
-MY_RESULTS_COLUMNS = ["Train"] + SEARCH_COLUMNS
+MY_RESULTS_COLUMNS = ["Train", "event_code"] + SEARCH_COLUMNS
 
 
 def fetch_results(surname, first_name=None):
@@ -78,8 +78,11 @@ def fetch_my_results(user_id):
     '''
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    # events.code is selected so the My Results table can build /race_results
+    # links that pre-select the right event/year/race in the analysis page.
     cursor.execute("""
         SELECT ur.include_in_training,
+               events.code,
                ur.event_id, ur.race_id, ur.bib,
                events.name, events.year, races.race_name,
                results.position, results.cat_position, results.full_cat_position,
@@ -222,19 +225,32 @@ def _render_my_results_section(user_id):
 
     df = pd.DataFrame(rows, columns=MY_RESULTS_COLUMNS)
     df["Train"] = df["Train"].astype(bool)
+    # Build a per-row link to the race analysis page with the event/year/race
+    # baked into the URL so a click jumps straight to the right view.
+    df["Open"] = df.apply(
+        lambda r: (f"/race_results?event={r['event_code']}"
+                   f"&year={r['Year']}&race={r['race_id']}"),
+        axis=1,
+    )
 
     st.caption(
         "Uncheck **Train** to keep a row but exclude it from model training. "
-        "Unchecked rows still live here — re-check to include them again."
+        "Unchecked rows still live here — re-check to include them again. "
+        "Click *Open* on any row to jump to the race analysis page."
     )
 
+    column_order = ["Open", "Train"] + [c for c in df.columns
+                                        if c not in {"Open", "Train"}]
     edited = st.data_editor(
         df,
         key="my_results_editor",
         hide_index=True,
         use_container_width=True,
+        column_order=column_order,
         column_config={
             "Train": st.column_config.CheckboxColumn(default=True),
+            "Open": st.column_config.LinkColumn(display_text="Open ↗"),
+            "event_code": None,
             "event_id": None,
             "race_id": None,
             "bib": None,

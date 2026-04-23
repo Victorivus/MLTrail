@@ -75,10 +75,32 @@ def clean_events(events: dict) -> dict:
     return events
 
 
+def _selectbox_index(options: list, target):
+    '''
+    Index of ``target`` in ``options`` for use as the ``index`` argument of
+    ``st.selectbox``. Returns 0 (the natural default) when the target is
+    None or missing from the list, so a stale deep-link does not crash the
+    page.
+    '''
+    if target is None:
+        return 0
+    try:
+        return options.index(target)
+    except ValueError:
+        return 0
+
+
 def main():
     '''
         Streamlit main function
     '''
+    # Read deep-link query params so a click in My Results lands the user
+    # on the right event/year/race without manual selection.
+    qp = st.query_params
+    qp_event = qp.get('event')
+    qp_year = qp.get('year')
+    qp_race = qp.get('race')
+
     # Get the list of events and years
     events = scraper.get_events()
     years = scraper.get_events_years()
@@ -87,12 +109,18 @@ def main():
     events = clean_events(dict(sorted(scraper.get_events().items(),
                                       key=lambda item: item[1])))
 
-    event = st.selectbox('Select Event:', list(events.values()))
+    event_options = list(events.values())
+    event_label_default = (events.get(qp_event)
+                           if qp_event in events else None)
+    event = st.selectbox('Select Event:', event_options,
+                         index=_selectbox_index(event_options, event_label_default))
     event = next(key for key, value in events.items() if value == event)  # get key from value
     if event not in years:
         st.write(f'No data available for {events[event]}. Please select another event.')
     else:
-        year = st.selectbox('Select Year:', years[event])
+        year_options = years[event]
+        year = st.selectbox('Select Year:', year_options,
+                            index=_selectbox_index(year_options, qp_year))
         # Get the races for the selected event and year
         scraper.set_events([event])
         scraper.set_years([year])
@@ -104,7 +132,11 @@ def main():
         else:
             races = races[event][year]
 
-            race = st.selectbox('Select Race:', list(races.values()))
+            race_options = list(races.values())
+            race_label_default = (races.get(qp_race)
+                                  if qp_race in races else None)
+            race = st.selectbox('Select Race:', race_options,
+                                index=_selectbox_index(race_options, race_label_default))
             race = next(key for key, value in races.items() if value == race)  # get key from value
 
             st.session_state.event = event
@@ -131,21 +163,39 @@ def main():
                     'race': race
                 }
                 st.session_state.race_info = race_info
-                # Display data
-                st.write(f"Departure time: {race_info['hd']}")
-                st.write('Hours:')
-                st.write(data['hours'].sort_index())
+                st.session_state.analysis_data = data
+                st.session_state.analysis_waves = waves
+                st.session_state.analysis_plot_path = file_path
 
-                st.write('Official Times:')
-                st.write(data['real_times'].sort_index())
-                if waves:
-                    st.write('Real Times:')
+            # Time-format toggle: shown whenever an analysis has been run
+            # this session, so the user can flip between cumulative race
+            # time (since departure) and time of day without regenerating.
+            if 'analysis_data' in st.session_state:
+                data = st.session_state.analysis_data
+                waves = st.session_state.analysis_waves
+                race_info = st.session_state.race_info
+                st.write(f"Departure time: {race_info['hd']}")
+                time_format = st.radio(
+                    'Time format',
+                    ('Cumulative time', 'Time of day'),
+                    horizontal=True,
+                    key='time_format',
+                )
+                if time_format == 'Time of day':
+                    st.write('Hours:')
+                    st.write(data['hours'].sort_index())
+                else:
+                    st.write('Official Times:')
                     st.write(data['real_times'].sort_index())
+                    if waves:
+                        st.write('Real Times:')
+                        st.write(data['real_times'].sort_index())
 
                 st.write('Paces:')
                 st.write(data['paces'].sort_index())
 
-                st.image(file_path)
+                if 'analysis_plot_path' in st.session_state:
+                    st.image(st.session_state.analysis_plot_path)
 
             input_time = st.text_input('Enter Objective Time (HH:MM:SS):')
 
