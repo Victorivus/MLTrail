@@ -31,14 +31,36 @@ class Results:
         self.paces = self.get_paces()
         self.paces_norm = self.get_paces_norm()
 
+    # Minimum backward step before we trust the +24h wrap. A genuine crossing
+    # of midnight produces a diff of ~22-24h; a spurious backward step from a
+    # bad interpolation is typically seconds to minutes, never more than an
+    # hour in practice. Clamping anything under this threshold prevents the
+    # interpolation glitch described in the README (trailnloue 2019 76km2j,
+    # 84th runner, just before the last checkpoint).
+    _WRAP_THRESHOLD_SECONDS = 3600
+
     def _correct_times24h(self, row) -> pd.Series:
         previous_time = row.iloc[0]
         adjusted_row = [row.iloc[0]]
-        adjusted_row = [row.iloc[0]]
-        for i, time in enumerate(row[1:]):            
-            if (self.get_seconds(time) ) < self.get_seconds(previous_time):
-                row.iloc[i+1:] = [self.get_time(self.get_seconds(t, offset=False) + 24 * 60 * 60) for t in row.iloc[i+1:]]
-                time = row.iloc[i+1]
+        for i, time in enumerate(row[1:]):
+            current_secs = self.get_seconds(time)
+            previous_secs = self.get_seconds(previous_time)
+            if current_secs < previous_secs:
+                gap = previous_secs - current_secs
+                if gap >= self._WRAP_THRESHOLD_SECONDS:
+                    # Genuine midnight wrap: add 24h to this and every later
+                    # checkpoint so the monotonic ordering is restored.
+                    row.iloc[i+1:] = [
+                        self.get_time(self.get_seconds(t, offset=False) + 24 * 60 * 60)
+                        for t in row.iloc[i+1:]
+                    ]
+                    time = row.iloc[i+1]
+                else:
+                    # Tiny backward step — almost certainly an interpolation
+                    # glitch. Clamp to the previous checkpoint so the +24h
+                    # correction further down the row is never triggered.
+                    time = previous_time
+                    row.iloc[i+1] = previous_time
             adjusted_row.append(time)
             previous_time = time
         return pd.Series(adjusted_row, index=row.index)
