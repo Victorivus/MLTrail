@@ -478,6 +478,20 @@ class TestResults():
             'CP2': [np.nan,     '01:20:00'],
             'CP3': ['00:45:00', '01:30:00'],
             'CP4': ['03:00:00', '03:00:00'],
+        }
+        times = pd.DataFrame(data, index=['1', '2'])
+        control_points.pop(next(iter(control_points)))
+        rs = Results(control_points, times[control_points.keys()],
+                     offset='00:00:00', clean_days=False, start_day='1')
+
+        # No cell should have been pushed past 24h — the former behaviour
+        # wrapped the row's tail to "24:..." / "1 day, ...".
+        for col in rs.times.columns:
+            v = rs.times.loc['1', col]
+            assert 'day' not in v, f"{col}={v!r} crossed 24h"
+            h = int(v.split(':')[0])
+            assert h < 24, f"{col}={v!r} has h>=24"
+
     def test_get_interpolated_mask(self):
         # Runner '1' has a NaN at CP2 that Results fills during clean_times;
         # runner '2' has no missing values. The mask must reflect that.
@@ -498,13 +512,6 @@ class TestResults():
         rs = Results(control_points, times[control_points.keys()],
                      offset='00:00:00', clean_days=False, start_day='1')
 
-        # No cell should have been pushed past 24h — the former behaviour
-        # wrapped the row's tail to "24:..." / "1 day, ...".
-        for col in rs.times.columns:
-            v = rs.times.loc['1', col]
-            assert 'day' not in v, f"{col}={v!r} crossed 24h"
-            h = int(v.split(':')[0])
-            assert h < 24, f"{col}={v!r} has h>=24"
         mask = rs.get_interpolated_mask()
         assert bool(mask.loc['1', 'CP2']) is True
         assert bool(mask.loc['2', 'CP2']) is False
