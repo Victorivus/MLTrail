@@ -19,7 +19,7 @@ from auth import require_auth
 logger = logging.getLogger(__name__)
 
 cfg = get_config()
-DATA_DIR_PATH = cfg.data_dir_path
+PLOTS_DIR_PATH = cfg.plots_dir_path
 DB_PATH = cfg.db_path
 
 if not require_auth(DB_PATH):
@@ -115,7 +115,7 @@ def main():
 
             # Display analysis results
             if st.button('Generate Analysis'):
-                folder_path = os.path.join(DATA_DIR_PATH, 'plots', event)
+                folder_path = os.path.join(PLOTS_DIR_PATH, event)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 file_path = os.path.join(folder_path, f'{event}_{race}_{year}.png')
@@ -150,7 +150,7 @@ def main():
             input_time = st.text_input('Enter Objective Time (HH:MM:SS):')
 
             if st.button('Set Objective'):
-                folder_path = os.path.join(DATA_DIR_PATH, 'plots', event)
+                folder_path = os.path.join(PLOTS_DIR_PATH, event)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 try:
