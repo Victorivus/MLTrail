@@ -452,6 +452,46 @@ class TestResults():
         assert cp2 == '2:00:00'
         assert cp3 == '3:00:00'
 
+    def test_interpolated_time_below_previous_does_not_wrap_24h(self):
+        # Regression test: when an interpolated checkpoint time ends up
+        # slightly below the previous one (the README mentions trailnloue
+        # 2019 76km2j, 84th runner, just before the last CP), the old
+        # _correct_times24h added 24h to every subsequent cell — producing
+        # nonsense like "24:52:30" instead of clamping to the previous
+        # checkpoint. Diffs under the 1h threshold must be treated as
+        # interpolation noise, not as a midnight wrap.
+        control_points = {
+            'CP0': (0.0, 0, 0),
+            'CP1': (5.0, 50, -20),
+            'CP2': (10.0, 100, -40),
+            'CP3': (15.0, 150, -60),
+            'CP4': (20.0, 200, -80),
+        }
+        # Runner '1' has NaN at CP2 bracketed by non-monotonic neighbours
+        # (CP1=01:00:00, CP3=00:45:00). Linear interpolation lands at
+        # 00:52:30, which is earlier than CP1 — the exact pattern that
+        # used to trigger the spurious +24h wrap. Runner '2' keeps the
+        # column alive so the all-NaN-column guard doesn't drop it.
+        data = {
+            'CP0': ['00:30:00', '00:30:00'],
+            'CP1': ['01:00:00', '01:00:00'],
+            'CP2': [np.nan,     '01:20:00'],
+            'CP3': ['00:45:00', '01:30:00'],
+            'CP4': ['03:00:00', '03:00:00'],
+        }
+        times = pd.DataFrame(data, index=['1', '2'])
+        control_points.pop(next(iter(control_points)))
+        rs = Results(control_points, times[control_points.keys()],
+                     offset='00:00:00', clean_days=False, start_day='1')
+
+        # No cell should have been pushed past 24h — the former behaviour
+        # wrapped the row's tail to "24:..." / "1 day, ...".
+        for col in rs.times.columns:
+            v = rs.times.loc['1', col]
+            assert 'day' not in v, f"{col}={v!r} crossed 24h"
+            h = int(v.split(':')[0])
+            assert h < 24, f"{col}={v!r} has h>=24"
+
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397
         assert sample_results.get_seconds('3 days, 1:30:00') == 264597
