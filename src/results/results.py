@@ -310,6 +310,64 @@ class Results:
                               format or # seconds since midnight.")
         return True
 
+    # Pace-filter thresholds.
+    #
+    # _PACE_ABSOLUTE_FLOOR_SECONDS_PER_KM: any pace faster than this is
+    # physically impossible on trail — faster than road 5K world-record pace.
+    # A cell below this floor is always a data artefact; no conditional test
+    # is needed.
+    #
+    # _PACE_RUNNER_CONSISTENCY_FACTOR: per-runner consistency check. A
+    # runner's own median pace over their full race is a reliable anchor for
+    # what "normal" looks like for that individual. A segment where the pace
+    # is more than ~3.3× their overall speed (i.e. segment pace <
+    # median × 0.3) is almost certainly a timing glitch. The 0.3 factor is
+    # deliberately conservative: it only flags egregious outliers and leaves
+    # normal intra-race speed variance (downhill sections, paced surges)
+    # untouched. Penyagolosa 2025 mim Bassa → Useres for bib 234 (2:24/km on
+    # an 8.70 km / +461 m segment) is the concrete case — impossible given
+    # his own other segments, even if 2:24/km isn't below the absolute floor.
+    _PACE_ABSOLUTE_FLOOR_SECONDS_PER_KM = 120  # 2:00/km
+    _PACE_RUNNER_CONSISTENCY_FACTOR = 0.3  # segment pace ≥ this × runner median
+
+    def _clamp_aberrant_paces(self, df: pd.DataFrame) -> pd.DataFrame:
+        '''
+            Replace pace cells that are either physically impossible (below
+            the absolute floor) or inconsistent with the runner's own race
+            (less than ``_PACE_RUNNER_CONSISTENCY_FACTOR`` of their own
+            median pace) with NaN. Downstream ffill/bfill fills the cleared
+            cells from their neighbours.
+        '''
+
+        def _to_seconds(pace):
+            if pace is None or (isinstance(pace, float) and np.isnan(pace)):
+                return np.nan
+            try:
+                return self.get_seconds(pace, offset=False)
+            except (ValueError, AttributeError, TypeError):
+                return np.nan
+
+        seconds = df.map(_to_seconds)
+        if seconds.empty:
+            return df
+
+        # Per-runner median across all segments. A runner with every segment
+        # artefact-poisoned would have a broken median too, but in practice
+        # glitches are rare outliers — one or two cells in a ~10-column row.
+        runner_median = seconds.median(axis=1, skipna=True)
+        consistency_floor = runner_median * self._PACE_RUNNER_CONSISTENCY_FACTOR
+        # Use the stricter of the two floors for each runner: the absolute
+        # physical limit always applies; the consistency floor only bites
+        # when the runner's own baseline is faster than the absolute floor.
+        per_row_floor = consistency_floor.where(
+            consistency_floor > self._PACE_ABSOLUTE_FLOOR_SECONDS_PER_KM,
+            other=self._PACE_ABSOLUTE_FLOOR_SECONDS_PER_KM,
+        )
+        mask = seconds.lt(per_row_floor, axis=0)
+        if mask.values.any():
+            df = df.where(~mask, other=np.nan)
+        return df
+
     def get_paces(self):
         times_paces = self.times.copy()
         times_paces = times_paces[(times_paces.isna().any(axis=1) == False)]
@@ -328,6 +386,7 @@ class Results:
             prev_point = point
         paces = times_paces[[col for col in times_paces.columns if col.startswith('__all__')]]
         paces.columns = [col.replace('__all__', '') for col in paces.columns]
+        paces = self._clamp_aberrant_paces(paces)
         return paces.ffill(axis='columns').bfill(axis='columns')
 
     def get_paces_norm(self):
@@ -351,6 +410,7 @@ class Results:
 
         paces_norm = times_paces[[col for col in times_paces.columns if col.startswith('__allNorm__')]]
         paces_norm.columns = [col.replace('__allNorm__', '') for col in paces_norm.columns]
+        paces_norm = self._clamp_aberrant_paces(paces_norm)
         return paces_norm.ffill(axis='columns').bfill(axis='columns')
 
     def get_stats(self, n1=4, n2=20, paces=None):

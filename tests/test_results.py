@@ -543,6 +543,52 @@ class TestResults():
         assert not marked.loc['1', 'CP1'].endswith('*')
         assert not marked.loc['2', 'CP2'].endswith('*')
 
+    def test_clamp_aberrant_paces_absolute_floor(self, sample_results):
+        # Physically impossible cells (below 2:00/km) are always dropped,
+        # regardless of the runner's own baseline.
+        df = pd.DataFrame({
+            'CP1': ['0:05:30', '0:00:30', '0:08:15'],  # row 'b' too fast
+            'CP2': ['0:01:45', '0:06:00', '0:07:30'],  # row 'a' too fast
+            'CP3': ['0:05:00', '0:05:45', '0:08:00'],
+        }, index=['a', 'b', 'c'])
+        clamped = sample_results._clamp_aberrant_paces(df)
+        assert pd.isna(clamped.loc['b', 'CP1'])
+        assert pd.isna(clamped.loc['a', 'CP2'])
+        # Plausible paces survive untouched.
+        assert clamped.loc['a', 'CP1'] == '0:05:30'
+        assert clamped.loc['c', 'CP1'] == '0:08:15'
+        assert clamped.loc['b', 'CP2'] == '0:06:00'
+        assert clamped.loc['c', 'CP2'] == '0:07:30'
+
+    def test_clamp_aberrant_paces_per_runner_consistency(self, sample_results):
+        # A pace that passes the 2:00/km absolute floor but is more than
+        # ~3.3× faster than the runner's own median is still flagged (the
+        # penyagolosa 2025 mim bib 234 pattern: very fast segment against
+        # a much slower baseline — physically impossible given his other
+        # segments).
+        df = pd.DataFrame({
+            'CP1': ['0:10:00', '0:03:30', '0:10:30'],
+            # Row 'a' has 2:30/km on CP2. The runner's median sits around
+            # 10:00/km (600 s); the consistency floor is 0.3 × 600 = 180 s
+            # = 3:00/km, so 2:30 (150 s) falls below and must be dropped.
+            'CP2': ['0:02:30', '0:03:50', '0:10:00'],
+            'CP3': ['0:10:15', '0:03:40', '0:11:00'],
+            # Row 'b' is an elite runner whose median sits around 3:40/km.
+            # Their 2:45 on CP4 is fast but still above 0.3 × median = 66 s
+            # (the absolute floor of 120 s actually binds first here), so
+            # the cell is self-consistent and must be preserved.
+            'CP4': ['0:09:45', '0:02:45', '0:10:30'],
+        }, index=['a', 'b', 'c'])
+        clamped = sample_results._clamp_aberrant_paces(df)
+        assert pd.isna(clamped.loc['a', 'CP2']), \
+            "Cell >3.3x faster than the runner's median should be dropped"
+        # Runner 'b's own median is already fast, so their 2:45 is not
+        # an outlier against themselves and must be preserved.
+        assert clamped.loc['b', 'CP4'] == '0:02:45'
+        # The other reference cells are untouched.
+        assert clamped.loc['a', 'CP1'] == '0:10:00'
+        assert clamped.loc['c', 'CP3'] == '0:11:00'
+
     def test_get_seconds(self, sample_results):
         assert sample_results.get_seconds('1:30:00') == 5397
         assert sample_results.get_seconds('3 days, 1:30:00') == 264597
