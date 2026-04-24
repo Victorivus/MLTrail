@@ -58,6 +58,22 @@ def get_results(event, year, race):
     return raw_results, control_points, rs, race_info, waves
 
 
+def apply_interpolation_markers(df, mask, marker: str = '*'):
+    '''
+    Append ``marker`` to every cell of ``df`` whose corresponding entry in
+    ``mask`` is True. The mask is sourced from Results.get_interpolated_mask()
+    and has the same shape/index/columns as the times frames.
+    '''
+    if mask is None or mask.empty:
+        return df
+    out = df.copy()
+    for col in out.columns:
+        if col in mask.columns:
+            col_mask = mask[col].reindex(out.index, fill_value=False)
+            out.loc[col_mask, col] = out.loc[col_mask, col].astype(str) + marker
+    return out
+
+
 def clean_events(events: dict) -> dict:
     '''
         Clean special characters, repeated names etc. from the events list
@@ -166,6 +182,7 @@ def main():
                 st.session_state.analysis_data = data
                 st.session_state.analysis_waves = waves
                 st.session_state.analysis_plot_path = file_path
+                st.session_state.analysis_interp_mask = rs.get_interpolated_mask()
 
             # Time-format toggle: shown whenever an analysis has been run
             # this session, so the user can flip between cumulative race
@@ -174,6 +191,16 @@ def main():
                 data = st.session_state.analysis_data
                 waves = st.session_state.analysis_waves
                 race_info = st.session_state.race_info
+                interp_mask = st.session_state.get('analysis_interp_mask')
+                has_interp = (interp_mask is not None
+                              and not interp_mask.empty
+                              and bool(interp_mask.values.any()))
+                if has_interp:
+                    st.caption(
+                        "`*` marks times that were interpolated from "
+                        "neighbouring checkpoints because the runner's "
+                        "actual time was missing. Treat them as estimates."
+                    )
                 st.write(f"Departure time: {race_info['hd']}")
                 time_format = st.radio(
                     'Time format',
@@ -183,13 +210,16 @@ def main():
                 )
                 if time_format == 'Time of day':
                     st.write('Hours:')
-                    st.write(data['hours'].sort_index())
+                    st.write(apply_interpolation_markers(
+                        data['hours'].sort_index(), interp_mask))
                 else:
                     st.write('Official Times:')
-                    st.write(data['real_times'].sort_index())
+                    st.write(apply_interpolation_markers(
+                        data['real_times'].sort_index(), interp_mask))
                     if waves:
                         st.write('Real Times:')
-                        st.write(data['real_times'].sort_index())
+                        st.write(apply_interpolation_markers(
+                            data['real_times'].sort_index(), interp_mask))
 
                 st.write('Paces:')
                 st.write(data['paces'].sort_index())
