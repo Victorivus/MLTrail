@@ -298,7 +298,25 @@ def main() -> None:
         '--event-id', type=int, action='append',
         help='Restrict to one or more event_ids (may be repeated).',
     )
+    parser.add_argument(
+        '--log', default='backfill.log',
+        help="Path to the log file (default 'backfill.log'). Complements "
+             "stdout — having the file is what lets the resume script "
+             "figure out where a crashed run left off.",
+    )
     args = parser.parse_args()
+
+    # Add a file handler so every 'Backfilled ...' / 'Flagged ...' line is
+    # captured on disk, regardless of how the user launched the script.
+    # Do this in addition to whatever stream handler setup_logging (called
+    # via get_config) already configured, not as a replacement.
+    file_handler = logging.FileHandler(args.log, encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    ))
+    logging.getLogger().addHandler(file_handler)
+    logger.info("Logging to %s", os.path.abspath(args.log))
+
     backfill_all(
         db_path=os.path.abspath(args.path),
         event_ids=args.event_id,

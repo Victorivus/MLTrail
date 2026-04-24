@@ -25,6 +25,8 @@ examples/*.ipynb
 !front/*
 !front/pages/
 !front/pages/*
+!scripts/
+!scripts/*
 !data/
 !data/csv/
 !data/csv/transgrancanaria/
