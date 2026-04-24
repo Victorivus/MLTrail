@@ -121,7 +121,11 @@ def format_timedelta(td):
 
 
 def update_category(cursor, event_id):
-    # Set category
+    # Derive sex_category from the full_category suffix. Skip rows where
+    # sex_category is already populated: the backfill pipeline writes it
+    # directly from coureur.php for rows where LiveTrail's bulk XML dropped
+    # the cat attribute, and we don't want to clobber that value on
+    # subsequent loader runs where full_category is still empty.
     cursor.execute('''
                     UPDATE results
                     SET sex_category =
@@ -133,6 +137,7 @@ def update_category(cursor, event_id):
                         ELSE NULL
                     END
                     WHERE event_id = ?
+                      AND sex_category IS NULL
                     ''', (event_id,)
                    )
 

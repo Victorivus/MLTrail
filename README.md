@@ -115,6 +115,47 @@ Same syntax and options apply to To recompute the `Timing_points` table and scri
 More details and visual example in the notebook `examples/parse_LiveTrail_to_DB.ipynb`
 
 
+## Backfilling missing categories
+
+Some events (the Spanish 2025+ cluster — Penyagolosa, Olla de Núria, Epic Trail Costa Daurada — and a longer tail of chronic-empty races like `seoul100k`, `tnfkorea`, `3monestirs`, etc.) do not publish the `cat` attribute in LiveTrail's bulk `passages.php` XML. The per-runner `coureur.php` endpoint still exposes `sx` (sex) and sometimes `descat` (age bracket), so `src/database/loader_LiveTrail/backfill_categories.py` recovers what it can.
+
+It runs automatically for the events a loader touches:
+
+```bash
+python -m database.loader_LiveTrail.db_LiveTrail_loader --update
+```
+
+It can also be run as a one-shot sweep over the whole DB:
+
+```bash
+python -m database.loader_LiveTrail.backfill_categories
+```
+
+```
+options:
+  -p, --path PATH          DB path (default: the configured events.db).
+  -t, --threshold FLOAT    Empty-cat ratio that flags a race (default 0.10).
+  --event-id INT           Restrict to one or more event_ids (repeatable).
+  --log PATH               Progress log file (default: backfill.log).
+```
+
+The run is idempotent: races whose rows have already been filled are skipped. `backfill.log` records every completed race with `Backfilled <event> <year> <race>: attempted=N updated=M`, which `scripts/resume_backfill.py` uses to continue after an interruption:
+
+```bash
+python scripts/resume_backfill.py --path data/events.db --log backfill.log
+```
+
+```
+options:
+  --skip event[:year[:race]]   Short-circuit races LiveTrail cannot serve
+                               (e.g. `--skip marxainfantil:2025`). Repeatable.
+  --dry-run                    Print the plan without making any HTTP calls.
+```
+
+The resume helper writes to `backfill_resume.log` in the same line format so chained recoveries (crash → resume → crash → resume) do not lose state.
+
+
+
 > :warning: **Warning:** Changing paths in scripts through the `-p` or `data-path` options is discouraged. Advanced users only.
 
 # Collaborating
@@ -151,8 +192,8 @@ Don't hesitate to get in contact or open an issue!
 - [ ] *Tablelize* countries, categories.
 - [X] Add tests.
 - [ ] Add logic to control creation of objects (manage nullable or not fields) --> Seems impossible with old races
-- [ ] Add Events getid to tests
-- [ ] Add update race case into tests
+- [X] Add Events getid to tests
+- [X] Add update race case into tests
 - [X] Add Events to db
 - [X] Add Races to DB
 - [X] Need to reload races to DB due to identified bug (2696 from 3333 have a NULL departure_racetime)
@@ -160,7 +201,7 @@ Don't hesitate to get in contact or open an issue!
 - [X] Load results to DB
 - [X] Compute category results in DB
 - [X] Design a way of having passing times in DB and not only final times
-- [ ] Fix path for data and plots (env variable) --> data done, TODO: plots
+- [X] Fix path for data and plots (env variable)
 - [X] Not sure: Departure time doesn't seem always correct, will have to figure out another way of parsing it
 - [X] add add Scraper.getRacesPhysicalDetails, Scraper.getRandomRunnerBib to tests
 - [X] add results download + load to DB to lib instead of notebook + script
@@ -187,11 +228,11 @@ Don't hesitate to get in contact or open an issue!
 - [ ] Show race profile from distance, D+ and D- data? Maybe too aproximative and need real gps data
 - [ ] Objective graph is only paces, show times / normalised pace?
 - [X] Bug when races include departure time in timing_points file
-- [ ] Add Warinings about prediction methods not being accurate, and that more data usually shows better results.
+- [X] Add Warinings about prediction methods not being accurate, and that more data usually shows better results.
 - [ ] Migrate to a more powerful technology (Node?)
 
 ### BackEnd
-- [ ] BUG: (minor) Results class, if there are more than 1 NaN in a row, the interpolated time is the same for all of them when performing the mean (e.g. penyagolosa 2022 'mim': iloc[616] has 2 NaN in a row)
+- [X] BUG: (minor) Results class, if there are more than 1 NaN in a row, the interpolated time is the same for all of them when performing the mean (e.g. penyagolosa 2022 'mim': iloc[616] has 2 NaN in a row)
 - [ ] BUG: Results class cannot handle a full column of NaN. We should delete the control point (e.g. mut 2023)
 - [X] BUG: Results class cannot handle 2 control points with the same distance. (e.g. trailnloue 2019 - 76km2j)
 - [X] BUGs: Results class. Mostly cancelled races.

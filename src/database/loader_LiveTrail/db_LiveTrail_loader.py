@@ -129,6 +129,7 @@ def main(path=None, data_path=None, clean=False, update=False):
         data_path = os.path.join(cfg.data_dir_path, 'csv')
 
     db: Database = Database.create_database(path=path)
+    Database.ensure_cat_backfill_column(db.path)
 
     if clean:
         Database.empty_all_tables(db.path)
@@ -186,6 +187,7 @@ def main(path=None, data_path=None, clean=False, update=False):
                               db=db)
                 event.save_to_database()
 
+    touched_event_ids: set[int] = set()
     for event, name in events.items():
         if event in years:
             for year in years[event]:
@@ -194,6 +196,8 @@ def main(path=None, data_path=None, clean=False, update=False):
                 scraper.set_years([year])
                 cps, cpns = scraper.get_control_points()
                 event_id = Event.get_id_from_code_year(event, year, db=db)
+                if event_id is not None:
+                    touched_event_ids.add(event_id)
                 if not cps:
                     continue
                 races = scraper.get_races()
@@ -260,6 +264,18 @@ def main(path=None, data_path=None, clean=False, update=False):
             script.main(path=os.path.join(actual_path, path), clean=clean,
                         data_path=data_path, update=years)
             
+    # Back-fill sex / category data for races whose bulk XML omits it.
+    # Scoped to touched events so an --update run doesn't re-probe the whole
+    # database every time.
+    if touched_event_ids:
+        try:
+            from database.loader_LiveTrail.backfill_categories import backfill_all
+            logger.info("Running category backfill for %d touched event(s)",
+                         len(touched_event_ids))
+            backfill_all(db_path=db.path, event_ids=touched_event_ids)
+        except Exception:
+            logger.exception("Category backfill failed; continuing")
+
     logger.info("Creating table for enabling AI")
     load_features(db_path=db.path, clean=clean)
     logger.info("Updated events:")
