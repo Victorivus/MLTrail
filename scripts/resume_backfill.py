@@ -169,24 +169,50 @@ def apply_identity(db_path: str, event_id: int, race_id: str,
     return True
 
 
+def _failure_threshold(n_pending: int, abs_floor: int, pct: int) -> int:
+    """How many failures before we stop hammering a race that won't yield.
+
+    ``abs_floor`` always applies (defaults to 10). For races with enough
+    pending bibs that ``pct%`` of them is larger, we use that instead.
+    Empirically: races where the first 10 bibs all return empty identities
+    almost never have the data published anywhere — keeping at it just
+    burns polite-delay seconds against LiveTrail.
+    """
+    return max(abs_floor, n_pending * pct // 100)
+
+
 def resume_race(scraper: LiveTrailScraper, db_path: str,
                 event_id: int, race_id: str, event_code: str, year: str,
-                pending_bibs: list[str]) -> tuple[int, int]:
-    """Retry the given bibs for one race. Returns ``(attempted, updated)``."""
+                pending_bibs: list[str],
+                fail_abs: int = 10,
+                fail_pct: int = 10,
+                ) -> tuple[int, int, bool]:
+    """Retry the given bibs for one race.
+
+    Aborts the race early once the failure count crosses
+    ``_failure_threshold(len(pending_bibs), fail_abs, fail_pct)`` — the
+    common case where LiveTrail has no per-runner data for that event.
+    Returns ``(attempted, updated, aborted)``.
+    """
+    threshold = _failure_threshold(len(pending_bibs), fail_abs, fail_pct)
     attempted = 0
     updated = 0
+    aborted = False
     for bib in pending_bibs:
         if not bib:
             continue
         attempted += 1
         identity = scraper.get_runner_identity(event_code, year, bib)
-        if identity is None:
-            continue
-        if apply_identity(db_path, event_id, race_id, bib, identity):
+        if identity is not None and apply_identity(
+                db_path, event_id, race_id, bib, identity):
             updated += 1
+        failures = attempted - updated
+        if failures >= threshold:
+            aborted = True
+            break
     if updated:
         _recompute_cat_rankings_for_race(db_path, event_id, race_id)
-    return attempted, updated
+    return attempted, updated, aborted
 
 
 def main() -> None:
@@ -211,6 +237,14 @@ def main() -> None:
                              "just that one race.")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the plan without issuing any HTTP calls.")
+    parser.add_argument("--fail-abs", type=int, default=10,
+                        help="Abort a race after this many empty identity "
+                             "responses, even on small races (default 10). "
+                             "Set to 0 to disable the absolute floor.")
+    parser.add_argument("--fail-pct", type=int, default=10,
+                        help="Abort a race once this percent of its pending "
+                             "bibs have failed, when that's larger than "
+                             "--fail-abs (default 10).")
     args = parser.parse_args()
 
     # Parse --skip into a list of (code, year_or_None, race_or_None) tuples.
@@ -299,11 +333,14 @@ def main() -> None:
 
     scraper = LiveTrailScraper()
     total_updated = 0
+    aborted_races: list[tuple[str, str, str]] = []
     for event_id, race_id, event_code, year, pending in plan:
-        logger.info("Resuming %s %s %s (%d pending bibs)...",
-                    event_code, year, race_id, len(pending))
-        attempted, updated = resume_race(
+        threshold = _failure_threshold(len(pending), args.fail_abs, args.fail_pct)
+        logger.info("Resuming %s %s %s (%d pending bibs, abort after %d failures)...",
+                    event_code, year, race_id, len(pending), threshold)
+        attempted, updated, aborted = resume_race(
             scraper, db_path, event_id, race_id, event_code, year, pending,
+            fail_abs=args.fail_abs, fail_pct=args.fail_pct,
         )
         total_updated += updated
         # Match the "Backfilled ... attempted=N updated=M" format emitted by
@@ -312,9 +349,24 @@ def main() -> None:
         # resume run also gets interrupted.
         logger.info("Backfilled %s %s %s: attempted=%d updated=%d",
                     event_code, year, race_id, attempted, updated)
+        if aborted:
+            aborted_races.append((event_code, year, race_id))
+            logger.warning(
+                "ABORTED %s %s %s: %d/%d failed before any data showed up. "
+                "Add to next run: --skip %s:%s:%s",
+                event_code, year, race_id, attempted - updated, attempted,
+                event_code, year, race_id,
+            )
 
     logger.info("Resume finished: %d row(s) updated across %d race(s).",
                 total_updated, len(plan))
+    if aborted_races:
+        logger.info(
+            "%d race(s) aborted early. Suggested CLI for the next run:\n  %s",
+            len(aborted_races),
+            " ".join(f"--skip {ec}:{yr}:{rid}"
+                     for ec, yr, rid in aborted_races),
+        )
 
 
 if __name__ == "__main__":
