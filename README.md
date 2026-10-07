@@ -34,6 +34,11 @@ Launch the following command:
 streamlit run front/MLTrail.py
 ```
 
+The app auto-discovers the pages in `front/pages/`:
+- **Race Results** — analyse a race and (once a model is trained) predict times for it.
+- **My Results** — find your own results and train a personal AI model on them (this is how you "become" a selectable runner).
+- **GPX Time Prediction** — upload a GPX course, split it into segments (its own control points, clicking the elevation profile, or an even split), and predict split + finish times with the model you trained. Inference reuses the same model as the Race Results page. D+/D- are recomputed by default from a ~30 m terrain model (AWS Terrain Tiles: EU-DEM/SRTM) instead of the GPX `<ele>` values, which are often inflated; tiles (~26 MB per 1°×1° area) are downloaded on first use and cached in `$DATA_DIR_PATH/dem/`. You can switch back to the GPX elevation on the page.
+
 In some old macOS systems a special installation may be necessary to have streamlit working.
 > Run the following only if the above installation runs but the `streamlit run`command fails.
 ```
