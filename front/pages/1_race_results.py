@@ -2,6 +2,7 @@
 import os
 import re
 import logging
+from datetime import timedelta
 import traceback
 import pandas as pd
 import streamlit as st
@@ -13,6 +14,7 @@ from ai.xgboost import XGBoostRegressorModel
 from ai.model_store import get_active_model_info, load_active_model, ModelLoadError
 from database.models import Event
 from database.create_db import Database
+from database.catalog import event_years_with_results, merge_years
 from config import get_config
 from auth import require_auth
 
@@ -106,6 +108,12 @@ def _selectbox_index(options: list, target):
         return 0
 
 
+@st.cache_data(ttl=timedelta(days=1), show_spinner=False)
+def _db_event_years(db_path):
+    '''Event editions with results in the local DB (loads are rare: cache a day).'''
+    return event_years_with_results(db_path)
+
+
 def main():
     '''
         Streamlit main function
@@ -117,12 +125,16 @@ def main():
     qp_year = qp.get('year')
     qp_race = qp.get('race')
 
-    # Get the list of events and years
-    events = scraper.get_events()
-    years = scraper.get_events_years()
-
-    # Get the list of events and years
-    events = clean_events(dict(sorted(scraper.get_events().items(),
+    # The scraper fetched LiveTrail's event list and archived years when it
+    # was built; reuse them instead of asking LiveTrail again on every rerun.
+    # That archive feed lags the current season (e.g. no Penyagolosa 2026),
+    # so add the editions the local DB already has results for, and register
+    # them with the scraper so race/control-point lookups accept them.
+    db_years = {e: y for e, y in _db_event_years(DB_PATH).items()
+                if e in scraper.allEvents}
+    years = merge_years(scraper.eventsYears, db_years)
+    scraper.eventsYears = years
+    events = clean_events(dict(sorted(scraper.allEvents.items(),
                                       key=lambda item: item[1])))
 
     event_options = list(events.values())

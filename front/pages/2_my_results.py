@@ -7,6 +7,7 @@ Two-stage flow:
      soft-deletes a row from training without removing it.
 """
 import time
+from datetime import timedelta
 import logging
 import sqlite3
 import streamlit as st
@@ -14,6 +15,7 @@ import pandas as pd
 from config import get_config
 from auth import require_auth
 from database.create_db import Database
+from database.catalog import data_freshness
 from ai.training_service import TrainingState, TrainingStatus, start_background_training
 from ai.model_store import get_active_model_info, deactivate_models
 
@@ -141,6 +143,12 @@ def update_training_flags(user_id, flag_by_key):
     )
     conn.commit()
     conn.close()
+
+
+@st.cache_data(ttl=timedelta(days=1), show_spinner=False)
+def _data_freshness(db_path):
+    '''What the DB holds, for the page caption (loads are rare: cache a day).'''
+    return data_freshness(db_path)
 
 
 def _init_session_state():
@@ -347,7 +355,7 @@ def main():
     '''
     st.set_page_config(layout="wide")
     st.title("My Results & AI Model Training")
-    st.markdown("*Scraped from LiveTrail up to 04/08/2024.*")
+    st.markdown(f"*{_data_freshness(DB_PATH).caption()}*")
 
     user_id = st.session_state.get('user_id')
     if user_id is None:
