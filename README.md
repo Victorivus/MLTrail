@@ -39,6 +39,18 @@ The app auto-discovers the pages in `front/pages/`:
 - **My Results** — find your own results and train a personal AI model on them (this is how you "become" a selectable runner).
 - **GPX Time Prediction** — upload a GPX course, split it into segments (its own control points, clicking the elevation profile, or an even split), and predict split + finish times with the model you trained. Inference reuses the same model as the Race Results page. D+/D- are recomputed by default from a ~30 m terrain model (AWS Terrain Tiles: EU-DEM/SRTM) instead of the GPX `<ele>` values, which are often inflated; tiles (~26 MB per 1°×1° area) are downloaded on first use and cached in `$DATA_DIR_PATH/dem/`. You can switch back to the GPX elevation on the page.
 
+Each user's trained model is stored in the app database (`models` table, one active model per user plus the 4 previous versions), so it survives page refreshes and restarts and is never shared between users. Models are serialized with [skops](https://skops.readthedocs.io/) (no pickle). Logging out clears the whole session.
+
+## Upgrading an existing database
+After pulling a version that adds tables or indexes, run the idempotent migration once (it takes ~30 s on a full DB and briefly locks it for writes, so don't run it while a loader is writing):
+
+```bash
+PYTHONPATH=src python -m database.migrate               # uses DATA_DIR_PATH/events.db
+docker compose run --rm mltrail python -m database.migrate   # same, in Docker
+```
+
+It adds the `models` table and the indexes the app's queries rely on (features lookups go from seconds to milliseconds).
+
 In some old macOS systems a special installation may be necessary to have streamlit working.
 > Run the following only if the above installation runs but the `streamlit run`command fails.
 ```

@@ -3,7 +3,6 @@ import os
 import re
 import logging
 import traceback
-import joblib
 import pandas as pd
 import streamlit as st
 from sklearn.pipeline import Pipeline
@@ -11,6 +10,7 @@ from scraper.scraper import LiveTrailScraper
 from results.results import Results
 from ai.features import Features
 from ai.xgboost import XGBoostRegressorModel
+from ai.model_store import get_active_model_info, load_active_model, ModelLoadError
 from database.models import Event
 from database.create_db import Database
 from config import get_config
@@ -265,7 +265,8 @@ def main():
                     st.error(f"An error occurred: {e}")
 
             st.title('AI Time Predictions')
-            if 'model_params' in st.session_state:
+            user_id = st.session_state.get('user_id')
+            if get_active_model_info(DB_PATH, user_id) is not None:
                 st.info(
                     "Predictions are approximations extrapolated from your "
                     "training races. They tend to be most useful on races "
@@ -274,31 +275,35 @@ def main():
                     "typically lead to better estimates."
                 )
                 if st.button('Generate AI powered predictions'):
-                    if st.session_state.model_params is not None:
-                        with st.spinner('Loading race data...'):
-                            event_id = Event.get_id_from_code_year(st.session_state.event, st.session_state.year, Database.create_database(DB_PATH))
-                            metadata_features = [(event_id, st.session_state.race, "")]
-                            feat = Features(metadata_features, DB_PATH)
-                            data = feat.fetch_anonymous_features_table().drop(columns=['race_id', 'event_id'])
-                        if len(data) == 0:
-                            st.error("No data available for this race. Please choose another one.")
-                        else:
-                            with st.spinner('Loading the personalised AI model...'):
-                                rgs = XGBoostRegressorModel(df=data, target_column=None, only_partials=False)
-                                rgs.set_params(st.session_state['model_params'])
-                                rgs.model = joblib.load(cfg.model_path)
-                                prediction = rgs.predict(data, format='time')
-                                data['Prediction'] = prediction
-                                results_cum = pd.concat([prediction,pd.Series([Features.get_seconds(x) for x in prediction.values],name='PRED CUMUL')],axis=1)
-                                total_time = Features.format_time(float(results_cum.iloc[:-1]['PRED CUMUL'].values.sum()))
-                                data.loc[data['dist_total'] == data['dist_segment'], 'Prediction'] = total_time
-                            st.write(data.drop(columns=['dist_total', 'elevation_pos_total', 'elevation_neg_total']))
-                            st.caption(
-                                "These numbers are estimates. Race-day "
-                                "conditions, terrain familiarity, and changes "
-                                "in fitness since your training data was "
-                                "collected can shift the actual outcome."
-                            )
+                    with st.spinner('Loading race data...'):
+                        event_id = Event.get_id_from_code_year(st.session_state.event, st.session_state.year, Database.create_database(DB_PATH))
+                        metadata_features = [(event_id, st.session_state.race, "")]
+                        feat = Features(metadata_features, DB_PATH)
+                        data = feat.fetch_anonymous_features_table().drop(columns=['race_id', 'event_id'])
+                    if len(data) == 0:
+                        st.error("No data available for this race. Please choose another one.")
+                    else:
+                        with st.spinner('Loading the personalised AI model...'):
+                            try:
+                                model, _ = load_active_model(DB_PATH, user_id)
+                            except (LookupError, ModelLoadError) as exc:
+                                st.error(f"Could not load your model: {exc} "
+                                         "Please retrain it on the My Results page.")
+                                st.stop()
+                            rgs = XGBoostRegressorModel(df=data, target_column=None, only_partials=False)
+                            rgs.model = model
+                            prediction = rgs.predict(data, format='time')
+                            data['Prediction'] = prediction
+                            results_cum = pd.concat([prediction,pd.Series([Features.get_seconds(x) for x in prediction.values],name='PRED CUMUL')],axis=1)
+                            total_time = Features.format_time(float(results_cum.iloc[:-1]['PRED CUMUL'].values.sum()))
+                            data.loc[data['dist_total'] == data['dist_segment'], 'Prediction'] = total_time
+                        st.write(data.drop(columns=['dist_total', 'elevation_pos_total', 'elevation_neg_total']))
+                        st.caption(
+                            "These numbers are estimates. Race-day "
+                            "conditions, terrain familiarity, and changes "
+                            "in fitness since your training data was "
+                            "collected can shift the actual outcome."
+                        )
             else:
                 st.write('Head to "my results" page to train an AI model on your data.')
 
