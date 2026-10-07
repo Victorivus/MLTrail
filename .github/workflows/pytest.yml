@@ -69,4 +69,4 @@ jobs:
 
       - name: Run unit tests
         run: |
-          poetry run pytest tests/test_ai_xgboost.py tests/test_results.py tests/test_db_LiveTrail_loader.py tests/test_training_service.py tests/test_ai_gpx.py tests/test_ai_dem.py -v
+          poetry run pytest tests/test_ai_xgboost.py tests/test_results.py tests/test_db_LiveTrail_loader.py tests/test_training_service.py tests/test_ai_gpx.py tests/test_ai_dem.py tests/test_catalog.py -v
