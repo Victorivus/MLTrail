@@ -1,7 +1,8 @@
 """GPX track parsing and feature extraction for AI time inference.
 
-This module is deliberately dependency-free (standard library only) so the
-feature maths can be unit-tested without pandas/streamlit. The Streamlit page
+This module deliberately avoids heavy dependencies (only ``defusedxml`` for
+safe parsing of uploaded files) so the feature maths can be unit-tested
+without pandas/streamlit. The Streamlit page
 (``front/pages/3_gpx_prediction.py``) turns the dicts produced here into a
 DataFrame whose columns match exactly what the models were trained on.
 
@@ -24,6 +25,9 @@ from __future__ import annotations
 
 import math
 import xml.etree.ElementTree as ET
+
+import defusedxml
+import defusedxml.ElementTree as SafeET
 from dataclasses import dataclass, field
 
 # Feature columns in the exact order the models were trained on. The Streamlit
@@ -131,7 +135,12 @@ def parse_gpx(source) -> GpxTrack:
         data = data.decode("utf-8", errors="replace")
 
     try:
-        root = ET.fromstring(data)
+        # Uploaded files are untrusted: refuse DTDs/entities outright (GPX
+        # never needs them) rather than rely on the expat build's limits.
+        root = SafeET.fromstring(data, forbid_dtd=True)
+    except defusedxml.DefusedXmlException as exc:
+        raise ValueError("GPX file contains a DTD or entity declarations, "
+                         "which are not allowed.") from exc
     except ET.ParseError as exc:
         raise ValueError(f"Could not parse GPX file: {exc}") from exc
 

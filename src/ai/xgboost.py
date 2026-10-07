@@ -79,6 +79,8 @@ class XGBoostRegressorModel(MLModel):
         super().__init__(df=df, target_column=target_column, only_partials=only_partials)
         self.pipeline = None
         self.model = GradientBoostingRegressor(random_state=SEED)
+        self.best_params = None  # chosen by the grid search in train()
+        self.metrics = None      # hold-out metrics from train()
     
     def train(self):
         """
@@ -86,12 +88,20 @@ class XGBoostRegressorModel(MLModel):
         """
         super().train()
         X_train, X_test, y_train, y_test = self.split_data()
-        self.model = fit_cv(param=self.parameters, regressor=('xgboost', self.model), X_train=X_train,
-                            y_train=y_train, score=self.score, refit_score='explained_variance').best_estimator_
+        search = fit_cv(param=self.parameters, regressor=('xgboost', self.model), X_train=X_train,
+                        y_train=y_train, score=self.score, refit_score='explained_variance')
+        self.model = search.best_estimator_
+        self.best_params = search.best_params_
 
         y_pred = self.model.predict(X_test)
         for s, ss in self.score.items():
             logger.info('%s: %s', s, ss(self.model, X_test, y_test))
+        self.metrics = {
+            'holdout_mae_seconds': float(mean_absolute_error(y_test, y_pred)),
+            'holdout_r2': float(r2_score(y_test, y_pred)),
+            'n_train': int(len(X_train)),
+            'n_test': int(len(X_test)),
+        }
         return None # mse
     
     def predict(self, X, format='seconds'):

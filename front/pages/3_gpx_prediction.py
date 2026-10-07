@@ -5,8 +5,8 @@ with the AI model the logged-in runner trained on their own results (see the
 *My Results* page — that is where a runner finds themselves and trains a model).
 
 This page only adds GPX parsing and course segmentation; the inference itself
-reuses the exact same path as the Race Results page (load ``model.pkl`` and
-call ``XGBoostRegressorModel.predict``), so the model process is untouched.
+reuses the exact same path as the Race Results page (load the user's active
+model from ``ai.model_store`` and call ``XGBoostRegressorModel.predict``), so the model process is untouched.
 
 Segments can be defined in several ways, which all edit the same list of
 interior split distances:
@@ -18,7 +18,6 @@ interior split distances:
 import logging
 import os
 
-import joblib
 import numpy as np
 import pandas as pd
 import altair as alt
@@ -31,6 +30,7 @@ from ai.xgboost import XGBoostRegressorModel
 from ai.gpx import (parse_gpx, build_profile, boundaries_to_segments,
                     even_cuts, normalize_cuts, FEATURE_COLUMNS)
 from ai.dem import dem_track, MIN_COVERAGE
+from ai.model_store import get_active_model_info, load_active_model, ModelLoadError
 
 logger = logging.getLogger(__name__)
 
@@ -240,9 +240,10 @@ def _run_prediction(prof):
     df = pd.DataFrame(rows)
     features = df[FEATURE_COLUMNS].copy()
 
+    model, _ = load_active_model(DB_PATH, st.session_state.get("user_id"))
     rgs = XGBoostRegressorModel(df=features.copy(), target_column=None,
                                 only_partials=False)
-    rgs.model = joblib.load(cfg.model_path)
+    rgs.model = model
     preds = rgs.predict(features, format="time")  # HH:MM:SS per segment
 
     seconds = [Features.get_seconds(p) for p in preds]
@@ -307,8 +308,8 @@ def main():
 
     _init_state()
 
-    # Gate on a model trained this session, exactly like the Race Results page.
-    if st.session_state.get("model_params") is None:
+    # Gate on the user's stored model, exactly like the Race Results page.
+    if get_active_model_info(DB_PATH, st.session_state.get("user_id")) is None:
         st.warning(
             "No AI model loaded. Head to **My Results**, find your results and "
             "train a model first — then come back to predict GPX courses."
@@ -435,9 +436,9 @@ def main():
         with st.spinner("Running the AI model..."):
             try:
                 _run_prediction(prof)
-            except FileNotFoundError:
-                st.error("Trained model file not found. Please (re)train on the "
-                         "My Results page.")
+            except (LookupError, ModelLoadError) as exc:
+                st.error(f"Could not load your model: {exc} Please (re)train "
+                         "it on the My Results page.")
             except Exception as exc:  # pragma: no cover - surfaced to the UI
                 logger.exception("GPX prediction failed")
                 st.error(f"Prediction failed: {exc}")

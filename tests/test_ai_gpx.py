@@ -83,6 +83,23 @@ class TestParseGpx(unittest.TestCase):
         track = parse_gpx(_gpx(pts))
         self.assertFalse(track.has_elevation)
 
+    def test_dtd_and_entities_are_rejected(self):
+        # "Billion laughs": entity expansion must never be attempted.
+        bomb = ('<?xml version="1.0"?><!DOCTYPE gpx ['
+                '<!ENTITY a "aaaaaaaaaa">'
+                '<!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">'
+                '<!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">]>'
+                '<gpx><trk><trkseg><trkpt lat="45" lon="6"><name>&c;</name>'
+                '</trkpt></trkseg></trk></gpx>')
+        with self.assertRaisesRegex(ValueError, "DTD"):
+            parse_gpx(bomb)
+        # External entities (XXE) as well.
+        xxe = ('<?xml version="1.0"?><!DOCTYPE gpx [<!ENTITY x SYSTEM '
+               '"file:///etc/passwd">]><gpx><wpt lat="45" lon="6"><name>&x;</name>'
+               '</wpt></gpx>')
+        with self.assertRaisesRegex(ValueError, "DTD"):
+            parse_gpx(xxe.encode())
+
     def test_invalid_xml_raises(self):
         with self.assertRaises(ValueError):
             parse_gpx("not xml at all <<<")

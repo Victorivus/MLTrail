@@ -52,7 +52,71 @@ class TestDatabase(unittest.TestCase):
         self.assertIn('control_points', table_names)
         self.assertIn('timing_points', table_names)
         self.assertIn('features', table_names)
+        self.assertIn('models', table_names)
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='index';")
+        index_names = {row[0] for row in cursor.fetchall()}
+        self.assertTrue({'features_event_race_bib', 'results_surname_lower',
+                         'models_one_active'} <= index_names)
         conn.close()
+
+    def test_create_models_table(self):
+        '''
+            The models table allows several versions but one active model per user
+        '''
+        conn = sqlite3.connect(self.db_path)
+        Database.create_models_table(conn)
+        Database.create_models_table(conn)  # idempotent
+        row = ("algo", 1, "[]", b"x", "sha", "skops")
+        insert = ("INSERT INTO models (user_id, is_active, algorithm, feature_schema_version, "
+                  "training_set, artifact, artifact_sha256, artifact_format) "
+                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+        conn.execute(insert, (1, 1) + row)
+        conn.execute(insert, (1, 0) + row)
+        conn.execute(insert, (2, 1) + row)
+        with self.assertRaises(sqlite3.IntegrityError):
+            conn.execute(insert, (1, 1) + row)
+        conn.close()
+
+    def test_ensure_indexes(self):
+        '''
+            Missing app indexes are created once; later runs are no-ops
+        '''
+        Database.create_database(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DROP INDEX features_event_race_bib")
+        conn.execute("DROP INDEX results_surname_lower")
+        conn.commit()
+        conn.close()
+
+        created = Database.ensure_indexes(self.db_path)
+        self.assertEqual(sorted(created), ['features_event_race_bib', 'results_surname_lower'])
+        self.assertEqual(Database.ensure_indexes(self.db_path), [])
+
+        conn = sqlite3.connect(self.db_path)
+        plan = " ".join(r[3] for r in conn.execute(
+            "EXPLAIN QUERY PLAN SELECT * FROM features "
+            "WHERE event_id = 1 AND race_id = 'r' AND bib = '1'"))
+        conn.close()
+        self.assertIn('features_event_race_bib', plan)
+
+    def test_migrate_existing_database(self):
+        '''
+            database.migrate upgrades a DB that predates models and indexes
+        '''
+        from database.migrate import migrate
+        Database.create_database(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DROP TABLE models")
+        conn.execute("DROP INDEX features_event_race_bib")
+        conn.commit()
+        conn.close()
+
+        self.assertEqual(migrate(self.db_path), ['features_event_race_bib'])
+        self.assertEqual(migrate(self.db_path), [])
+        conn = sqlite3.connect(self.db_path)
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        conn.close()
+        self.assertIn('models', tables)
 
     def test_empty_all_tables(self):
         '''

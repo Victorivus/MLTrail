@@ -33,6 +33,9 @@ def login_page(db_path: str):
             success, user = authenticate_user(db_path, username, password)
             if success:
                 st.success(f"Welcome, {user['username']}!")
+                # Start from a clean session so nothing from a previous user
+                # on this browser tab (results, training state, GPX) survives.
+                st.session_state.clear()
                 st.session_state['logged_in'] = True
                 st.session_state['username'] = user['username']
                 st.session_state['user_id'] = user['user_id']
@@ -52,5 +55,11 @@ def require_auth(db_path: str) -> bool:
         login_page(db_path)
         return False
 
-    st.sidebar.button("Logout", on_click=lambda: st.session_state.update({'logged_in': False}))
+    st.sidebar.button("Logout", on_click=logout)
     return True
+
+
+def logout():
+    """Drop the whole session, not just the login flag: user id, search
+    results, training state and GPX data must not leak to the next login."""
+    st.session_state.clear()

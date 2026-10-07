@@ -1,4 +1,8 @@
-"""Background model training service using threading."""
+"""Background model training service using threading.
+
+Trained models are saved per user in the app database (``ai.model_store``),
+so they survive refreshes/restarts and are never shared between users.
+"""
 import threading
 import logging
 import time
@@ -6,8 +10,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-import joblib
-import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ class TrainingState:
     status: TrainingStatus = TrainingStatus.IDLE
     progress_message: str = ""
     error_message: str = ""
-    model_params: Optional[dict] = None
+    model_id: Optional[int] = None  # id in the models table once saved
     start_time: Optional[float] = None
     end_time: Optional[float] = None
 
@@ -46,7 +48,7 @@ def _train_in_background(
     state: TrainingState,
     metadata_features: list,
     db_path: str,
-    model_save_path: str,
+    user_id: int,
 ) -> None:
     """Run model training in a background thread. Updates `state` as it progresses."""
     try:
@@ -59,6 +61,7 @@ def _train_in_background(
 
         from ai.features import Features
         from ai.xgboost import XGBoostRegressorModel
+        from ai.model_store import save_model
 
         feat = Features(metadata_features, db_path)
         data = feat.fetch_features_table().drop(columns=['id', 'race_id', 'event_id', 'bib'])
@@ -73,8 +76,12 @@ def _train_in_background(
 
         # Phase 3: Save
         state.progress_message = "Saving model..."
-        state.model_params = rgs.model.get_params()
-        joblib.dump(rgs.model, model_save_path)
+        state.model_id = save_model(
+            db_path, user_id, rgs.model,
+            training_set=metadata_features,
+            hyperparams=rgs.best_params,
+            metrics=rgs.metrics,
+        )
 
         state.status = TrainingStatus.COMPLETED
         state.end_time = time.time()
@@ -93,12 +100,12 @@ def start_background_training(
     state: TrainingState,
     metadata_features: list,
     db_path: str,
-    model_save_path: str,
+    user_id: int,
 ) -> threading.Thread:
     """Start training in a daemon thread. Returns the thread handle."""
     thread = threading.Thread(
         target=_train_in_background,
-        args=(state, metadata_features, db_path, model_save_path),
+        args=(state, metadata_features, db_path, user_id),
         daemon=True,
         name="ml-training",
     )
