@@ -17,6 +17,7 @@ from auth import require_auth
 from database.create_db import Database
 from database.catalog import data_freshness
 from ai.training_service import TrainingState, TrainingStatus, start_background_training
+from ai.model_store import get_active_model_info, deactivate_models
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +65,10 @@ def fetch_results(surname, first_name=None):
     else:
         if ',' in surname:
             surname, first_name = [part.strip() for part in surname.split(",")]
+        # Exact (case-insensitive) match: `=` lets SQLite use the
+        # results(lower(surname)) index; LIKE without wildcards can't.
         cursor.execute(
-            base_query + " WHERE LOWER(results.surname) LIKE ? AND LOWER(results.name) LIKE ?",
+            base_query + " WHERE LOWER(results.surname) = ? AND LOWER(results.name) = ?",
             (surname.lower(), first_name.lower()),
         )
 
@@ -150,8 +153,6 @@ def _data_freshness(db_path):
 
 def _init_session_state():
     st.session_state.setdefault('search_results_df', None)
-    st.session_state.setdefault('model_params', None)
-    st.session_state.setdefault('ai_trained_button_clicked', False)
     st.session_state.setdefault('training_state', TrainingState())
 
 
@@ -282,7 +283,17 @@ def _render_my_results_section(user_id):
     ]
 
 
-def _render_training_section(training_metadata):
+def _describe_model(info):
+    '''One-line, human summary of a stored model's provenance and accuracy.'''
+    parts = [f"trained {info['created_at']} UTC",
+             f"on {len(info.get('training_set') or [])} race(s)"]
+    mae = (info.get('metrics') or {}).get('holdout_mae_seconds')
+    if mae is not None:
+        parts.append(f"typical segment error ±{round(mae / 60):d} min")
+    return ", ".join(parts)
+
+
+def _render_training_section(training_metadata, user_id):
     st.header("AI Model Training")
     st.info(
         "The model learns from the *Train*-checked rows above. Accuracy "
@@ -291,15 +302,17 @@ def _render_training_section(training_metadata):
     )
     training_state = st.session_state.training_state
 
-    # Already trained → show status + reset option.
-    if st.session_state.model_params is not None:
+    # Already trained → show status + reset option. The model lives in the DB
+    # (per user), so this survives refreshes, new tabs and restarts.
+    active = get_active_model_info(DB_PATH, user_id)
+    if active is not None:
         st.success(
-            "Model trained! Head to **Race Results** to predict racing times. "
+            f"Model trained ({_describe_model(active)}). Head to **Race "
+            "Results** or **GPX Time Prediction** to predict racing times. "
             "Retrain at any time to include new additions or selection changes."
         )
         if st.button("Reset model"):
-            st.session_state.model_params = None
-            st.session_state.ai_trained_button_clicked = False
+            deactivate_models(DB_PATH, user_id)
             st.session_state.training_state = TrainingState()
             st.rerun()
 
@@ -313,8 +326,6 @@ def _render_training_section(training_metadata):
 
     if training_state.status == TrainingStatus.COMPLETED:
         st.success(training_state.progress_message)
-        st.session_state.model_params = training_state.model_params
-        st.session_state.ai_trained_button_clicked = True
         st.session_state.training_state = TrainingState()
         st.rerun()
         return
@@ -327,13 +338,13 @@ def _render_training_section(training_metadata):
         st.warning("Select at least one result in *My Results* to enable training.")
         return
 
-    label = "Retrain AI model" if st.session_state.model_params is not None else "Train AI model"
+    label = "Retrain AI model" if active is not None else "Train AI model"
     if st.button(label):
         start_background_training(
             state=training_state,
             metadata_features=training_metadata,
             db_path=DB_PATH,
-            model_save_path=cfg.model_path,
+            user_id=user_id,
         )
         st.rerun()
 
@@ -357,7 +368,7 @@ def main():
     st.divider()
     training_metadata = _render_my_results_section(user_id)
     st.divider()
-    _render_training_section(training_metadata)
+    _render_training_section(training_metadata, user_id)
 
 
 if __name__ == "__main__":

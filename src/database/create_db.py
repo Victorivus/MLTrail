@@ -12,8 +12,46 @@ logger = logging.getLogger(__name__)
 VALID_TABLES = frozenset({
     'users', 'events', 'races', 'results',
     'control_points', 'timing_points', 'features',
-    'user_results'
+    'user_results', 'models'
 })
+
+# Per-user trained models (see ai.model_store). The artifact is a skops blob.
+MODELS_TABLE_SQL = '''
+    CREATE TABLE IF NOT EXISTS models (
+        model_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'succeeded',
+        is_active INTEGER NOT NULL DEFAULT 0,
+        algorithm TEXT NOT NULL,
+        feature_schema_version INTEGER NOT NULL,
+        hyperparams TEXT,
+        metrics TEXT,
+        training_set TEXT NOT NULL,
+        library_versions TEXT,
+        artifact BLOB NOT NULL,
+        artifact_sha256 TEXT NOT NULL,
+        artifact_format TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+    )
+'''
+MODELS_INDEXES_SQL = (
+    # At most one active model per user.
+    "CREATE UNIQUE INDEX IF NOT EXISTS models_one_active "
+    "ON models(user_id) WHERE is_active = 1",
+    "CREATE INDEX IF NOT EXISTS models_user_created ON models(user_id, created_at)",
+)
+
+# Indexes for the app's hot queries on large tables. Building them on a full
+# DB takes ~20 s and holds a write lock, so they're applied by the one-off
+# `python -m database.migrate`, not on page load. Measured on the Oct 2026 DB:
+# features by (event_id, race_id, bib) 6.5 s -> 1 ms, by (event_id, race_id)
+# 3.7 s -> 53 ms; exact "surname, name" search 0.4 s -> ~0 ms.
+APP_INDEXES_SQL = (
+    "CREATE INDEX IF NOT EXISTS features_event_race_bib "
+    "ON features(event_id, race_id, bib)",
+    "CREATE INDEX IF NOT EXISTS results_surname_lower ON results(lower(surname))",
+)
 
 
 class Database:
@@ -175,6 +213,10 @@ class Database:
             )
         ''')
 
+        cls.create_models_table(conn)
+        for sql in APP_INDEXES_SQL:
+            cursor.execute(sql)
+
         # Commit changes and close connection
         conn.commit()
         conn.close()
@@ -237,6 +279,60 @@ class Database:
             conn.close()
         except sqlite3.Error as e:
             logger.error("Error ensuring user_results table: %s", e)
+
+    @staticmethod
+    def create_models_table(conn: Connection) -> None:
+        '''
+            Create the per-user `models` table and its indexes on an open
+            connection if missing (idempotent; caller commits).
+        '''
+        conn.execute(MODELS_TABLE_SQL)
+        for sql in MODELS_INDEXES_SQL:
+            conn.execute(sql)
+
+    @classmethod
+    def ensure_models_table(cls, path=None) -> None:
+        '''
+            Idempotent migration for existing DBs that predate the models table.
+        '''
+        if path:
+            cls.path = path
+        try:
+            conn = sqlite3.connect(cls.path)
+            with conn:
+                cls.create_models_table(conn)
+            conn.close()
+        except sqlite3.Error as e:
+            logger.error("Error ensuring models table: %s", e)
+
+    @classmethod
+    def ensure_indexes(cls, path=None) -> list:
+        '''
+            Create the app's query indexes if missing and refresh planner
+            statistics. Returns the names of the indexes it had to create.
+            Slow on a full DB (see APP_INDEXES_SQL) — run it from
+            `python -m database.migrate`, not from page code.
+        '''
+        if path:
+            cls.path = path
+        conn = sqlite3.connect(cls.path, timeout=60)
+        try:
+            existing = {r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'index'")}
+            created = []
+            for sql in APP_INDEXES_SQL:
+                name = sql.split(" EXISTS ", 1)[1].split()[0]
+                if name not in existing:
+                    logger.info("Creating index %s ...", name)
+                    conn.execute(sql)
+                    conn.commit()
+                    created.append(name)
+            if created:
+                conn.execute("ANALYZE")
+                conn.commit()
+            return created
+        finally:
+            conn.close()
 
     @classmethod
     def empty_all_tables(cls, path=None):

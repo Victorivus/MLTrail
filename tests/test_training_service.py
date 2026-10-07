@@ -11,7 +11,7 @@ class TestTrainingState(unittest.TestCase):
         self.assertEqual(state.status, TrainingStatus.IDLE)
         self.assertEqual(state.progress_message, "")
         self.assertEqual(state.error_message, "")
-        self.assertIsNone(state.model_params)
+        self.assertIsNone(state.model_id)
         self.assertIsNone(state.start_time)
         self.assertIsNone(state.end_time)
 
@@ -64,8 +64,8 @@ class TestTrainingStatusEnum(unittest.TestCase):
 class TestBackgroundTraining(unittest.TestCase):
     @patch('ai.features.Features')
     @patch('ai.xgboost.XGBoostRegressorModel')
-    @patch('ai.training_service.joblib')
-    def test_successful_training(self, mock_joblib, mock_model_cls, mock_features_cls):
+    @patch('ai.model_store.save_model', return_value=7)
+    def test_successful_training(self, mock_save, mock_model_cls, mock_features_cls):
         """Test that background training updates state correctly on success."""
         import pandas as pd
 
@@ -79,7 +79,6 @@ class TestBackgroundTraining(unittest.TestCase):
 
         # Mock Model
         mock_model_instance = MagicMock()
-        mock_model_instance.model.get_params.return_value = {'param1': 'value1'}
         mock_model_cls.return_value = mock_model_instance
 
         state = TrainingState()
@@ -87,12 +86,16 @@ class TestBackgroundTraining(unittest.TestCase):
             state=state,
             metadata_features=[(1, 'r1', 'b1')],
             db_path='test.db',
-            model_save_path='test_model.pkl',
+            user_id=3,
         )
 
         self.assertEqual(state.status, TrainingStatus.COMPLETED)
-        self.assertIsNotNone(state.model_params)
+        self.assertEqual(state.model_id, 7)
         self.assertIn("Training complete", state.progress_message)
+        # Saved for the training user, with the selection it was trained on.
+        args, kwargs = mock_save.call_args
+        self.assertEqual(args[:3], ('test.db', 3, mock_model_instance.model))
+        self.assertEqual(kwargs['training_set'], [(1, 'r1', 'b1')])
         self.assertIsNotNone(state.end_time)
 
     def test_failed_training(self):
@@ -104,7 +107,7 @@ class TestBackgroundTraining(unittest.TestCase):
                 state=state,
                 metadata_features=[(1, 'r1', 'b1')],
                 db_path='nonexistent.db',
-                model_save_path='test_model.pkl',
+                user_id=3,
             )
 
         self.assertEqual(state.status, TrainingStatus.FAILED)
@@ -113,8 +116,8 @@ class TestBackgroundTraining(unittest.TestCase):
 
     @patch('ai.features.Features')
     @patch('ai.xgboost.XGBoostRegressorModel')
-    @patch('ai.training_service.joblib')
-    def test_start_background_training_thread(self, mock_joblib, mock_model_cls, mock_features_cls):
+    @patch('ai.model_store.save_model', return_value=7)
+    def test_start_background_training_thread(self, mock_save, mock_model_cls, mock_features_cls):
         """Test that start_background_training returns a running thread."""
         import pandas as pd
 
@@ -126,7 +129,6 @@ class TestBackgroundTraining(unittest.TestCase):
         mock_features_cls.return_value = mock_feat_instance
 
         mock_model_instance = MagicMock()
-        mock_model_instance.model.get_params.return_value = {}
         mock_model_cls.return_value = mock_model_instance
 
         state = TrainingState()
@@ -134,7 +136,7 @@ class TestBackgroundTraining(unittest.TestCase):
             state=state,
             metadata_features=[(1, 'r1', 'b1')],
             db_path='test.db',
-            model_save_path='test_model.pkl',
+            user_id=3,
         )
 
         self.assertTrue(thread.is_alive() or state.status == TrainingStatus.COMPLETED)
